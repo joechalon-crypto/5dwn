@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021759";
-import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021759";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021803";
+import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021803";
 
 renderChrome("");
 
@@ -28,6 +28,8 @@ const TEAM_CELL = {
 const DARK_TEXT = new Set(["PIT", "LV", "NO"]);
 const NFL_SHIELD = "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png";
 const DAZN_LOGO = "assets/img/dazn.png";
+// Logo del sito (5 arancio) con "DWN" scuro per lo sfondo chiaro delle grafiche: ricavato da logo-5dwn.png.
+const BRAND_LOGO = "assets/img/logo-5dwn-grafiche.png";
 
 // Città delle partite internazionali (nome italiano, paese italiano).
 const INTL = {
@@ -384,7 +386,7 @@ function chrome(W, H, title, year, tz) {
     <div class="g-bar" style="left:44px;top:${149.2 + sd}px;width:25.4px;height:2.2px"></div>
     <div class="g-bar" style="left:${right - 21.6}px;top:${48.3 + sd}px;width:25.5px;height:2.2px"></div>
     ${T("year", String(year), right, 66.4 + sd, "right")}
-    ${T("brand", "5DWN", cx, 24.6 + t, "center")}
+    <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${cx - 64}px;top:${22.4 + t}px;width:128px;height:30.74px">
     ${T("week", title, cx, 66.4 + t, "center", { maxW: W - 2 * 200 })}
     ${T("sub", tpl === "results" ? "RISULTATI" : "ORARI ITALIA", cx, 182.4 + t, "center")}
     <div class="g-bar" style="left:44px;top:${1025.1 + f}px;width:25.4px;height:2.2px"></div>
