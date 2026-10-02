@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021929";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, currentWeekIndex } from "../api.js?v=202610021929";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021937";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, currentWeekIndex } from "../api.js?v=202610021937";
 
 renderChrome("");
 
@@ -88,7 +88,10 @@ const STYLES = {
   tsTime: { cls: "gt-ts-time", family: "Archivo", weight: 800, stretch: "normal", ref: ["22:05", 22, 86] },
   tsBye: { cls: "gt-ts-bye", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["BYE", 19.5, 43] },
   tsBadge: { cls: "gt-ts-badge", family: "Archivo", weight: 800, stretch: "normal", ref: ["L", 18.5, 10] },
-  tsFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["RECORD 0-3 · ORARI IN ORA ITALIANA", 12, 364] },
+  tsFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["TUTTI GLI ORARI IN ORA ITALIANA", 12, 328] },
+  tsQd: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO DOWN 2026", 12.5, 212] },
+  tsRecL: { cls: "gt-ts-rec", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["RECORD", 14, 68] },
+  tsRecV: { cls: "gt-ts-recv", family: "Archivo", weight: 900, stretch: "normal", ref: ["0-3", 18, 42] },
   // Template Giocatore ("NFL Player Performance-selection.png", 11064×6224 → 1920×1080)
   pName: { cls: "gt-p-name", family: "Archivo", weight: 900, stretch: "condensed", ref: ["JA'MARR CHASE", 111, 1113] },
   pVs: { cls: "gt-p-vs", family: "Archivo", weight: 400, stretch: "normal", ref: ["contro i Texans", 27, 262] },
@@ -1518,7 +1521,8 @@ const TS = {
   badge: { x: 13, y: 23, s: 36, cap: 33 }, scoreCap: 30, timeCap: 29, byeCap: 32,
   dash: { cx: 109.5, y: 39, w: 13, h: 5, gapL: 6, gapR: 8 },
   name: { cap: 74, groupCx: 950.5, gap: 49, logoBox: 135, logoCy: 116, maxW: 1240 },
-  cal: { cap: 188 }, brand: [895, 18.9, 130, 31.2],
+  cal: { cap: 193, groupCx: 968, gap: 39 }, brand: [895, 18.9, 130, 31.2],
+  rec: { top: 184.5, h: 39.5, labelW: 97, pad: 14.5, labelCap: 198, valCap: 196 },
 };
 const TS_BLUE = "#1e3fae";
 const BADGE = { W: "#1f9d4b", L: "#d62828", T: "#8a9097" };
@@ -1579,6 +1583,21 @@ function tsRow(ev, wk, x, y) {
   return html;
 }
 
+/** "CALENDARIO 2026" + box RECORD (blu) e valore (bianco), centrati come gruppo. */
+function recordGroup(record, year) {
+  const c = TS.cal, r = TS.rec;
+  const calText = `CALENDARIO ${year}`;
+  const calW = inkWidth("tsCal", calText), valW = inkWidth("tsRecV", record);
+  const whiteW = valW + 2 * r.pad;
+  const left = c.groupCx - (calW + c.gap + r.labelW + whiteW) / 2;
+  const nx = left + calW + c.gap, wx = nx + r.labelW;
+  return `${T("tsCal", calText, left, c.cap, "left")}
+    <div class="g-bar" style="left:${nx}px;top:${r.top}px;width:${r.labelW}px;height:${r.h}px;background:#0f1e3f"></div>
+    ${T("tsRecL", "RECORD", nx + r.labelW / 2, r.labelCap, "center", { color: "#ffffff" })}
+    <div class="g-bar" style="left:${wx}px;top:${r.top}px;width:${whiteW}px;height:${r.h}px;background:#ffffff"></div>
+    ${T("tsRecV", record, wx + whiteW / 2, r.valCap, "center", { color: "#0f1e3f" })}`;
+}
+
 function renderTeamStage(stage) {
   const { W, H, root } = stage;
   const { team, events } = teamSched;
@@ -1610,13 +1629,12 @@ function renderTeamStage(stage) {
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${TS.brand[0]}px;top:${TS.brand[1]}px;width:${TS.brand[2]}px;height:${TS.brand[3]}px">
       ${T("tsName", name, left, nm.cap, "left", { scale: k })}
       <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${team.abbr.toLowerCase()}.png`, 300)}" alt="" style="left:${left + nameW + nm.gap}px;top:${nm.logoCy - nm.logoBox / 2}px;width:${nm.logoBox}px;height:${nm.logoBox}px">
-      ${T("tsCal", `CALENDARIO ${year}`, W / 2, TS.cal.cap, "center")}
+      ${recordGroup(record, year)}
       ${rows}
-      ${rectBar([45, 1025, 25, 2.5], TS_BLUE)}
-      ${T("tsFoot", `RECORD ${record} · ORARI IN ORA ITALIANA`, 80, 1041, "left", { color: TS_BLUE })}
-      ${T("stInk", "QUINTO DOWN", 1872, 1008, "right", { scale: 1.0 })}
-      ${T("stInk", String(year), 1872, 1032, "right", { scale: 1.04 })}
-      ${rectBar([1850, 1060, 25, 3], TS_BLUE)}
+      ${T("tsFoot", "TUTTI GLI ORARI IN ORA ITALIANA", 45, 1026, "left", { color: TS_BLUE })}
+      ${rectBar([45, 1055, 25, 2.5], TS_BLUE)}
+      ${T("tsQd", `QUINTO DOWN ${year}`, 1872, 1026, "right")}
+      ${rectBar([1850, 1054, 25, 3], TS_BLUE)}
     </div>`;
   fitPreview(stage);
 }

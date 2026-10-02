@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <link rel="preconnect" href="https://site.api.espn.com" crossorigin>
   <link rel="preconnect" href="https://a.espncdn.com">
-  <link rel="stylesheet" href="assets/css/style.css?v=202610021929">
-  <link rel="stylesheet" href="assets/css/studio.css?v=202610021929">
+  <link rel="stylesheet" href="assets/css/style.css?v=202610021937">
+  <link rel="stylesheet" href="assets/css/studio.css?v=202610021937">
 </head>
 <body>
   <header id="site-header" class="site-header">
@@ -39,11 +39,11 @@
       <div class="studio-controls">
         <div class="segmented" id="tpl-toggle" role="group" aria-label="Tipo di grafica">
           <button type="button" data-tpl="calendar" aria-pressed="true">Calendario</button>
+          <button type="button" data-tpl="team" aria-pressed="false">Calendario squadra</button>
           <button type="button" data-tpl="results" aria-pressed="false">Risultati</button>
           <button type="button" data-tpl="standings" aria-pressed="false">Classifiche</button>
           <button type="button" data-tpl="game" aria-pressed="false">Partita</button>
           <button type="button" data-tpl="player" aria-pressed="false">Giocatore</button>
-          <button type="button" data-tpl="team" aria-pressed="false">Calendario squadra</button>
         </div>
         <div class="segmented" id="fmt-toggle" role="group" aria-label="Formato">
           <button type="button" data-fmt="wide" aria-pressed="true">16:9</button>
@@ -59,7 +59,7 @@
         </label>
         <label class="select-field team-only" hidden>
           <span class="select-label">Squadra</span>
-          <span class="select-wrap"><select id="team-select" class="select" aria-label="Squadra"></select></span>
+          <span class="select-wrap"><select id="team-select" class="select" aria-label="Squadra" autocomplete="off"></select></span>
         </label>
         <label class="select-field player-only" hidden>
           <span class="select-label">Giocatore</span>
@@ -165,6 +165,6 @@
   </main>
 
   <footer id="site-footer" class="site-footer"></footer>
-  <script type="module" src="assets/js/pages/studio.js?v=202610021929"></script>
+  <script type="module" src="assets/js/pages/studio.js?v=202610021937"></script>
 </body>
 </html>

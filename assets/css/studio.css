@@ -83,6 +83,8 @@
 .gt-ts-score { font-family: "Archivo", sans-serif; font-weight: 700; font-stretch: 87.5%; }
 .gt-ts-time { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: #111111; }
 .gt-ts-bye { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: #1a1a1a; }
+.gt-ts-rec { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
+.gt-ts-recv { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 100%; }
 .gt-ts-badge { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; }
 /* Template Giocatore */
 .gt-p-name { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 75%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
