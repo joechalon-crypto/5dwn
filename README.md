@@ -1,2 +1,233 @@
-# 5dwn
-5DWN (quintodwn) - Football more than a game. Sito NFL in italiano con dati live ESPN.
+# 5DWN — Football more than a game
+
+Sito statico di **5DWN (quintodwn)**, la pagina italiana di NFL.
+Niente backend, niente chiavi, nessun build: HTML + CSS + JavaScript che leggono
+in diretta l'API pubblica di ESPN dal browser.
+
+| Pagina | File | Dati |
+|---|---|---|
+| Home | `index.html` | banner settimana (scoreboard), classifica lampo (standings), ultimo reel |
+| Classifiche | `classifiche.html` | standings (conference + `?level=3` per le division) |
+| Calendario e Risultati | `calendario.html?w=2-4` | scoreboard per settimana (Week 1-18 + playoff) |
+| Playoff Picture | `playoff.html` | standings (`playoffSeed`) + scoreboard postseason |
+| Squadre | `squadre.html` | groups + standings |
+| Scheda squadra | `squadra.html?team=min` | team, roster, schedule (log partite), standings + `content/squadre.js` |
+| Profilo partita | `partita.html?id=401872964` | summary (+ calendari squadra per gli head-to-head) |
+| Profilo giocatore | `giocatore.html?id=8439` | athlete, stats, gamelog |
+
+`risultati.html` è rimasto solo come reindirizzamento a `calendario.html`, così i
+vecchi link continuano a funzionare.
+
+---
+
+## 1. Struttura
+
+```
+5dwn-sito/
+├── index.html, classifiche.html, calendario.html, playoff.html,
+│   squadre.html, squadra.html, partita.html, giocatore.html, 404.html
+│   (risultati.html = redirect)
+├── content/
+│   ├── sito.js        ← link social, payoff, ultimo reel
+│   ├── squadre.js     ← contenuti editoriali delle 32 squadre
+│   └── tv-italia.js   ← canali TV italiani (solo da palinsesto ufficiale)
+├── assets/
+│   ├── css/style.css  ← tema (colori del logo in :root)
+│   ├── img/           ← logo-5dwn.png, favicon.png
+│   └── js/
+│       ├── api.js     ← chiamate ESPN + cache
+│       ├── ui.js      ← header/footer, date in ora italiana, card partite
+│       └── pages/     ← uno script per pagina
+├── netlify.toml       ← config Netlify (nessun build)
+└── .nojekyll          ← per GitHub Pages
+```
+
+## 2. Cose da completare prima di pubblicare
+
+1. **Link YouTube e podcast**: apri `content/sito.js` e sostituisci i due URL
+   segnati con `TODO` (adesso puntano a una ricerca) con il link del canale
+   5DWN e quello del podcast «Play Action» (Spotify, Apple Podcasts…).
+2. **Ultimo reel** (home): in `content/sito.js`, blocco `ultimoReel`, incolla il
+   link del reel più recente (facoltativi titolo e copertina). Se lo lasci vuoto
+   la card porta alla pagina dei reel di @quintodwn.
+3. **TV in Italia**: in `content/tv-italia.js` aggiungi, partita per partita, il
+   canale preso dal palinsesto ufficiale DAZN (la chiave è l'ID nell'indirizzo
+   `partita.html?id=…`). Senza dato il sito mostra «In attesa del palinsesto
+   ufficiale DAZN» e non indovina mai il canale. Nelle card e nel banner, finché
+   manca il dato italiano, compare la rete USA fornita da ESPN (es. «USA FOX»).
+4. Facoltativo: controlla capienze stadi e anni di fondazione in
+   `content/squadre.js` (valori indicativi, da verificare).
+
+## 3. Modificare i contenuti editoriali
+
+Tutto in **`content/squadre.js`**, una voce per squadra con la sigla ESPN
+(`MIN`, `GB`, `KC`…). I Vikings hanno già un esempio completo da copiare.
+Campi disponibili (tutti facoltativi):
+
+```js
+MIN: {
+  fondazione: 1960,
+  stadio: { capienza: 66860 },        // nome e città arrivano già da ESPN
+  storia: ["Paragrafo 1…", "Paragrafo 2…"],   // ammesso HTML semplice (<em>, <strong>, <a>)
+  tappe: [{ anno: "1969", testo: "Campioni NFL" }],
+  palmares: [{ label: "Super Bowl disputati", valore: "4" }],
+  stagioni: [{ anno: 2025, record: "10-7", risultato: "Wild Card" }],
+  statistiche: [{ label: "Record all-time", valore: "…" }],
+  note: "Commento della redazione",
+},
+```
+
+Le sezioni vuote mostrano un segnaposto «in arrivo». Record, roster,
+head coach, calendario e statistiche della stagione si aggiornano da soli.
+
+> Attenzione alle virgolette: se un testo contiene `"`, usa le virgolette
+> italiane «…» o l'apostrofo tipografico ’.
+
+## 4. Provarlo sul tuo computer
+
+Serve un piccolo server locale (aprendo i file con doppio clic gli script non partono):
+
+```bash
+cd ~/"Library/Mobile Documents/com~apple~CloudDocs/5dwn-sito"
+```
+
+```bash
+python3 -m http.server 8000
+```
+
+Poi apri http://localhost:8000 nel browser. `Ctrl+C` nel terminale per fermarlo.
+
+## 5. Pubblicare gratis — opzione A: GitHub Pages
+
+1. Crea un account su https://github.com (se non ce l'hai).
+2. In alto a destra **+ → New repository**. Nome, ad esempio, `5dwn`.
+   Visibilità **Public**. Clicca **Create repository**.
+3. Nella pagina del repository vuoto clicca **uploading an existing file**,
+   trascina **il contenuto** della cartella `5dwn-sito` (i file e le cartelle
+   al suo interno, non la cartella stessa) e premi **Commit changes**.
+   - Il file `.nojekyll` è nascosto nel Finder: premi `Cmd+Shift+.` per vederlo
+     e trascinalo insieme agli altri. Oppure usa git dal terminale:
+     ```bash
+     cd ~/"Library/Mobile Documents/com~apple~CloudDocs/5dwn-sito"
+     git init && git add . && git commit -m "Sito 5DWN"
+     git branch -M main
+     git remote add origin https://github.com/TUO-UTENTE/5dwn.git
+     git push -u origin main
+     ```
+4. Nel repository: **Settings → Pages**. In *Build and deployment* scegli
+   **Source: Deploy from a branch**, **Branch: `main`**, cartella **`/ (root)`**, **Save**.
+5. Dopo 1–2 minuti il sito è online su `https://TUO-UTENTE.github.io/5dwn/`.
+6. Per aggiornare: carica di nuovo i file modificati (o `git push`); GitHub ripubblica da solo.
+
+**Dominio personalizzato (dopo)** — es. `quintodwn.it`:
+
+1. **Settings → Pages → Custom domain**: scrivi `www.quintodwn.it` e **Save**
+   (GitHub crea da solo il file `CNAME` nel repository).
+2. Dal pannello DNS del tuo registrar (Aruba, Register.it, GoDaddy…):
+   - record **CNAME**: host `www` → `TUO-UTENTE.github.io`
+   - record **A** per il dominio senza www (`@`), quattro righe:
+     `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
+3. Quando GitHub ha verificato il DNS (da pochi minuti a qualche ora) spunta
+   **Enforce HTTPS**.
+
+## 6. Pubblicare gratis — opzione B: Netlify
+
+**Il modo più veloce (senza GitHub):**
+
+1. Vai su https://app.netlify.com/drop e accedi (anche con Google/GitHub).
+2. Trascina la cartella `5dwn-sito` nella pagina. In pochi secondi hai un
+   indirizzo tipo `https://nome-casuale.netlify.app`.
+3. **Site configuration → Change site name** per avere ad es. `quintodwn.netlify.app`.
+4. Per aggiornare: **Deploys →** trascina di nuovo la cartella.
+
+**Con aggiornamento automatico da GitHub (consigliato a regime):**
+
+1. Carica il sito su GitHub (passi 1–3 dell'opzione A).
+2. Su Netlify: **Add new site → Import an existing project → GitHub** →
+   scegli il repository.
+3. *Build command*: lascia **vuoto**. *Publish directory*: **`.`**
+   (sono già impostati in `netlify.toml`). **Deploy**.
+4. Ogni modifica caricata su GitHub viene pubblicata in automatico.
+
+**Dominio personalizzato (dopo):**
+
+1. **Domain management → Add a domain** → `quintodwn.it` → segui la procedura.
+2. Nel DNS del registrar:
+   - record **CNAME**: host `www` → `NOME-SITO.netlify.app`
+   - record **A** per `@` → `75.2.60.5`
+   (in alternativa puoi delegare i nameserver a Netlify DNS, come proposto dalla procedura).
+3. Il certificato HTTPS (Let's Encrypt) viene attivato da Netlify in automatico.
+
+## 7. Dati, aggiornamento automatico e cache
+
+Endpoint ESPN usati (JSON pubblico e gratuito, chiamato direttamente dal browser):
+
+- `site.web.api.espn.com/apis/v2/sports/football/nfl/standings` (+ `?level=3`)
+- `site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard` (+ `?seasontype=&week=&dates=`)
+- `site.api.espn.com/apis/site/v2/sports/football/nfl/groups`
+- `site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{ID}` · `/roster` · `/schedule` (+ `?season=&seasontype=`)
+- `site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event={ID}` — profilo partita:
+  punteggio per quarti, statistiche, box score, scoring plays, forma recente, infortuni
+- `site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes/{ID}` · `/stats` · `/gamelog`
+
+**Head-to-head:** il summary ESPN non li fornisce, quindi il profilo partita li
+ricostruisce dai calendari della squadra di casa nelle ultime 6 stagioni
+(regular season + playoff), con il conteggio vittorie. Le stagioni concluse
+restano in cache 30 giorni. Il numero di stagioni si cambia in
+`assets/js/pages/partita.js` (`H2H_SEASONS`).
+
+**Infortuni:** arrivano dall'injury report ESPN incluso nel summary della partita
+(l'endpoint `/injuries` globale pesa quasi 9 MB, troppo per il browser).
+
+**Highlights:** per le partite finite c'è un link alla ricerca sul canale YouTube
+ufficiale NFL (`youtube.com/@NFL`) con squadre, anno e settimana. Senza chiave
+YouTube non si può conoscere in anticipo l'ID esatto del video.
+
+**Nota su `/teams`:** l'elenco `…/nfl/teams` funziona da terminale ma **ESPN non
+invia l'header CORS**, quindi i browser lo bloccano. Il sito usa `/groups`
+(stesse squadre, stessi loghi ufficiali, CORS abilitato) e i colori ufficiali
+ESPN salvati in `assets/js/api.js`. La scheda squadra legge comunque i colori live
+da `/teams/{ID}`, che invece funziona.
+
+**Cache leggera** (`assets/js/api.js`, oggetto `TTL`): ogni risposta, già
+alleggerita, viene salvata in memoria e nel `localStorage` del visitatore.
+
+| Dato | Validità cache |
+|---|---|
+| Scoreboard con partite in corso | 1 min |
+| Scoreboard settimana corrente | 3 min |
+| Settimane concluse | 6 ore |
+| Classifiche | 10 min |
+| Calendario squadra | 15 min |
+| Scheda squadra | 1 ora |
+| Roster | 12 ore |
+| Elenco squadre | 24 ore |
+| Profilo partita in corso / da giocare / finita | 30 s / 10 min / 24 ore |
+| Profilo giocatore · statistiche · game log | 12 ore · 6 ore · 1 ora |
+| Calendari delle stagioni passate (head-to-head) | 30 giorni |
+
+Le pagine si ricontrollano da sole (ogni 30 secondi il profilo di una partita in
+corso, ogni minuto Home e Calendario, ogni 5 minuti
+Classifiche e Playoff) solo mentre la scheda del browser è visibile. Se ESPN non
+risponde viene mostrato l'ultimo dato salvato con un avviso; senza dati salvati
+compare un messaggio d'errore con il pulsante **Riprova**.
+
+Tutti gli orari sono convertiti nel fuso **Europe/Rome** (ora legale inclusa).
+
+## 8. Personalizzare la grafica
+
+Colori in cima a `assets/css/style.css`:
+
+```css
+--orange: #f7b263;   /* il "5" del logo */
+--navy-900: #0a1730; /* sfondo */
+```
+
+Il logo è `assets/img/logo-5dwn.png` (versione arancio + bianco su trasparente):
+per cambiarlo basta sostituire il file mantenendo lo stesso nome.
+
+---
+
+Dati e loghi delle squadre © ESPN / NFL e rispettivi proprietari. L'API ESPN non
+è ufficialmente documentata: se un giorno cambiasse formato, gli adattamenti
+vanno fatti solo in `assets/js/api.js`.

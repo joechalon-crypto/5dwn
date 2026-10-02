@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>5DWN · Football more than a game</title>
+  <meta name="description" content="5DWN (quintodwn) è la pagina italiana di NFL: risultati, classifiche, playoff picture e schede delle 32 squadre.">
+  <meta name="theme-color" content="#0a1730">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="5DWN">
+  <meta property="og:title" content="5DWN · Football more than a game">
+  <meta property="og:description" content="5DWN (quintodwn) è la pagina italiana di NFL: risultati, classifiche, playoff picture e schede delle 32 squadre.">
+  <meta property="og:image" content="assets/img/logo-5dwn.png">
+  <link rel="icon" href="assets/img/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+  <link rel="preconnect" href="https://site.api.espn.com" crossorigin>
+  <link rel="preconnect" href="https://a.espncdn.com">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <!-- 1. Banner settimana corrente (striscia risultati, stile ESPN) -->
+  <section class="ticker" id="ticker" aria-label="Partite della settimana">
+    <div class="ticker-head"><span class="ticker-week" id="ticker-week">NFL</span></div>
+    <div class="ticker-track" id="ticker-track"><div class="ticker-empty">Caricamento partite…</div></div>
+    <button class="ticker-nav prev" type="button" aria-label="Scorri indietro">‹</button>
+    <button class="ticker-nav next" type="button" aria-label="Scorri avanti">›</button>
+  </section>
+
+  <header id="site-header" class="site-header">
+    <div class="container bar"><a class="brand" href="index.html"><img src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293"></a></div>
+  </header>
+
+  <main>
+    <!-- 2. Hero -->
+    <section class="hero">
+      <div class="container">
+        <h1 class="visually-hidden">5DWN</h1>
+        <img class="hero-logo" src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293">
+        <p class="payoff">Football <strong>more than a game</strong></p>
+        <p class="sub">La NFL raccontata in italiano: risultati, classifiche, playoff picture e tutte le 32 squadre, aggiornati in tempo reale.</p>
+        <div class="cta" id="cta"></div>
+        <div class="yardline" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <div class="container">
+      <!-- 3. Classifica lampo -->
+      <section class="section">
+        <div class="section-head">
+          <div><span class="eyebrow" id="leaders-label">Leader di division</span><h2>Classifica lampo</h2></div>
+          <a class="link-more" href="classifiche.html#division">Classifiche complete →</a>
+        </div>
+        <div id="leaders"></div>
+      </section>
+
+      <!-- 4. Ultimo reel -->
+      <section class="section">
+        <div class="section-head"><h2>Ultimo reel</h2></div>
+        <div id="reel"></div>
+      </section>
+    </div>
+  </main>
+  <footer id="site-footer" class="site-footer"></footer>
+  <noscript><div class="container state">Per vedere risultati e classifiche aggiornati attiva JavaScript.</div></noscript>
+  <script type="module" src="assets/js/pages/home.js"></script>
+</body>
+</html>

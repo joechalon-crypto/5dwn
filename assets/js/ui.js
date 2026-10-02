@@ -1,0 +1,272 @@
+// ============================================================================
+// UI condivisa: header, footer, stati di caricamento/errore, formattazione.
+// ============================================================================
+
+import { SITO } from "../../content/sito.js";
+import { TV_ITALIA, TV_ITALIA_PLACEHOLDER } from "../../content/tv-italia.js";
+
+export const TZ = "Europe/Rome";
+
+const NAV = [
+  { href: "index.html", label: "Home", id: "home" },
+  { href: "classifiche.html", label: "Classifiche", id: "classifiche" },
+  { href: "calendario.html", label: "Calendario e Risultati", id: "calendario" },
+  { href: "playoff.html", label: "Playoff Picture", id: "playoff" },
+  { href: "squadre.html", label: "Squadre", id: "squadre" },
+];
+
+export const ICONS = {
+  instagram:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+  youtube:
+    '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.8 15.1V8.9l5.8 3.1-5.8 3.1Z"/></svg>',
+  podcast:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+};
+
+export function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+// ---------------------------------------------------------------------------
+// Header / footer
+// ---------------------------------------------------------------------------
+
+export function renderChrome(active) {
+  const header = document.getElementById("site-header");
+  if (header) {
+    header.className = "site-header";
+    header.innerHTML = `
+      <div class="container bar">
+        <a class="brand" href="index.html" aria-label="5DWN — Home">
+          <img src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293">
+        </a>
+        <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Apri menu">${ICONS.menu}</button>
+        <nav class="site-nav" id="site-nav" aria-label="Navigazione principale">
+          <ul>${NAV.map(
+            (n) => `<li><a href="${n.href}"${n.id === active ? ' aria-current="page"' : ""}>${n.label}</a></li>`
+          ).join("")}</ul>
+        </nav>
+      </div>`;
+    const btn = header.querySelector(".nav-toggle");
+    const nav = header.querySelector(".site-nav");
+    btn.addEventListener("click", () => {
+      const open = nav.classList.toggle("open");
+      btn.setAttribute("aria-expanded", String(open));
+      btn.innerHTML = open ? ICONS.close : ICONS.menu;
+    });
+  }
+
+  const footer = document.getElementById("site-footer");
+  if (footer) {
+    const s = SITO.social;
+    footer.className = "site-footer";
+    footer.innerHTML = `
+      <div class="container">
+        <div class="grid">
+          <div>
+            <img src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293">
+            <p class="payoff">${esc(SITO.payoff)}</p>
+            <p>${esc(SITO.descrizione)}</p>
+          </div>
+          <div>
+            <strong>Sezioni</strong>
+            <ul>${NAV.map((n) => `<li><a href="${n.href}">${n.label}</a></li>`).join("")}</ul>
+          </div>
+          <div>
+            <strong>Seguici</strong>
+            <ul>
+              <li><a href="${s.instagram.url}" target="_blank" rel="noopener">Instagram ${esc(s.instagram.handle)}</a></li>
+              <li><a href="${s.youtube.url}" target="_blank" rel="noopener">YouTube · ${esc(s.youtube.handle)}</a></li>
+              <li><a href="${s.podcast.url}" target="_blank" rel="noopener">Podcast · ${esc(s.podcast.handle)}</a></li>
+            </ul>
+          </div>
+        </div>
+        <p class="legal">© ${new Date().getFullYear()} 5DWN · quintodwn. Dati e loghi delle squadre: ESPN / NFL, di proprietà dei rispettivi titolari. Sito non affiliato alla NFL.</p>
+      </div>`;
+  }
+
+  // Loghi: se la variante "dark" non esiste, ripiega sulla versione standard.
+  document.addEventListener(
+    "error",
+    (e) => {
+      const img = e.target;
+      if (img.tagName === "IMG" && img.dataset.fallback && !img.dataset.failed) {
+        img.dataset.failed = "1";
+        img.src = img.dataset.fallback;
+      }
+    },
+    true
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Immagini ESPN ridimensionate (molto più leggere dei PNG 500px originali)
+// ---------------------------------------------------------------------------
+
+export function espnImg(href, w, h = w) {
+  if (!href) return "";
+  const m = href.match(/^https:\/\/a\.espncdn\.com(\/i\/.+\.png)$/);
+  if (!m) return href;
+  return `https://a.espncdn.com/combiner/i?img=${m[1]}&w=${w}&h=${h}&transparent=true`;
+}
+
+export function teamLogo(team, size = 28, cls = "logo", eager = false) {
+  if (!team) return "";
+  const px = Math.round(size * 2);
+  return `<img class="${cls}" src="${espnImg(team.logo, px)}" data-fallback="${esc(team.logoLight || team.logo)}" width="${size}" height="${size}" alt="${esc(team.short || team.abbr)}" loading="${eager ? "eager" : "lazy"}">`;
+}
+
+export const teamHref = (team) => `squadra.html?team=${encodeURIComponent((team.abbr || team.id).toLowerCase())}`;
+export const gameHref = (id) => `partita.html?id=${encodeURIComponent(id)}`;
+export const playerHref = (id) => `giocatore.html?id=${encodeURIComponent(id)}`;
+
+/** Canale TV italiano solo se inserito a mano da fonte ufficiale (content/tv-italia.js). */
+export const tvItalia = (id) => TV_ITALIA[String(id)] || null;
+export const TV_PLACEHOLDER = TV_ITALIA_PLACEHOLDER;
+
+/** Etichetta TV breve per card e banner: Italia se nota, altrimenti la rete USA (dato ESPN). */
+export function tvLabel(g) {
+  const it = tvItalia(g.id);
+  if (it) return `TV ${it}`;
+  return g.tv ? `USA ${g.tv}` : "";
+}
+
+// ---------------------------------------------------------------------------
+// Stati
+// ---------------------------------------------------------------------------
+
+export function loading(el, msg = "Caricamento dati in corso…") {
+  el.innerHTML = `<div class="state" role="status"><div class="spinner"></div>${esc(msg)}</div>`;
+}
+
+export function showError(el, retry, msg = "Non riusciamo a caricare i dati in questo momento.") {
+  el.innerHTML = `<div class="state error" role="alert">
+      <span class="label">Errore di caricamento</span>
+      <p><strong>${esc(msg)}</strong><br>Controlla la connessione o riprova tra qualche istante.</p>
+      ${retry ? '<button class="btn btn-primary" type="button">Riprova</button>' : ""}
+    </div>`;
+  if (retry) el.querySelector("button").addEventListener("click", retry);
+}
+
+export function staleNotice(res) {
+  return res?.stale
+    ? `<div class="notice">Connessione con ESPN non disponibile: stai vedendo gli ultimi dati salvati (${esc(fmtUpdated(res.fetchedAt))}).</div>`
+    : "";
+}
+
+export function updatedLine(res) {
+  return `<p class="updated">Dati ESPN aggiornati alle ${esc(fmtUpdated(res.fetchedAt))} · si aggiornano automaticamente.</p>`;
+}
+
+// ---------------------------------------------------------------------------
+// Date in ora italiana
+// ---------------------------------------------------------------------------
+
+const fmt = (opts) => new Intl.DateTimeFormat("it-IT", { timeZone: TZ, ...opts });
+const fDay = fmt({ weekday: "long", day: "numeric", month: "long" });
+const fShort = fmt({ weekday: "short", day: "numeric", month: "short" });
+const fTime = fmt({ hour: "2-digit", minute: "2-digit" });
+const fKey = fmt({ year: "numeric", month: "2-digit", day: "2-digit" });
+
+export const fmtDay = (d) => fDay.format(new Date(d));
+export const fmtShort = (d) => fShort.format(new Date(d));
+export const fmtTime = (d) => fTime.format(new Date(d));
+export const dayKey = (d) => fKey.format(new Date(d));
+export const fmtUpdated = (t) => fmt({ hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" }).format(new Date(t));
+
+const ROUND_IT = {
+  "Hall of Fame Weekend": "Hall of Fame Game",
+  "Wild Card": "Wild Card Round",
+  "Divisional Round": "Divisional Round",
+  "Conference Championship": "Conference Championship",
+  "Super Bowl": "Super Bowl",
+};
+const fDM = fmt({ day: "numeric", month: "short" });
+/** "6–15 set": intervallo della settimana in ora italiana. */
+export function weekRange(entry) {
+  if (!entry?.start) return "";
+  const a = new Date(entry.start);
+  const b = new Date(new Date(entry.end).getTime() - 12 * 3600 * 1000);
+  return `${fDM.format(a)} – ${fDM.format(b)}`;
+}
+
+const ROUND_SHORT = { "Wild Card": "Wild Card", "Divisional Round": "Divisional", "Conference Championship": "Conf. Champ.", "Super Bowl": "Super Bowl" };
+export const weekShort = (entry) => ROUND_SHORT[entry?.label] || entry?.label || "";
+
+export function weekLabel(entry) {
+  if (!entry) return "";
+  if (ROUND_IT[entry.label]) return ROUND_IT[entry.label];
+  if (entry.seasonType === 1) return entry.label.replace("Preseason Week", "Preseason · Week");
+  return entry.label;
+}
+
+// ---------------------------------------------------------------------------
+// Card partita
+// ---------------------------------------------------------------------------
+
+export function statusText(g) {
+  if (g.state === "pre") return { text: `${fmtShort(g.date)} · ${fmtTime(g.date)}`, cls: "" };
+  if (g.state === "in") {
+    const q = g.period > 4 ? "OT" : `Q${g.period}`;
+    const txt = /half/i.test(g.detail) ? "Intervallo" : `${q} · ${g.clock}`;
+    return { text: `LIVE · ${txt}`, cls: "live" };
+  }
+  if (/postponed/i.test(g.statusName)) return { text: "Rinviata", cls: "" };
+  if (/canceled/i.test(g.statusName)) return { text: "Annullata", cls: "" };
+  return { text: /OT/.test(g.detail) ? "Finale (OT)" : "Finale", cls: "" };
+}
+
+function teamRow(c, g) {
+  if (!c) return "";
+  const done = g.state === "post";
+  const cls = done ? (c.winner ? "winner" : g.home?.winner || g.away?.winner ? "loser" : "") : "";
+  const score = g.state === "pre" ? "" : (c.score ?? "");
+  return `<div class="game-team ${cls}">
+      ${teamLogo(c.team, 28)}
+      <span class="name"><span>${esc(c.team.short)}</span>${c.record ? `<small>${esc(c.record)}</small>` : ""}</span>
+      <span class="score">${score}</span>
+    </div>`;
+}
+
+export function gameCard(g) {
+  const st = statusText(g);
+  const where = g.venue ? `${g.venue.name}${g.venue.city ? `, ${g.venue.city}` : ""}` : "";
+  const right = g.state === "pre" ? esc(tvLabel(g)) : esc(fmtShort(g.date));
+  return `<a class="game" href="${gameHref(g.id)}" aria-label="${esc(`${g.away?.team.name} - ${g.home?.team.name}: profilo partita`)}">
+      <div class="game-meta"><span class="status ${st.cls}">${esc(st.text)}</span><span>${right}</span></div>
+      ${teamRow(g.away, g)}
+      ${teamRow(g.home, g)}
+      ${where || g.note ? `<div class="game-foot"><span>${esc(g.note || "")}${g.note && where ? " · " : ""}${esc(where)}</span>${g.neutral ? "<span>Campo neutro</span>" : ""}</div>` : ""}
+    </a>`;
+}
+
+export function groupByDay(games) {
+  const map = new Map();
+  for (const g of games) {
+    const k = dayKey(g.date);
+    if (!map.has(k)) map.set(k, { label: fmtDay(g.date), games: [] });
+    map.get(k).games.push(g);
+  }
+  return [...map.values()];
+}
+
+export function renderDayGroups(games) {
+  return groupByDay(games)
+    .map((d) => `<div class="day-group"><h3>${esc(d.label)}</h3><div class="games-grid">${d.games.map(gameCard).join("")}</div></div>`)
+    .join("");
+}
+
+/** Esegue fn ogni `ms` solo quando la pagina è visibile. */
+export function every(ms, fn) {
+  let id = null;
+  const start = () => { if (!id) id = setInterval(fn, ms); };
+  const stop = () => { clearInterval(id); id = null; };
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stop();
+    else { fn(); start(); }
+  });
+  start();
+}
