@@ -49,7 +49,6 @@
 .gt-vs { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: var(--g-blue); }
 .gt-band { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: var(--g-band-ink); }
 .gt-gp { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-blue); }
-.gt-dazn { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: var(--g-dark); }
 
 .g-bar { position: absolute; background: var(--g-blue); }
 .g-sep { position: absolute; height: 1.5px; background: var(--g-sep); }
@@ -57,6 +56,5 @@
 .g-white { background: #ffffff; }
 .g-band { position: absolute; background: var(--g-band); }
 .g-logo { position: absolute; object-fit: contain; }
-.g-dazn { position: absolute; border: 3.9px solid var(--g-dark); }
 .g-tv { cursor: pointer; }
 .g-tv:hover { outline: 3px solid var(--orange); outline-offset: -3px; }

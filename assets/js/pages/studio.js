@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021731";
-import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021731";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021733";
+import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021733";
 
 renderChrome("");
 
@@ -27,6 +27,7 @@ const TEAM_CELL = {
 };
 const DARK_TEXT = new Set(["PIT", "LV", "NO"]);
 const NFL_SHIELD = "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png";
+const DAZN_LOGO = "assets/img/dazn.png";
 
 // Città delle partite internazionali (nome italiano, paese italiano).
 const INTL = {
@@ -55,7 +56,6 @@ const STYLES = {
   vs: { cls: "gt-vs", family: "Archivo", weight: 800, stretch: "normal", ref: ["VS", 14.3, 28.5] },
   band: { cls: "gt-band", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INTERNATIONAL GAME — LONDRA, REGNO UNITO", 15.6, 375.6] },
   gp: { cls: "gt-gp", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["GAME", 15.1, 41.0] },
-  dazn: { cls: "gt-dazn", family: "Archivo", weight: 800, stretch: "normal", ref: ["DA", 12.6, 21.5] },
 };
 
 const ctx = document.createElement("canvas").getContext("2d");
@@ -194,11 +194,9 @@ function tvCell(g, x, y) {
   const kind = tvFor(g);
   let inner;
   if (kind === "dazn") {
+    // Logo ufficiale DAZN (assets/img/dazn.png, ricavato da DAZN_BoxedLogo_02_RGB.png con fondo trasparente)
     const box = 43.5;
-    const bx = left + (w - box) / 2, by = y + (G.rowH - box) / 2;
-    inner = `<div class="g-dazn" style="left:${bx}px;top:${by}px;width:${box}px;height:${box}px"></div>
-      ${T("dazn", "DA", bx + box / 2, by + 9.6, "center")}
-      ${T("dazn", "ZN", bx + box / 2, by + 24.6, "center")}`;
+    inner = `<img class="g-logo" src="${DAZN_LOGO}" alt="DAZN" style="left:${left + (w - box) / 2}px;top:${y + (G.rowH - box) / 2}px;width:${box}px;height:${box}px">`;
   } else {
     // nfl.png di ESPN è 500×500 con lo scudo alto 477 px: riquadro di 30,7 px per uno scudo alto 29,3 px
     inner = `<img class="g-logo" crossorigin="anonymous" src="${NFL_SHIELD}" alt="" style="left:${left + 20.8}px;top:${y + 14.4}px;width:30.7px;height:30.7px">
@@ -437,7 +435,7 @@ async function drawStage(stage) {
   c.drawImage(bg, 0, 0, W, H);
 
   // 2) elementi nell'ordine del documento (rettangoli, loghi, testi)
-  const els = root.querySelectorAll(".g-cell, .g-band, .g-bar, .g-sep, .g-dazn, img, .gt");
+  const els = root.querySelectorAll(".g-cell, .g-band, .g-bar, .g-sep, img, .gt");
   for (const el of els) {
     const b = box(el);
     const cs = getComputedStyle(el);
