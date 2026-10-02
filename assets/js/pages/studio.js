@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021916";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, currentWeekIndex } from "../api.js?v=202610021916";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021929";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, currentWeekIndex } from "../api.js?v=202610021929";
 
 renderChrome("");
 
@@ -21,6 +21,7 @@ const stages = {
   nfcTall: { root: document.getElementById("gfx-nfc-tall"), wrap: document.getElementById("preview-nfc-tall"), W: 1080, H: 1920 },
   game: { root: document.getElementById("gfx-game"), wrap: document.getElementById("preview-game"), W: 1920, H: 1080 },
   gameTall: { root: document.getElementById("gfx-game-tall"), wrap: document.getElementById("preview-game-tall"), W: 1080, H: 1920 },
+  team: { root: document.getElementById("gfx-team"), wrap: document.getElementById("preview-team"), W: 1920, H: 1080 },
   player: { root: document.getElementById("gfx-player"), wrap: document.getElementById("preview-player"), W: 1920, H: 1080 },
 };
 
@@ -76,6 +77,18 @@ const STYLES = {
   stInk: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO", 13.5, 78.2] },
   stFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["AMERICAN FOOTBALL CONFERENCE", 13.5, 414.6] },
   // Template "Partita della settimana" (misurato su "NFL Game of the Week-selection (1).png")
+  // Template Calendario squadra ("NFL Team Schedule-selection.png", 10984×6180 → 1920×1080)
+  tsName: { cls: "gt-ts-name", family: "Archivo", weight: 800, stretch: "normal", ref: ["MIAMI DOLPHINS", 84, 1051] },
+  tsCal: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["CALENDARIO 2026", 21, 519] },
+  tsWeek: { cls: "gt-ts-week", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["W10", 20, 42] },
+  tsDate: { cls: "gt-ts-date", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["DOM 13/09", 18, 91] },
+  tsCity: { cls: "gt-ts-city", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INDIANAPOLIS", 17, 114] },
+  tsNick: { cls: "gt-ts-nick", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["RAIDERS", 20, 83] },
+  tsScore: { cls: "gt-ts-score", family: "Archivo", weight: 700, stretch: "semi-condensed", ref: ["27", 21, 30] },
+  tsTime: { cls: "gt-ts-time", family: "Archivo", weight: 800, stretch: "normal", ref: ["22:05", 22, 86] },
+  tsBye: { cls: "gt-ts-bye", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["BYE", 19.5, 43] },
+  tsBadge: { cls: "gt-ts-badge", family: "Archivo", weight: 800, stretch: "normal", ref: ["L", 18.5, 10] },
+  tsFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["RECORD 0-3 · ORARI IN ORA ITALIANA", 12, 364] },
   // Template Giocatore ("NFL Player Performance-selection.png", 11064×6224 → 1920×1080)
   pName: { cls: "gt-p-name", family: "Archivo", weight: 900, stretch: "condensed", ref: ["JA'MARR CHASE", 111, 1113] },
   pVs: { cls: "gt-p-vs", family: "Archivo", weight: 400, stretch: "normal", ref: ["contro i Texans", 27, 262] },
@@ -175,7 +188,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -189,12 +202,15 @@ function applyVisibility() {
     if (el.classList.contains("tpl-std")) ok = tpl === "standings" && el.dataset.fmt === fmt;
     else if (el.classList.contains("tpl-game")) ok = tpl === "game" && el.dataset.fmt === fmt;
     else if (el.classList.contains("tpl-player")) ok = tpl === "player"; // per ora solo 16:9
+    else if (el.classList.contains("tpl-team")) ok = tpl === "team"; // per ora solo 16:9
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
     el.hidden = !ok;
   });
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
   document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
-  document.getElementById("fmt-toggle").hidden = tpl === "player";
+  document.getElementById("fmt-toggle").hidden = tpl === "player" || tpl === "team";
+  document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
+  weekSelect.closest(".select-field").hidden = tpl === "team";
   document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
   Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
 }
@@ -481,6 +497,10 @@ function fitPreview(stage) {
 }
 
 function renderAll() {
+  if (tpl === "team") {
+    if (teamSched) renderTeamStage(stages.team);
+    return;
+  }
   if (tpl === "player") {
     if (gameData && playerSel) renderPlayerStage(stages.player);
     return;
@@ -687,6 +707,10 @@ const gameFile = (f) => {
   return `5dwn-partita-${gameData.away.team.abbr.toLowerCase()}-${gameData.home.team.abbr.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}-${f}.png`;
 };
 document.getElementById("dl-game").addEventListener("click", () => gameData && exportPng(stages.game, gameFile("16x9")));
+document.getElementById("dl-team").addEventListener("click", () => {
+  if (!teamSched) return;
+  exportPng(stages.team, `5dwn-calendario-${teamSched.team.abbr.toLowerCase()}-${sb.season.year}.png`);
+});
 document.getElementById("dl-player").addEventListener("click", () => {
   if (!gameData || !playerSel) return;
   const e = weeks.find((x) => keyOf(x) === selectedKey);
@@ -1484,6 +1508,146 @@ function renderPlayerStage(stage) {
   fitPreview(stage);
 }
 
+// ---------------------------------------------------------------------------- template Calendario squadra
+// Misurato su "NFL Team Schedule-selection.png" (10984×6180 → 1920×1080). Solo 16:9.
+const TS = {
+  colX: [85, 980], top0: 238, pitch: 85, rowH: 80.5, colW: 855,
+  cells: { week: [0, 62.8], date: [67.6, 127], at: [199, 49.6], opp: [253, 421.8], res: [679, 176] },
+  weekCap: 32, dateCap: 33, atTop: 32, atH: 21, vsCap: 32, vsScale: 17 / 14.3,
+  logoCx: 53.5, logoBox: 75, textX: 112.5, cap1: 19.5, cap2: 44.5,
+  badge: { x: 13, y: 23, s: 36, cap: 33 }, scoreCap: 30, timeCap: 29, byeCap: 32,
+  dash: { cx: 109.5, y: 39, w: 13, h: 5, gapL: 6, gapR: 8 },
+  name: { cap: 74, groupCx: 950.5, gap: 49, logoBox: 135, logoCy: 116, maxW: 1240 },
+  cal: { cap: 188 }, brand: [895, 18.9, 130, 31.2],
+};
+const TS_BLUE = "#1e3fae";
+const BADGE = { W: "#1f9d4b", L: "#d62828", T: "#8a9097" };
+const fItDow = new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", weekday: "short" });
+const fItDM = new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "2-digit", month: "2-digit" });
+const teamSelect = document.getElementById("team-select");
+let teamList = [];
+let teamId = new URLSearchParams(location.search).get("s") || "";
+let teamSched = null;
+let teamTimer = null;
+
+function tsRow(ev, wk, x, y) {
+  const C = TS.cells;
+  const cell = (k, extra = "") => `<div class="g-cell g-white" style="left:${x + C[k][0]}px;top:${y}px;width:${C[k][1]}px;height:${TS.rowH}px${extra}"></div>`;
+  const mid = (k) => x + C[k][0] + C[k][1] / 2;
+  let html = cell("week") + T("tsWeek", `W${wk}`, mid("week"), y + TS.weekCap, "center", { color: TS_BLUE });
+  if (!ev) {
+    const bx = x + C.date[0], bw = TS.colW - C.date[0];
+    return html + `<div class="g-band" style="left:${bx}px;top:${y}px;width:${bw}px;height:${TS.rowH}px"></div>
+      ${T("tsBye", "BYE", bx + bw / 2, y + TS.byeCap, "center")}`;
+  }
+  const d = new Date(ev.date);
+  const date = ev.timeValid ? `${fItDow.format(d).replace(".", "").slice(0, 3).toUpperCase()} ${fItDM.format(d)}` : "DA DEFINIRE";
+  html += cell("date") + T("tsDate", date, mid("date"), y + TS.dateCap, "center", { maxW: C.date[1] - 10 });
+  html += cell("at") + (ev.home
+    ? T("vs", "VS", mid("at"), y + TS.vsCap, "center", { scale: TS.vsScale, color: TS_BLUE })
+    : T("at", "@", mid("at"), y + TS.atTop, "center", { scale: TS.atH / STYLES.at.ref[1], color: TS_BLUE }));
+  // avversaria: cella colorata con logo e nome su due righe (come il calendario settimanale)
+  const t = ev.opp, abbr = t.abbr, ox = x + C.opp[0], ow = C.opp[1];
+  const ink = DARK_TEXT.has(abbr) ? "#111111" : "#ffffff";
+  const logo = espnImg(abbr ? `https://a.espncdn.com/i/teamlogos/nfl/500-dark/${abbr.toLowerCase()}.png` : t.logo, 200);
+  html += `<div class="g-cell" style="left:${ox}px;top:${y}px;width:${ow}px;height:${TS.rowH}px;background:${TEAM_CELL[abbr] || t.color || "#333"}"></div>
+    <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${ox + TS.logoCx - TS.logoBox / 2}px;top:${y + (TS.rowH - TS.logoBox) / 2}px;width:${TS.logoBox}px;height:${TS.logoBox}px">
+    ${T("tsCity", (t.location || "").toUpperCase(), ox + TS.textX, y + TS.cap1, "left", { color: ink, maxW: ow - TS.textX - 12 })}
+    ${T("tsNick", (t.nickname || t.short || "").toUpperCase(), ox + TS.textX, y + TS.cap2, "left", { color: ink, maxW: ow - TS.textX - 12 })}`;
+  // risultato (W/L + punteggio, prima il nostro) oppure orario italiano
+  const rx = x + C.res[0];
+  html += cell("res");
+  if (ev.state === "post" || ev.state === "in") {
+    const r = ev.state === "post" ? ev.result || "T" : "";
+    const b = TS.badge, dd = TS.dash;
+    const us = ev.us ?? 0, them = ev.them ?? 0;
+    if (r) {
+      html += `<div class="g-bar" style="left:${rx + b.x}px;top:${y + b.y}px;width:${b.s}px;height:${b.s}px;background:${BADGE[r]}"></div>
+        ${T("tsBadge", r, rx + b.x + b.s / 2, y + b.cap, "center", { color: "#ffffff" })}`;
+    } else {
+      html += `<div class="g-bar" style="left:${rx + b.x}px;top:${y + b.y}px;width:${b.s}px;height:${b.s}px;background:#f7b263"></div>
+        ${T("tsBadge", "•", rx + b.x + b.s / 2, y + b.cap, "center", { color: "#ffffff" })}`;
+    }
+    const cUs = ev.state === "post" && us < them ? SCORE_LOSE : SCORE_WIN, cThem = ev.state === "post" && them < us ? SCORE_LOSE : SCORE_WIN;
+    const cx = rx + dd.cx;
+    html += `<div class="g-dash" style="left:${cx - dd.w / 2}px;top:${y + dd.y}px;width:${dd.w}px;height:${dd.h}px;background:#111111"></div>
+      ${T("tsScore", String(us), cx - dd.w / 2 - dd.gapL, y + TS.scoreCap, "right", { color: cUs })}
+      ${T("tsScore", String(them), cx + dd.w / 2 + dd.gapR, y + TS.scoreCap, "left", { color: cThem })}`;
+  } else {
+    html += T("tsTime", ev.timeValid ? fItTime.format(d) : "TBD", mid("res"), y + TS.timeCap, "center");
+  }
+  return html;
+}
+
+function renderTeamStage(stage) {
+  const { W, H, root } = stage;
+  const { team, events } = teamSched;
+  const year = sb.season.year;
+  const byWeek = new Map(events.filter((e) => e.seasonType === 2 && e.week).map((e) => [e.week, e]));
+  const nWeeks = Math.max(18, ...byWeek.keys());
+  const half = Math.ceil(nWeeks / 2);
+  let rows = "";
+  for (let w = 1; w <= nWeeks; w++) {
+    const col = w <= half ? 0 : 1, i = (w - 1) % half;
+    rows += tsRow(byWeek.get(w), w, TS.colX[col], TS.top0 + i * TS.pitch);
+  }
+  const done = events.filter((e) => e.seasonType === 2 && e.state === "post");
+  const wins = done.filter((e) => e.result === "W").length, losses = done.filter((e) => e.result === "L").length, ties = done.length - wins - losses;
+  const record = `${wins}-${losses}${ties ? `-${ties}` : ""}`;
+  // nome + logo centrati come gruppo; il nome si riduce solo se non ci sta
+  const nm = TS.name, name = (team.name || "").toUpperCase();
+  const k = Math.min(1, nm.maxW / inkWidth("tsName", name));
+  const nameW = inkWidth("tsName", name) * k;
+  const left = nm.groupCx - (nameW + nm.gap + nm.logoBox) / 2;
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, true)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${["FOOTBALL", "MORE", "THAN", "A GAME"].map((w, i) => T("stSide", w, 46, [47, 71, 95, 118][i], "left", { scale: 1.06 })).join("")}
+      ${rectBar([45, 149, 25, 3], TS_BLUE)}
+      ${rectBar([1850, 48, 25, 3], TS_BLUE)}
+      ${T("stInk", String(year), 1872, 67, "right", { scale: 1.04 })}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${TS.brand[0]}px;top:${TS.brand[1]}px;width:${TS.brand[2]}px;height:${TS.brand[3]}px">
+      ${T("tsName", name, left, nm.cap, "left", { scale: k })}
+      <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${team.abbr.toLowerCase()}.png`, 300)}" alt="" style="left:${left + nameW + nm.gap}px;top:${nm.logoCy - nm.logoBox / 2}px;width:${nm.logoBox}px;height:${nm.logoBox}px">
+      ${T("tsCal", `CALENDARIO ${year}`, W / 2, TS.cal.cap, "center")}
+      ${rows}
+      ${rectBar([45, 1025, 25, 2.5], TS_BLUE)}
+      ${T("tsFoot", `RECORD ${record} · ORARI IN ORA ITALIANA`, 80, 1041, "left", { color: TS_BLUE })}
+      ${T("stInk", "QUINTO DOWN", 1872, 1008, "right", { scale: 1.0 })}
+      ${T("stInk", String(year), 1872, 1032, "right", { scale: 1.04 })}
+      ${rectBar([1850, 1060, 25, 3], TS_BLUE)}
+    </div>`;
+  fitPreview(stage);
+}
+
+async function loadTeamSchedule({ quiet = false } = {}) {
+  try {
+    if (!teamList.length) {
+      teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+      teamSelect.innerHTML = teamList.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+    }
+    if (!teamList.some((t) => t.id === teamId)) teamId = teamList[0]?.id || "";
+    teamSelect.value = teamId;
+    if (!quiet) status.textContent = "Carico il calendario della squadra…";
+    // Sempre dati freschi da ESPN (risultati e orari aggiornati al minuto).
+    const res = await getSchedule(teamId, { force: true }, { seasonType: 2 });
+    const team = teamList.find((t) => t.id === teamId);
+    const sig = JSON.stringify(res.data.events.map((e) => [e.id, e.state, e.us, e.them, e.date, e.timeValid]));
+    if (quiet && teamSched && teamSched.sig === sig && teamSched.team.id === teamId) return;
+    teamSched = { team, events: res.data.events, sig };
+    syncUrl();
+    renderAll();
+    status.textContent = `${team.name} · calendario ${sb.season.year} da ESPN · aggiornato alle ${fItTime.format(new Date())} (si aggiorna da solo ogni minuto)`;
+  } catch (err) {
+    console.error(err);
+    if (!quiet) status.textContent = "Non riesco a caricare il calendario della squadra: riprova.";
+  }
+}
+teamSelect.addEventListener("change", () => { teamId = teamSelect.value; loadTeamSchedule(); });
+// aggiornamento automatico ogni minuto mentre è aperto questo template
+teamTimer = setInterval(() => { if (tpl === "team" && !document.hidden) loadTeamSchedule({ quiet: true }); }, 60 * 1000);
+
 // ---------------------------------------------------------------------------- tendina e caricamento
 let lastPlayedKey = ""; // ultima settimana completa (risultati)
 let standingsKey = ""; // settimana proposta per le classifiche
@@ -1522,12 +1686,14 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra" }[tpl] || "calendario");
   if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
   if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
   else url.searchParams.delete("p");
   url.searchParams.set("f", fmt === "tall" ? "storie" : "16-9");
+  if (tpl === "team" && teamId) url.searchParams.set("s", teamId);
+  else url.searchParams.delete("s");
   history.replaceState(null, "", url);
 }
 
@@ -1558,6 +1724,7 @@ tplToggle.addEventListener("click", (e) => {
 });
 
 async function loadWeek() {
+  if (tpl === "team") return loadTeamSchedule();
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
   status.textContent = "Carico le partite…";

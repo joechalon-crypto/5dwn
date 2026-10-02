@@ -445,6 +445,7 @@ async function loadSchedule(id, { season, seasonType } = {}) {
         us: score(us),
         them: score(them),
         result: us.winner === true ? "W" : them.winner === true ? "L" : st.completed ? "T" : "",
+        timeValid: comp.timeValid !== false, // false: data/ora ancora da definire (es. Week 18)
         tv: (comp.broadcasts || []).map((b) => b.media?.shortName).filter(Boolean).join(", "),
       };
     }),

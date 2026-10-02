@@ -74,6 +74,16 @@
 #photo-links a { color: var(--orange); }
 .g-photo-empty { position: absolute; background: #f5f5f5; border: 1px dashed #b5b8bd; display: flex; align-items: center; justify-content: center; font: 600 16px "Archivo", sans-serif; color: #5e6574; }
 .g-tape { position: absolute; background: rgba(206, 206, 206, 0.75); transform-origin: center; }
+/* Template Calendario squadra */
+.gt-ts-name { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
+.gt-ts-week { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
+.gt-ts-date { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: #111111; }
+.gt-ts-city { font-family: "Barlow Condensed", sans-serif; font-weight: 600; }
+.gt-ts-nick { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
+.gt-ts-score { font-family: "Archivo", sans-serif; font-weight: 700; font-stretch: 87.5%; }
+.gt-ts-time { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: #111111; }
+.gt-ts-bye { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: #1a1a1a; }
+.gt-ts-badge { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; }
 /* Template Giocatore */
 .gt-p-name { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 75%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
 .gt-p-vs { font-family: "Archivo", sans-serif; font-weight: 400; font-stretch: 100%; }

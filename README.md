@@ -133,6 +133,15 @@ per chi ha fatto meglio. La foto viene proposta tra quelle ESPN della partita
 squadra vincente; dalla tendina **Foto** si può cambiare, oppure si può caricare
 una foto propria con **Carica foto** (resta nel browser, non viene pubblicata).
 
+**Template 6 — Calendario squadra individuale** (riferimento "NFL Team Schedule",
+solo 16:9): voce **Calendario squadra** nello Studio, tendina **Squadra** con le 32
+squadre (ESPN). Le 18 settimane della regular season in due colonne (W1-W9, W10-W18):
+partite giocate con **W** verde / **L** rossa / **T** grigia e punteggio (prima la squadra
+scelta, il punteggio perdente in grigio), partite future con orario italiano, **BYE**
+nella settimana di riposo, "DA DEFINIRE / TBD" quando ESPN non ha ancora l'orario.
+In basso il record. I dati si ricaricano da ESPN a ogni scelta e da soli ogni minuto
+mentre la pagina è aperta.
+
 **Template 5 — Giocatore** (riferimento "NFL Player Performance", solo 16:9): voce
 **Giocatore** nello Studio. Si sceglie settimana → partita conclusa → **giocatore**
 (tutti quelli con statistiche nel boxscore ESPN, divisi per squadra). Le 6 caselle
