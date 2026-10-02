@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610022006";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610022006";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610022012";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610022012";
 
 renderChrome("");
 
@@ -2056,10 +2056,9 @@ function renderTeamStage(stage) {
 
 async function loadTeamSchedule({ quiet = false } = {}) {
   try {
-    if (!teamList.length) {
-      teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
-      teamSelect.innerHTML = teamList.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
-    }
+    if (!teamList.length) teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+    // la lista squadre può essere già stata caricata da un altro template (es. Confronto giocatori)
+    if (teamSelect.options.length !== teamList.length) teamSelect.innerHTML = teamList.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
     if (!teamList.some((t) => t.id === teamId)) teamId = teamList[0]?.id || "";
     teamSelect.value = teamId;
     if (!quiet) status.textContent = "Carico il calendario della squadra…";
