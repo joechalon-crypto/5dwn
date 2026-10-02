@@ -4,6 +4,7 @@
    La grafica ha colori propri, indipendenti dal tema chiaro/scuro del sito.
    ========================================================================== */
 
+.studio-controls [hidden], .studio-block[hidden] { display: none !important; }
 .studio-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 24px; }
 .studio-hint { font-size: 0.85rem; color: var(--text-muted); margin: 6px 0 0; }
 .studio-block { margin-top: 28px; }

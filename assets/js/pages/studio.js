@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021837";
-import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021837";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021841";
+import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021841";
 
 renderChrome("");
 
@@ -381,7 +381,9 @@ function layoutTall(days) {
   return { html, width: G.colW, height: y };
 }
 
+let bgSeq = 0; // id univoci: con id ripetuti il browser userebbe il pattern di una grafica nascosta (sfondo tutto grigio)
 function background(W, H, wide) {
+  const uid = `${W}-${++bgSeq}`;
   // Strisce diagonali: bande chiare 79,4 px ogni 192,8 px (misura orizzontale), inclinazione -0,557.
   const deco = wide
     ? `<g opacity="0.55" stroke="#ffffff" stroke-width="26" fill="none">
@@ -403,15 +405,15 @@ function background(W, H, wide) {
   const glowCx = W / 2;
   return `<svg class="gfx-bg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
-        <pattern id="st-${W}" patternUnits="userSpaceOnUse" width="192.8" height="${H}" patternTransform="skewX(-29.12)">
+        <pattern id="st-${uid}" patternUnits="userSpaceOnUse" width="192.8" height="${H}" patternTransform="skewX(-29.12)">
           <rect x="25.5" y="0" width="79.4" height="${H}" fill="#f4f5f7"/>
         </pattern>
-        <radialGradient id="glow-${W}" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glow-${uid}" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
       </defs>
       <rect width="${W}" height="${H}" fill="#e7e9ed"/>
-      <rect width="${W * 2}" height="${H}" x="${-W / 2}" fill="url(#st-${W})"/>
+      <rect width="${W * 2}" height="${H}" x="${-W / 2}" fill="url(#st-${uid})"/>
       ${deco}
-      <ellipse cx="${glowCx}" cy="${112 + (wide ? 0 : 130)}" rx="470" ry="140" fill="url(#glow-${W})"/>
+      <ellipse cx="${glowCx}" cy="${112 + (wide ? 0 : 130)}" rx="470" ry="140" fill="url(#glow-${uid})"/>
     </svg>`;
 }
 
