@@ -143,7 +143,13 @@ dipendono dal ruolo (QB, RB, WR/TE, difesa, K, P, returner). Logo, filigrana, li
 barre usano i colori della squadra del giocatore. La foto centrale viene cercata tra
 le immagini ESPN dei giorni della partita: prima quelle con il suo nome in didascalia
 (notizie del profilo, notizie fantasy, highlights), poi le foto dei servizi sulla
-partita, per ultima la foto profilo; si può sempre caricare una foto propria.
+partita, poi fino a 5 foto dal web (Wikimedia Commons, licenze libere: titolo con nome e
+cognome del giocatore), per ultima la foto profilo; si può sempre caricare una foto propria.
+Sotto i controlli ci sono i link di ricerca su Google Immagini, Getty Images e Commons.
+
+**Foto (Partita e Giocatore)**: qualsiasi foto, anche caricata, si allinea con **Zoom**,
+**Orizzontale** e **Verticale** oppure trascinandola nell'anteprima; "Centra foto" la
+riporta al centro. L'export PNG usa esattamente lo stesso ritaglio.
 
 Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
 `STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,

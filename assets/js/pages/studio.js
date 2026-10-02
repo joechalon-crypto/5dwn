@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021909";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, currentWeekIndex } from "../api.js?v=202610021909";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021916";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, currentWeekIndex } from "../api.js?v=202610021916";
 
 renderChrome("");
 
@@ -633,9 +633,16 @@ function drawRotated(c, el) {
     const ins = +d.inset, tw = w - 2 * ins, th = h - 2 * ins;
     const img = el.querySelector("img");
     if (img && img.naturalWidth) {
-      const k = Math.max(tw / img.naturalWidth, th / img.naturalHeight); // object-fit: cover
-      const sw = tw / k, sh = th / k;
-      c.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, -w / 2 + ins, -h / 2 + ins, tw, th);
+      // object-fit: cover + zoom e posizione scelti (come photoClip)
+      const z = +d.z || 1, px = d.px != null ? +d.px : 0.5, py = d.py != null ? +d.py : 0.5;
+      const k = Math.max(tw / img.naturalWidth, th / img.naturalHeight) * z;
+      const dw = img.naturalWidth * k, dh = img.naturalHeight * k;
+      c.save();
+      c.beginPath();
+      c.rect(-w / 2 + ins, -h / 2 + ins, tw, th);
+      c.clip();
+      c.drawImage(img, -w / 2 + ins + (tw - dw) * px, -h / 2 + ins + (th - dh) * py, dw, dh);
+      c.restore();
     } else {
       c.fillStyle = "#f5f5f5";
       c.fillRect(-w / 2 + ins, -h / 2 + ins, tw, th);
@@ -961,7 +968,85 @@ function pickPhoto(photos, win, lose) {
   return best;
 }
 
-const currentPhotos = () => (tpl === "player" ? playerPhotos : gameData?.photos || []);
+// ---------------------------------------------------------------------------- foto: allineamento e foto dal web
+let photoAdj = { x: 50, y: 50, z: 100 }; // posizione (%) e zoom (%) della foto nella cornice
+let gameWebPhotos = [];
+const adjInputs = { x: document.getElementById("photo-x"), y: document.getElementById("photo-y"), z: document.getElementById("photo-z") };
+const adjData = () => `data-px="${photoAdj.x / 100}" data-py="${photoAdj.y / 100}" data-z="${photoAdj.z / 100}"`;
+const adjStyle = () => {
+  const z = photoAdj.z / 100, px = photoAdj.x / 100, py = photoAdj.y / 100;
+  return `left:${(1 - z) * px * 100}%;top:${(1 - z) * py * 100}%;width:${z * 100}%;height:${z * 100}%;object-position:${photoAdj.x}% ${photoAdj.y}%`;
+};
+/** Foto ritagliata nella cornice: "cover" + posizione e zoom scelti (stessa geometria nell'export). */
+function photoClip(f, src) {
+  return `<div class="g-photo-clip" style="left:${f.inset}px;top:${f.inset}px;width:${f.w - 2 * f.inset}px;height:${f.h - 2 * f.inset}px">
+    <img class="g-photo-img" ${uploadedPhoto ? "" : 'crossorigin="anonymous"'} src="${esc(src)}" alt="" style="${adjStyle()}"></div>`;
+}
+function applyAdj() {
+  document.querySelectorAll(".g-photo").forEach((el) => {
+    el.dataset.px = photoAdj.x / 100; el.dataset.py = photoAdj.y / 100; el.dataset.z = photoAdj.z / 100;
+    const img = el.querySelector(".g-photo-img");
+    if (img) img.setAttribute("style", adjStyle());
+  });
+  for (const k of ["x", "y", "z"]) adjInputs[k].value = photoAdj[k];
+}
+function resetAdj() { photoAdj = { x: 50, y: 50, z: 100 }; applyAdj(); }
+for (const k of ["x", "y", "z"]) adjInputs[k].addEventListener("input", () => { photoAdj[k] = Number(adjInputs[k].value); applyAdj(); });
+document.getElementById("photo-reset").addEventListener("click", resetAdj);
+// Trascinare la foto nell'anteprima la sposta nella cornice.
+document.addEventListener("pointerdown", (e) => {
+  const fr = e.target.closest(".g-photo");
+  const img = fr?.querySelector(".g-photo-img");
+  if (!img || !img.naturalWidth) return;
+  e.preventDefault();
+  const stage = Object.values(stages).find((st) => st.root.contains(fr));
+  const scale = stage.wrap.getBoundingClientRect().width / stage.W; // px schermo per px grafica
+  const tw = +fr.dataset.w - 2 * +fr.dataset.inset, th = +fr.dataset.h - 2 * +fr.dataset.inset;
+  const k = Math.max(tw / img.naturalWidth, th / img.naturalHeight) * (photoAdj.z / 100);
+  const spanX = img.naturalWidth * k - tw, spanY = img.naturalHeight * k - th; // margine di spostamento
+  const start = { x: e.clientX, y: e.clientY, px: photoAdj.x, py: photoAdj.y };
+  const move = (ev) => {
+    const dx = (ev.clientX - start.x) / scale, dy = (ev.clientY - start.y) / scale;
+    if (spanX > 0.5) photoAdj.x = Math.max(0, Math.min(100, start.px - (dx / spanX) * 100));
+    if (spanY > 0.5) photoAdj.y = Math.max(0, Math.min(100, start.py - (dy / spanY) * 100));
+    applyAdj();
+  };
+  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+});
+/** Link per cercare altre foto sul web (si scaricano e si caricano con "Carica foto"). */
+function renderPhotoLinks(query) {
+  const el = document.getElementById("photo-links");
+  if (!query) { el.innerHTML = ""; return; }
+  const q = encodeURIComponent(query);
+  el.innerHTML = `Altre foto sul web: <a href="https://www.google.com/search?tbm=isch&q=${q}" target="_blank" rel="noopener">Google Immagini</a> · <a href="https://www.gettyimages.it/search/2/image?phrase=${q}" target="_blank" rel="noopener">Getty Images</a> · <a href="https://commons.wikimedia.org/w/index.php?search=${q}&title=Special:MediaSearch&type=image" target="_blank" rel="noopener">Wikimedia Commons</a>`;
+}
+const reEsc = (w) => w.replace(/[.*+?^$()|[\]\\{}]/g, "\\$&");
+const wordIn = (text, w) => new RegExp(`(^|[^a-z0-9])${reEsc(w)}([^a-z0-9]|$)`).test(text);
+/** Fino a n foto da Wikimedia Commons (licenze libere, CORS aperto): la prima query che trova, poi le altre. */
+async function webPhotos(queries, mustInclude, n) {
+  const out = [], seen = new Set();
+  for (const q of queries) {
+    if (out.length >= n) break;
+    try {
+      const res = await getWebPhotos(q);
+      for (const ph of res.data) {
+        const t = ph.title.toLowerCase();
+        // tutte le parole richieste, come parole intere (nome e cognome, oppure le due squadre)
+        if (!mustInclude.every((w) => wordIn(t, w))) continue;
+        if (seen.has(ph.url)) continue;
+        seen.add(ph.url);
+        out.push({ url: ph.url, title: `Web · ${ph.title} (Wikimedia Commons)` });
+        if (out.length >= n) break;
+      }
+    } catch (err) { console.warn("foto web", err); }
+  }
+  return out;
+}
+const gameQuery = (m) => `${m.away.team.nickname} ${m.home.team.nickname} ${new Date(m.date).getFullYear()}`;
+
+const currentPhotos = () => (tpl === "player" ? playerPhotos : [...(gameData?.photos || []), ...gameWebPhotos]);
 function renderPhotoSelect() {
   const photos = currentPhotos();
   const opts = photos.map((p, i) => `<option value="${i}">${esc((p.title || `Foto ${i + 1}`).slice(0, 70))}</option>`);
@@ -977,7 +1062,11 @@ async function loadGame() {
   if (!res.data.photos) res = await getSummary(selectedGame, { force: true }); // cache precedente senza foto
   gameData = res.data;
   if (uploadedPhoto) { URL.revokeObjectURL(uploadedPhoto); uploadedPhoto = null; }
+  photoAdj = { x: 50, y: 50, z: 100 };
+  applyAdj();
   if (tpl === "player") return setupPlayers();
+  renderPhotoLinks(gameQuery(gameData));
+  gameWebPhotos = await webPhotos([`"${gameData.away.team.nickname} at ${gameData.home.team.nickname}"`, `"${gameData.home.team.nickname} vs ${gameData.away.team.nickname}"`], [gameData.away.team.nickname.toLowerCase(), gameData.home.team.nickname.toLowerCase()], 5);
   const [win, lose] = (gameData.home.score ?? 0) >= (gameData.away.score ?? 0) ? [gameData.home.team, gameData.away.team] : [gameData.away.team, gameData.home.team];
   photoIndex = pickPhoto(gameData.photos || [], win, lose);
   renderPhotoSelect();
@@ -995,6 +1084,8 @@ photoSelect.addEventListener("change", () => {
   if (photoSelect.value === "upload") return;
   if (uploadedPhoto) { URL.revokeObjectURL(uploadedPhoto); uploadedPhoto = null; }
   photoIndex = Number(photoSelect.value) || 0;
+  photoAdj = { x: 50, y: 50, z: 100 };
+  applyAdj();
   renderPhotoSelect();
   renderAll();
 });
@@ -1003,6 +1094,8 @@ document.getElementById("photo-upload").addEventListener("change", (e) => {
   if (!file) return;
   if (uploadedPhoto) URL.revokeObjectURL(uploadedPhoto);
   uploadedPhoto = URL.createObjectURL(file);
+  photoAdj = { x: 50, y: 50, z: 100 };
+  applyAdj();
   e.target.value = "";
   renderPhotoSelect();
   renderAll();
@@ -1065,10 +1158,10 @@ function renderGameStage(stage, GW) {
   const as = m.away.score ?? 0, hs = m.home.score ?? 0;
   const tie = as === hs;
   const f = GW.frame, tp = GW.tape;
-  const photos = m.photos || [];
+  const photos = currentPhotos();
   const src = uploadedPhoto || photos[photoIndex]?.url || "";
   const photo = src
-    ? `<img class="g-photo-img" ${uploadedPhoto ? "" : 'crossorigin="anonymous"'} src="${esc(src)}" alt="" style="left:${f.inset}px;top:${f.inset}px;width:${f.w - 2 * f.inset}px;height:${f.h - 2 * f.inset}px">`
+    ? photoClip(f, src)
     : `<div class="g-photo-empty" style="left:${f.inset}px;top:${f.inset}px;right:${f.inset}px;bottom:${f.inset}px">Foto principale</div>`;
   root.style.width = `${W}px`;
   root.style.height = `${H}px`;
@@ -1082,7 +1175,7 @@ function renderGameStage(stage, GW) {
       ${T("at", m.neutral ? "VS" : "@", GW.at.x, GW.at.cap, "center", { scale: GW.at.h / STYLES.at.ref[1], color: "#111111" })}
       ${gameTeamColumn(GW, m.away, GW.colL, as > hs, tie, nickScaleFor(GW, m))}
       ${gameTeamColumn(GW, m.home, GW.colR, hs > as, tie, nickScaleFor(GW, m))}
-      <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}"
+      <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}" ${adjData()}
         style="left:${f.cx - f.w / 2}px;top:${f.cy - f.h / 2}px;width:${f.w}px;height:${f.h}px;transform:rotate(${f.rot}deg)">${photo}</div>
       <div class="g-tape" data-cx="${tp.cx}" data-cy="${tp.cy}" data-w="${tp.w}" data-h="${tp.h}" data-rot="${tp.rot}"
         style="left:${tp.cx - tp.w / 2}px;top:${tp.cy - tp.h / 2}px;width:${tp.w}px;height:${tp.h}px;transform:rotate(${tp.rot}deg)"></div>
@@ -1287,12 +1380,15 @@ async function playerPhotosFor(p) {
     const t = (ph.title || "").toLowerCase();
     cands.push({ url: ph.url, title: ph.title, score: t.includes(last) ? 5 : 0 });
   }
-  if (p.headshot) cands.push({ url: p.headshot, title: "Foto profilo ESPN (non della partita)", score: -1 });
+  if (p.headshot) cands.push({ url: p.headshot, title: "Foto profilo ESPN (non della partita)", score: -3 });
+  const nameWords = p.name.toLowerCase().split(" ").filter((w) => !/^(jr\.?|sr\.?|ii|iii|iv)$/.test(w));
+  const web = await webPhotos([`"${p.name}"`], nameWords, 5);
+  web.forEach((w) => cands.push({ ...w, score: -2 }));
   const seen = new Set();
   return cands
     .sort((a, b) => b.score - a.score)
     .filter((c) => { const k = c.url.split("?")[0].split("/").pop(); if (seen.has(k)) return false; seen.add(k); return true; })
-    .map((c) => ({ url: c.url, title: `${c.score >= 3 ? "" : "Partita · "}${c.title}` }));
+    .map((c) => ({ url: c.url, title: c.score === -2 ? c.title : `${c.score >= 3 ? "" : "Partita · "}${c.title}` }));
 }
 
 async function setupPlayers() {
@@ -1310,12 +1406,14 @@ async function selectPlayer() {
   renderSlotSelects();
   status.textContent = `Cerco le foto di ${playerSel.name} in questa partita…`;
   if (uploadedPhoto) { URL.revokeObjectURL(uploadedPhoto); uploadedPhoto = null; }
+  renderPhotoLinks(`${playerSel.name} ${playerSel.side.team.nickname} ${playerSel.opp.team.nickname}`);
   playerPhotos = await playerPhotosFor(playerSel);
+  photoAdj = { x: 50, y: 50, z: 100 };
   photoIndex = 0;
   renderPhotoSelect();
   syncUrl();
   renderAll();
-  const own = playerPhotos.filter((ph) => !ph.title.startsWith("Partita · ") && !ph.title.startsWith("Foto profilo")).length;
+  const own = playerPhotos.filter((ph) => !ph.title.startsWith("Partita · ") && !ph.title.startsWith("Web · ")).length;
   status.textContent = `${playerSel.name} · ${own ? `${own} foto ESPN di questa partita con il suo nome` : "nessuna foto ESPN con il suo nome: proposte le foto della partita, oppure caricane una"}`;
 }
 playerSelect.addEventListener("change", () => {
@@ -1345,7 +1443,7 @@ function renderPlayerStage(stage) {
   const photos = playerPhotos;
   const src = uploadedPhoto || photos[photoIndex]?.url || "";
   const photo = src
-    ? `<img class="g-photo-img" ${uploadedPhoto ? "" : 'crossorigin="anonymous"'} src="${esc(src)}" alt="" style="left:${f.inset}px;top:${f.inset}px;width:${f.w - 2 * f.inset}px;height:${f.h - 2 * f.inset}px">`
+    ? photoClip(f, src)
     : `<div class="g-photo-empty" style="left:${f.inset}px;top:${f.inset}px;right:${f.inset}px;bottom:${f.inset}px">Foto del giocatore</div>`;
   let cells = "";
   slots.forEach((id, i) => {
@@ -1377,7 +1475,7 @@ function renderPlayerStage(stage) {
       ${T("pVs", `contro ${articleFor(opp.nickname || opp.short)} ${opp.nickname || opp.short}`, W / 2, PW.vs.cap, "center", { color: NAVY })}
       ${rectBar(PW.lineL, col)}${rectBar(PW.lineR, col2)}
       <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`, 200)}" alt="" style="left:${lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
-      <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}"
+      <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}" ${adjData()}
         style="left:${f.cx - f.w / 2}px;top:${f.cy - f.h / 2}px;width:${f.w}px;height:${f.h}px;transform:rotate(${f.rot}deg)">${photo}</div>
       <div class="g-tape" data-cx="${tp.cx}" data-cy="${tp.cy}" data-w="${tp.w}" data-h="${tp.h}" data-rot="${tp.rot}"
         style="left:${tp.cx - tp.w / 2}px;top:${tp.cy - tp.h / 2}px;width:${tp.w}px;height:${tp.h}px;transform:rotate(${tp.rot}deg)"></div>

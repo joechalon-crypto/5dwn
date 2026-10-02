@@ -729,6 +729,18 @@ async function loadPlayerMedia(id) {
 }
 export const getPlayerMedia = (id, opts) => cached(`pmedia:${id}`, TTL.gamelog, () => loadPlayerMedia(id), opts);
 
+// Foto dal web fuori da ESPN: Wikimedia Commons (API pubblica con CORS, immagini a licenza libera).
+async function loadWebPhotos(query) {
+  const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=${encodeURIComponent(`${query} filetype:bitmap`)}&gsrnamespace=6&gsrlimit=20&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=1600`;
+  const json = await fetchJSON(url);
+  return Object.values(json.query?.pages || {})
+    .sort((a, b) => (a.index || 0) - (b.index || 0))
+    .map((pg) => ({ pg, ii: pg.imageinfo?.[0] }))
+    .filter(({ ii }) => ii && /^image\/(jpeg|png|webp)$/.test(ii.mime || "") && (ii.width || 0) >= 600)
+    .map(({ pg, ii }) => ({ url: ii.thumburl || ii.url, title: pg.title.replace(/^File:/, "").replace(/\.[a-z]+$/i, "") }));
+}
+export const getWebPhotos = (query, opts) => cached(`web:${query}`, TTL.athlete, () => loadWebPhotos(query), opts);
+
 async function loadGamelog(id) {
   const json = await fetchJSON(`${ATHLETE}/${id}/gamelog`);
   const events = {};

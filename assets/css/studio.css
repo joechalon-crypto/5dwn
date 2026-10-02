@@ -64,7 +64,14 @@
 .gt-g-val { font-family: "Archivo", sans-serif; font-weight: 700; font-stretch: 100%; }
 .gt-g-label { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-dark); }
 .g-photo { position: absolute; background: #ffffff; transform-origin: center; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18); }
-.g-photo-img { position: absolute; object-fit: cover; }
+.g-photo-clip { position: absolute; overflow: hidden; }
+.g-photo-img { position: absolute; object-fit: cover; max-width: none; }
+.g-photo { cursor: grab; touch-action: none; }
+.photo-adjust { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 16px; }
+.range-field { display: grid; gap: 6px; min-width: 160px; }
+.range-field input[type="range"] { accent-color: var(--orange); width: 100%; }
+#photo-links { flex-basis: 100%; }
+#photo-links a { color: var(--orange); }
 .g-photo-empty { position: absolute; background: #f5f5f5; border: 1px dashed #b5b8bd; display: flex; align-items: center; justify-content: center; font: 600 16px "Archivo", sans-serif; color: #5e6574; }
 .g-tape { position: absolute; background: rgba(206, 206, 206, 0.75); transform-origin: center; }
 /* Template Giocatore */
