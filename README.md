@@ -170,6 +170,9 @@ ultime N partite della stagione; percentuali, medie e passer rating sono ricalco
 squadra ingrandito nella card. **Titolo e sottotitolo non hanno un testo automatico**:
 vanno sempre scritti in "Testi personalizzati" (senza, il download è bloccato). Footer
 automatico "NFL 2026 REGULAR SEASON" (sostituibile) e nota facoltativa sotto le card.
+Ogni giocatore ha la spunta **Anonimo**: la foto diventa la sua sagoma scura, il logo
+della squadra è sostituito da un "?", il nome sparisce e card e barra usano un grigio
+neutro (le statistiche restano).
 
 **Testi personalizzati**: il riquadro "Testi personalizzati" sotto i controlli ha tre
 campi opzionali (Titolo, Sottotitolo, Footer) per il template attivo. Vuoto = testo

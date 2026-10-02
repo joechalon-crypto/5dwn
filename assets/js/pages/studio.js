@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610022000";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610022000";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610022006";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610022006";
 
 renderChrome("");
 
@@ -668,7 +668,19 @@ async function drawStage(stage) {
       c.globalAlpha = parseFloat(cs.opacity) || 1; // es. logo in filigrana
       const clipEl = el.closest(".g-clip"); // immagine ritagliata dal contenitore (es. foto profilo)
       if (clipEl) { const cb = box(clipEl); c.save(); c.beginPath(); c.rect(cb.x, cb.y, cb.w, cb.h); c.clip(); }
-      c.drawImage(el, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+      if (el.classList.contains("g-sil")) {
+        // sagoma: immagine riempita di nero (come filter: brightness(0)) con l'opacità del CSS
+        const off = document.createElement("canvas");
+        off.width = Math.ceil(w); off.height = Math.ceil(h);
+        const oc = off.getContext("2d");
+        oc.drawImage(el, 0, 0, w, h);
+        oc.globalCompositeOperation = "source-in";
+        oc.fillStyle = "#000000";
+        oc.fillRect(0, 0, off.width, off.height);
+        c.drawImage(off, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+      } else {
+        c.drawImage(el, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+      }
       if (clipEl) c.restore();
       c.globalAlpha = 1;
     } else if (el.classList.contains("gt")) {
@@ -796,7 +808,7 @@ document.getElementById("dl-compare").addEventListener("click", () => {
     (o.title?.trim() ? ovInputs.sub : ovInputs.title).focus();
     return;
   }
-  const slug = cmp.slots.slice(0, cmp.nPlayers).map((sl) => (sl.player?.last || sl.player?.name || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-")).join("-vs-");
+  const slug = cmp.slots.slice(0, cmp.nPlayers).map((sl) => (sl.anon ? "anonimo" : sl.player?.last || sl.player?.name || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-")).join("-vs-");
   exportPng(stages.compare, `5dwn-confronto-${slug}-${sb.season.year}.png`);
 });
 document.getElementById("dl-team").addEventListener("click", () => {
@@ -1609,11 +1621,13 @@ const CP = {
   photo: { x: 0, w: 320, top: 222, h: 305.5 }, // box della foto profilo (relativo alla card), sotto il sottotitolo
   logo: { cx: 421.5, cy: 333, box: 180 }, // logo squadra ingrandito
   nameX: 319.5, firstCap: 433, lastCap: 469, nameMaxW: 195,
+  qMark: 120, // altezza del "?" che sostituisce il logo (anonimo)
   labelX: 36, valCx: 421.5, rowRef: 68.8, labelDy: 26, valDy: 20,
   title: { cap: 81, h: 86, maxW: 1500 }, sub: { cap: 191 }, note: { x: 152, cap: 898 },
   brand: [892, 29.3, 136, 32.66],
 };
 const CMP_GREY = "#f3f4f6";
+const CMP_ANON = "#5b616e"; // sfondo neutro dei giocatori anonimi
 // Statistiche confrontabili (chiave "categoria.nome" del gamelog ESPN; combinazioni calcolate).
 const CMP_STATS = [
   { key: "cmpatt", label: "COMP/ATT", get: (a) => (a["passing.passingAttempts"] != null ? `${a["passing.completions"] ?? 0}/${a["passing.passingAttempts"]}` : null) },
@@ -1713,7 +1727,7 @@ const cmpEls = {
   nPlayers: document.getElementById("cmp-nplayers"),
   nStats: document.getElementById("cmp-nstats"),
   note: document.getElementById("cmp-note"),
-  slots: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`cmp-p${i}`), team: document.getElementById(`cmp-team${i}`), player: document.getElementById(`cmp-player${i}`) })),
+  slots: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`cmp-p${i}`), team: document.getElementById(`cmp-team${i}`), player: document.getElementById(`cmp-player${i}`), anon: document.getElementById(`cmp-anon${i}`) })),
   stats: [...document.querySelectorAll(".cmp-stat")],
 };
 
@@ -1820,6 +1834,7 @@ cmpEls.nStats.addEventListener("change", () => {
 cmpEls.note.addEventListener("input", () => { cmp.note = cmpEls.note.value; renderAll(); });
 cmpEls.stats.forEach((sel, i) => sel.addEventListener("change", () => { cmp.stats[i] = sel.value; renderAll(); }));
 cmpEls.slots.forEach((el, i) => {
+  el.anon.addEventListener("change", () => { cmp.slots[i].anon = el.anon.checked; renderAll(); });
   el.team.addEventListener("change", async () => {
     const sl = cmp.slots[i];
     sl.team = teamList.find((t) => t.id === el.team.value);
@@ -1846,8 +1861,9 @@ cmpEls.slots.forEach((el, i) => {
 
 function cmpCard(sl, x, stats) {
   const t = sl.team, p = sl.player;
-  const col = TEAM_CELL[t.abbr] || t.color || "#333";
-  const ink = DARK_TEXT.has(t.abbr) ? "#111111" : "#ffffff";
+  const anon = !!sl.anon; // anonimo: sagoma, "?" al posto del logo, niente nome, colore neutro
+  const col = anon ? CMP_ANON : TEAM_CELL[t.abbr] || t.color || "#333";
+  const ink = !anon && DARK_TEXT.has(t.abbr) ? "#111111" : "#ffffff";
   const ph = CP.photo, lg = CP.logo;
   const first = (p.first || p.name.split(" ")[0] || "").toUpperCase();
   const last = (p.last || p.name.split(" ").slice(1).join(" ") || "").toUpperCase();
@@ -1866,11 +1882,13 @@ function cmpCard(sl, x, stats) {
   });
   return `<div class="g-cell" style="left:${x}px;top:${CP.panelTop}px;width:${CP.cardW}px;height:${CP.panelBot - CP.panelTop}px;background:${col}"></div>
     <div class="g-clip" style="position:absolute;overflow:hidden;left:${x + ph.x}px;top:${ph.top}px;width:${ph.w}px;height:${ph.h}px">
-      <img class="g-logo" crossorigin="anonymous" src="${headshot}" alt="" onerror="this.remove()" style="left:${ph.w / 2 - hsW / 2}px;top:0;width:${hsW}px;height:${hsH}px">
+      <img class="g-logo${anon ? " g-sil" : ""}" crossorigin="anonymous" src="${headshot}" alt="" onerror="this.remove()" style="left:${ph.w / 2 - hsW / 2}px;top:0;width:${hsW}px;height:${hsH}px">
     </div>
-    <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${t.abbr.toLowerCase()}.png`, 400)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
+    ${anon
+      ? T("cmpLast", "?", x + lg.cx, lg.cy - CP.qMark / 2, "center", { color: "#ffffff", scale: CP.qMark / STYLES.cmpLast.ref[1] })
+      : `<img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${t.abbr.toLowerCase()}.png`, 400)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
     ${T("cmpFirst", first, x + CP.nameX, CP.firstCap, "left", { color: ink, maxW: CP.nameMaxW })}
-    ${T("cmpLast", last, x + CP.nameX, CP.lastCap, "left", { color: ink, maxW: CP.nameMaxW })}
+    ${T("cmpLast", last, x + CP.nameX, CP.lastCap, "left", { color: ink, maxW: CP.nameMaxW })}`}
     ${rows}
     <div class="g-bar" style="left:${x}px;top:${CP.rowsBot}px;width:${CP.cardW}px;height:${CP.barH}px;background:${col}"></div>`;
 }

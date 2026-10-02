@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <link rel="preconnect" href="https://site.api.espn.com" crossorigin>
   <link rel="preconnect" href="https://a.espncdn.com">
-  <link rel="stylesheet" href="assets/css/style.css?v=202610022000">
-  <link rel="stylesheet" href="assets/css/studio.css?v=202610022000">
+  <link rel="stylesheet" href="assets/css/style.css?v=202610022006">
+  <link rel="stylesheet" href="assets/css/studio.css?v=202610022006">
 </head>
 <body>
   <header id="site-header" class="site-header">
@@ -91,16 +91,19 @@
           <span class="select-label">Giocatore 1</span>
           <span class="select-wrap"><select id="cmp-team0" class="select" aria-label="Squadra giocatore 1" autocomplete="off"></select></span>
           <span class="select-wrap"><select id="cmp-player0" class="select" aria-label="Giocatore 1" autocomplete="off"></select></span>
+          <label class="cmp-anon"><input type="checkbox" id="cmp-anon0" autocomplete="off"> Anonimo (sagoma, "?" al posto del logo, senza nome)</label>
         </div>
         <div class="cmp-player" id="cmp-p1">
           <span class="select-label">Giocatore 2</span>
           <span class="select-wrap"><select id="cmp-team1" class="select" aria-label="Squadra giocatore 2" autocomplete="off"></select></span>
           <span class="select-wrap"><select id="cmp-player1" class="select" aria-label="Giocatore 2" autocomplete="off"></select></span>
+          <label class="cmp-anon"><input type="checkbox" id="cmp-anon1" autocomplete="off"> Anonimo (sagoma, "?" al posto del logo, senza nome)</label>
         </div>
         <div class="cmp-player" id="cmp-p2">
           <span class="select-label">Giocatore 3</span>
           <span class="select-wrap"><select id="cmp-team2" class="select" aria-label="Squadra giocatore 3" autocomplete="off"></select></span>
           <span class="select-wrap"><select id="cmp-player2" class="select" aria-label="Giocatore 3" autocomplete="off"></select></span>
+          <label class="cmp-anon"><input type="checkbox" id="cmp-anon2" autocomplete="off"> Anonimo (sagoma, "?" al posto del logo, senza nome)</label>
         </div>
         </div>
         <div class="cmp-stats">
@@ -217,6 +220,6 @@
   </main>
 
   <footer id="site-footer" class="site-footer"></footer>
-  <script type="module" src="assets/js/pages/studio.js?v=202610022000"></script>
+  <script type="module" src="assets/js/pages/studio.js?v=202610022006"></script>
 </body>
 </html>
