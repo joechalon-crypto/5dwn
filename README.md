@@ -9,7 +9,7 @@ in diretta l'API pubblica di ESPN dal browser.
 | Home | `index.html` | banner settimana (scoreboard), classifica lampo (standings), ultimo reel |
 | Classifiche | `classifiche.html` | standings (conference + `?level=3` per le division) |
 | Calendario e Risultati | `calendario.html?w=2-4` | scoreboard per settimana (Week 1-18 + playoff) |
-| Playoff Picture | `playoff.html` | standings (`playoffSeed`) + scoreboard postseason |
+| Statistiche | `statistiche.html` | leader NFL di stagione (top 10 per statistica) |
 | Squadre | `squadre.html` | groups + standings |
 | Scheda squadra | `squadra.html?team=min` | team, roster, schedule (log partite), standings + `content/squadre.js` |
 | Profilo partita | `partita.html?id=401872964` | summary (+ calendari squadra per gli head-to-head) |
@@ -24,7 +24,7 @@ vecchi link continuano a funzionare.
 
 ```
 5dwn-sito/
-├── index.html, classifiche.html, calendario.html, playoff.html,
+├── index.html, classifiche.html, calendario.html, statistiche.html,
 │   squadre.html, squadra.html, partita.html, giocatore.html, 404.html
 │   (risultati.html = redirect)
 ├── content/
@@ -207,7 +207,7 @@ alleggerita, viene salvata in memoria e nel `localStorage` del visitatore.
 
 Le pagine si ricontrollano da sole (ogni 30 secondi il profilo di una partita in
 corso, ogni minuto Home e Calendario, ogni 5 minuti
-Classifiche e Playoff) solo mentre la scheda del browser è visibile. Se ESPN non
+Classifiche e Statistiche) solo mentre la scheda del browser è visibile. Se ESPN non
 risponde viene mostrato l'ultimo dato salvato con un avviso; senza dati salvati
 compare un messaggio d'errore con il pulsante **Riprova**.
 

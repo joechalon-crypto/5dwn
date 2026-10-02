@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Playoff Picture NFL · 5DWN</title>
-  <meta name="description" content="Il tabellone playoff NFL: seed 1-7 di AFC e NFC, bye e accoppiamenti del Wild Card round, aggiornato in automatico.">
+  <title>Statistiche NFL · 5DWN</title>
+  <meta name="description" content="Leader NFL della stagione: yard su passaggio e corsa, touchdown, ricezioni, sack e intercetti. Top 10 per statistica.">
   <meta name="theme-color" content="#0a1730">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="5DWN">
-  <meta property="og:title" content="Playoff Picture NFL · 5DWN">
-  <meta property="og:description" content="Il tabellone playoff NFL: seed 1-7 di AFC e NFC, bye e accoppiamenti del Wild Card round, aggiornato in automatico.">
+  <meta property="og:title" content="Statistiche NFL · 5DWN">
+  <meta property="og:description" content="Leader NFL della stagione: top 10 per statistica.">
   <meta property="og:image" content="assets/img/logo-5dwn.png">
   <link rel="icon" href="assets/img/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/img/favicon.png">
@@ -28,15 +28,17 @@
   <main>
     <div class="container">
       <header class="page-head">
-        <span class="eyebrow">Se la stagione finisse oggi</span>
-        <h1>Playoff Picture</h1>
-        <p>7 squadre per conference: 4 vincitrici di division (seed 1-4) e 3 wild card (seed 5-7). Il seed 1 salta il primo turno.</p>
+        <span class="eyebrow" id="season-label">Stagione NFL</span>
+        <h1>Statistiche</h1>
+        <p>I leader della stagione per statistica: top 10 giocatori. Tocca un giocatore per il suo profilo.</p>
       </header>
-      <div id="bracket"></div>
+      <nav class="stat-jump" id="stat-jump" aria-label="Vai alla statistica"></nav>
+      <div id="leaders"></div>
     </div>
   </main>
+
   <footer id="site-footer" class="site-footer"></footer>
-  <noscript><div class="container state">Per vedere risultati e classifiche aggiornati attiva JavaScript.</div></noscript>
-  <script type="module" src="assets/js/pages/playoff.js"></script>
+  <noscript><div class="container state">Per vedere le statistiche aggiornate attiva JavaScript.</div></noscript>
+  <script type="module" src="assets/js/pages/statistiche.js"></script>
 </body>
 </html>

@@ -29,6 +29,7 @@ export const TTL = {
   athlete: 12 * 60 * MIN,
   athleteStats: 6 * 60 * MIN,
   gamelog: 60 * MIN,
+  leaders: 30 * MIN,
 };
 
 const memory = new Map();
@@ -726,3 +727,27 @@ async function loadGamelog(id) {
   };
 }
 export const getGamelog = (id, opts) => cached(`gamelog:${id}`, TTL.gamelog, () => loadGamelog(id), opts);
+
+// ---------------------------------------------------------------------------
+// Leader statistici NFL di stagione (top 10 per categoria)
+// ---------------------------------------------------------------------------
+
+async function loadLeaders() {
+  const json = await fetchJSON(`${SITE.replace("/v2/", "/v3/")}/leaders`);
+  const cats = {};
+  for (const c of json.leaders?.categories || []) {
+    cats[c.name] = (c.leaders || []).map((l) => ({
+      id: l.athlete?.id,
+      name: l.athlete?.displayName || "",
+      pos: l.athlete?.position?.abbreviation || "",
+      jersey: l.athlete?.jersey || "",
+      headshot: l.athlete?.headshot?.href || null,
+      team: l.team ? normTeam(l.team) : null,
+      value: l.value ?? null,
+      display: l.displayValue ?? "",
+    }));
+  }
+  const season = json.requestedSeason || json.currentSeason || {};
+  return { year: season.year ?? null, seasonType: season.type?.name || "", week: season.type?.week?.text || "", cats };
+}
+export const getLeaders = (opts) => cached("leaders", TTL.leaders, loadLeaders, opts);

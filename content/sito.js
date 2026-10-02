@@ -5,7 +5,7 @@
 export const SITO = {
   nome: "5DWN",
   payoff: "Football more than a game",
-  descrizione: "La pagina italiana di NFL: risultati, classifiche, playoff picture e tutte le 32 squadre.",
+  descrizione: "La pagina italiana di NFL: risultati, classifiche, statistiche e tutte le 32 squadre.",
 
   social: {
     instagram: {
