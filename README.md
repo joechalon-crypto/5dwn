@@ -87,15 +87,18 @@ head coach, calendario e statistiche della stagione si aggiornano da soli.
 `studio.html` non è nel menu ed è esclusa dai motori di ricerca (`noindex`):
 si apre solo digitando l'indirizzo, es. `https://…/5dwn/studio.html`.
 
-**Template 1 — Calendario settimanale** (ricostruito sul file di riferimento
-"NFL Calendar"), in due formati: **16:9 · 1920×1080** e **9:16 · 1080×1920**.
+**Template 1 — Calendario settimanale**, in due formati ricostruiti sui file di
+riferimento: **16:9 · 1920×1080** ("NFL Calendar") e **9:16 · 1080×1920** per le
+storie IG ("Calendario storie"). I file di riferimento restano nella cartella del
+progetto ma non vengono pubblicati (vedi `.gitignore`).
 
 - Scegli la settimana dalla tendina (Week 1-18 + playoff, la corrente è
   preselezionata): titolo, anno e partite arrivano dallo scoreboard ESPN.
 - Orari in ora italiana, giorni italiani (es. il TNF diventa «venerdì»).
 - Partita internazionale per prima con la fascetta «INTERNATIONAL GAME — città, paese».
-- Domenica su due colonne bilanciate e allineate in basso (16:9); nel 9:16 tutto
-  in una colonna. Se le partite sono tante, il blocco si riduce per stare nel formato.
+- Domenica su due colonne bilanciate e allineate in basso (16:9); nel 9:16 tutte le
+  partite in una colonna a tutta larghezza. Se le partite sono tante, il blocco si
+  riduce per stare nel formato.
 - **TV:** di default «NFL Game Pass»; diventa «DAZN» se la partita è in
   `content/tv-italia.js`. In anteprima basta **cliccare la cella TV** per
   alternare DAZN / Game Pass (la scelta resta salvata nel browser).

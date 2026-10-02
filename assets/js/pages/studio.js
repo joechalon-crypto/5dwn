@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021739";
-import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021739";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021751";
+import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021751";
 
 renderChrome("");
 
@@ -118,17 +118,25 @@ const G_WIDE = {
   timeCap: 21.1, atCap: 21.9, vsCap: 22.4, bandCap: 23.3,
   headerToRow: 32.3, rowToSep: 19.3, sepToHeader: 24.7,
   bodyCapTop: 223.9,
+  atTop: 22.0, ts: 1,
+  daznBox: 43.5, shield: [20.8, 14.4, 30.7], gpX: 62.9, gpCap: [13.4, 33.7],
+  titleDy: 0, sideDy: 0, footDy: 0,
 };
 
-// 9:16 (storie): stesse celle, più respiro tra righe, giorni e titolo.
+// 9:16 (storie): misurato su "Calendario storie.png" (1900×3376 → 1080×1920).
+// Righe a tutta larghezza, contenuti delle celle al 94,9% del 16:9, titolo e angoli più in basso.
 const G_TALL = {
   ...G_WIDE,
-  pitch: G_WIDE.rowH + 10,
-  headerToRow: 40,
-  rowToSep: 28,
-  sepToHeader: 40,
-  bodyCapTop: 280,
-  bottomMargin: 150, // spazio libero sopra il piè di pagina
+  colW: 984.0,
+  rowH: 56.6, pitch: 60.9,
+  cells: { a: [0, 346.4], at: [350.7, 46.0], b: [400.8, 346.7], time: [752.0, 103.5], tv: [860.0, 123.3] },
+  logoBox: 54, logoCx: 42.9,
+  teamTextX: 92.7, teamCap1: 12.0, teamCap2: 32.4,
+  timeCap: 19.9, atTop: 21.6, vsCap: 21.6, bandCap: 22.1, ts: 0.949,
+  daznBox: 40.9, shield: [22.2, 13.5, 29.8], gpX: 62.5, gpCap: [12.5, 32.0],
+  headerToRow: 32.4, rowToSep: 19.3, sepToHeader: 24.7,
+  bodyCapTop: 389.4, bodyLeft: 48.3, maxBottom: 1690,
+  titleDy: 130, sideDy: 117.6, footDy: 712,
 };
 
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
@@ -192,13 +200,14 @@ function teamCell(team, x, y) {
   const bg = TEAM_CELL[abbr] || team.color || "#333";
   const ink = DARK_TEXT.has(abbr) ? "#111111" : "#ffffff";
   const w = G.cells.a[1];
-  const logo = espnImg(team.logo || team.logoLight, 160);
+  // Loghi ESPN "500-dark" (non la variante scoreboard), come nei riferimenti: es. Jets con la scritta "JETS".
+  const logo = espnImg(abbr ? `https://a.espncdn.com/i/teamlogos/nfl/500-dark/${abbr.toLowerCase()}.png` : team.logo, 160);
   const l1 = (team.location || "").toUpperCase();
   const l2 = (team.nickname || team.short || "").toUpperCase();
   return `<div class="g-cell" style="left:${x}px;top:${y}px;width:${w}px;height:${G.rowH}px;background:${bg}"></div>
     <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${x + G.logoCx - G.logoBox / 2}px;top:${y + (G.rowH - G.logoBox) / 2}px;width:${G.logoBox}px;height:${G.logoBox}px">
-    ${T("team", l1, x + G.teamTextX, y + G.teamCap1, "left", { color: ink, maxW: w - G.teamTextX - 8 })}
-    ${T("team", l2, x + G.teamTextX, y + G.teamCap2, "left", { color: ink, maxW: w - G.teamTextX - 8 })}`;
+    ${T("team", l1, x + G.teamTextX, y + G.teamCap1, "left", { color: ink, maxW: w - G.teamTextX - 8, scale: G.ts })}
+    ${T("team", l2, x + G.teamTextX, y + G.teamCap2, "left", { color: ink, maxW: w - G.teamTextX - 8, scale: G.ts })}`;
 }
 
 function tvCell(g, x, y) {
@@ -208,13 +217,14 @@ function tvCell(g, x, y) {
   let inner;
   if (kind === "dazn") {
     // Logo ufficiale DAZN (assets/img/dazn.png, ricavato da DAZN_BoxedLogo_02_RGB.png con fondo trasparente)
-    const box = 43.5;
+    const box = G.daznBox;
     inner = `<img class="g-logo" src="${DAZN_LOGO}" alt="DAZN" style="left:${left + (w - box) / 2}px;top:${y + (G.rowH - box) / 2}px;width:${box}px;height:${box}px">`;
   } else {
     // nfl.png di ESPN è 500×500 con lo scudo alto 477 px: riquadro di 30,7 px per uno scudo alto 29,3 px
-    inner = `<img class="g-logo" crossorigin="anonymous" src="${NFL_SHIELD}" alt="" style="left:${left + 20.8}px;top:${y + 14.4}px;width:30.7px;height:30.7px">
-      ${T("gp", "GAME", left + 62.9, y + 13.4, "left")}
-      ${T("gp", "PASS", left + 62.9, y + 33.7, "left")}`;
+    const [sx, sy, ss] = G.shield;
+    inner = `<img class="g-logo" crossorigin="anonymous" src="${NFL_SHIELD}" alt="" style="left:${left + sx}px;top:${y + sy}px;width:${ss}px;height:${ss}px">
+      ${T("gp", "GAME", left + G.gpX, y + G.gpCap[0], "left", { scale: G.ts })}
+      ${T("gp", "PASS", left + G.gpX, y + G.gpCap[1], "left", { scale: G.ts })}`;
   }
   return `<div class="g-cell g-white g-tv" data-game="${g.id}" title="Clic: DAZN / Game Pass" style="left:${left}px;top:${y}px;width:${w}px;height:${G.rowH}px"></div>${inner}`;
 }
@@ -226,16 +236,16 @@ function gameRow(g, x, y) {
   const [tX, tW] = G.cells.time;
   return `${teamCell(first, cellLeft(x, "a"), y)}
     <div class="g-cell g-white" style="left:${x + atX}px;top:${y}px;width:${atW}px;height:${G.rowH}px"></div>
-    ${g.intl ? T("vs", "VS", x + atX + atW / 2, y + G.vsCap, "center") : T("at", "@", x + atX + atW / 2, y + 22.0, "center")}
+    ${g.intl ? T("vs", "VS", x + atX + atW / 2, y + G.vsCap, "center", { scale: G.ts }) : T("at", "@", x + atX + atW / 2, y + G.atTop, "center", { scale: G.ts })}
     ${teamCell(second, cellLeft(x, "b"), y)}
     <div class="g-cell g-white" style="left:${x + tX}px;top:${y}px;width:${tW}px;height:${G.rowH}px"></div>
-    ${T("time", fItTime.format(new Date(g.date)), x + tX + tW / 2, y + G.timeCap, "center")}
+    ${T("time", fItTime.format(new Date(g.date)), x + tX + tW / 2, y + G.timeCap, "center", { scale: G.ts })}
     ${tvCell(g, x, y)}`;
 }
 
 function bandRow(info, x, y) {
   return `<div class="g-band" style="left:${x}px;top:${y}px;width:${G.colW}px;height:${G.rowH}px"></div>
-    ${T("band", `INTERNATIONAL GAME — ${info.city}, ${info.nation}`.toUpperCase(), x + G.colW / 2, y + G.bandCap, "center")}`;
+    ${T("band", `INTERNATIONAL GAME — ${info.city}, ${info.nation}`.toUpperCase(), x + G.colW / 2, y + G.bandCap, "center", { scale: G.ts })}`;
 }
 
 function slotsHtml(slots, x, y) {
@@ -319,13 +329,13 @@ function background(W, H, wide) {
            <line x1="1611" y1="111" x2="1627" y2="207"/><line x1="1657" y1="97" x2="1672" y2="193"/>
            <line x1="1698" y1="85" x2="1714" y2="181"/></g></g>`
     : `<g opacity="0.55" stroke="#ffffff" stroke-width="26" fill="none">
-         <line x1="90" y1="300" x2="269" y2="478"/><line x1="269" y1="300" x2="90" y2="478"/></g>
+         <line x1="304" y1="40" x2="464" y2="200"/><line x1="464" y1="40" x2="304" y2="200"/></g>
        <g fill="none" stroke="#ffffff" opacity="0.6">
-         <ellipse cx="760" cy="420" rx="430" ry="200" transform="rotate(-14 760 420)" stroke-width="10"/>
-         <g stroke-width="18" stroke-linecap="round">
-           <line x1="718" y1="385" x2="733" y2="481"/><line x1="759" y1="370" x2="775" y2="465"/>
-           <line x1="804" y1="350" x2="820" y2="446"/><line x1="850" y1="336" x2="865" y2="432"/>
-           <line x1="891" y1="324" x2="907" y2="420"/></g></g>`;
+         <ellipse cx="623" cy="182" rx="451" ry="177" transform="rotate(-12 623 182)" stroke-width="10"/>
+         <g stroke-width="17" stroke-linecap="round">
+           <line x1="682" y1="148" x2="697" y2="228"/><line x1="728" y1="131" x2="743" y2="211"/>
+           <line x1="767" y1="114" x2="782" y2="194"/><line x1="809" y1="102" x2="824" y2="182"/>
+           <line x1="853" y1="97" x2="868" y2="177"/></g></g>`;
   const glowCx = W / 2;
   return `<svg class="gfx-bg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
@@ -337,27 +347,27 @@ function background(W, H, wide) {
       <rect width="${W}" height="${H}" fill="#e7e9ed"/>
       <rect width="${W * 2}" height="${H}" x="${-W / 2}" fill="url(#st-${W})"/>
       ${deco}
-      <ellipse cx="${glowCx}" cy="112" rx="470" ry="140" fill="url(#glow-${W})"/>
+      <ellipse cx="${glowCx}" cy="${112 + (wide ? 0 : 130)}" rx="470" ry="140" fill="url(#glow-${W})"/>
     </svg>`;
 }
 
 function chrome(W, H, title, year, tz) {
-  const right = W - 48.3; // margine destro dei testi d'angolo (1871,7 su 1920)
-  const bottom = (y) => H - (1080 - y); // posizioni del piè di pagina riferite al fondo
+  const right = W - 48.3; // margine destro dei testi d'angolo (1871,7 su 1920 · 1031,7 su 1080)
+  const t = G.titleDy, sd = G.sideDy, f = G.footDy; // spostamenti verticali del formato 9:16
   const cx = W / 2;
   return `
-    ${T("side", "FOOTBALL", 45.3, 46.6)}${T("side", "MORE", 45.3, 70.7)}${T("side", "THAN", 45.3, 94.4)}${T("side", "A GAME", 45.3, 117.7)}
-    <div class="g-bar" style="left:44px;top:149.2px;width:25.4px;height:2.2px"></div>
-    <div class="g-bar" style="left:${right - 21.6}px;top:48.3px;width:25.5px;height:2.2px"></div>
-    ${T("year", String(year), right, 66.4, "right")}
-    ${T("brand", "5DWN", cx, 24.6, "center")}
-    ${T("week", title, cx, 66.4, "center", { maxW: W - 2 * 230 })}
-    ${T("sub", "ORARI ITALIA", cx, 182.4, "center")}
-    <div class="g-bar" style="left:44px;top:${bottom(1025.1)}px;width:25.4px;height:2.2px"></div>
-    ${T("foot", `TUTTI GLI ORARI IN ORA ITALIANA (${tz})`, 78.5, bottom(1041.5))}
-    ${T("year", "QUINTO DOWN", right, bottom(1008.3), "right")}
-    ${T("year", String(year), right, bottom(1032.0), "right")}
-    <div class="g-bar" style="left:${right - 21.6}px;top:${bottom(1060.9)}px;width:25.5px;height:2.6px"></div>`;
+    ${T("side", "FOOTBALL", 45.3, 46.6 + sd)}${T("side", "MORE", 45.3, 70.7 + sd)}${T("side", "THAN", 45.3, 94.4 + sd)}${T("side", "A GAME", 45.3, 117.7 + sd)}
+    <div class="g-bar" style="left:44px;top:${149.2 + sd}px;width:25.4px;height:2.2px"></div>
+    <div class="g-bar" style="left:${right - 21.6}px;top:${48.3 + sd}px;width:25.5px;height:2.2px"></div>
+    ${T("year", String(year), right, 66.4 + sd, "right")}
+    ${T("brand", "5DWN", cx, 24.6 + t, "center")}
+    ${T("week", title, cx, 66.4 + t, "center", { maxW: W - 2 * 200 })}
+    ${T("sub", "ORARI ITALIA", cx, 182.4 + t, "center")}
+    <div class="g-bar" style="left:44px;top:${1025.1 + f}px;width:25.4px;height:2.2px"></div>
+    ${T("foot", `TUTTI GLI ORARI IN ORA ITALIANA (${tz})`, 78.5, 1041.5 + f)}
+    ${T("year", "QUINTO DOWN", right, 1008.3 + f, "right")}
+    ${T("year", String(year), right, 1032.0 + f, "right")}
+    <div class="g-bar" style="left:${right - 21.6}px;top:${1060.9 + f}px;width:25.5px;height:2.6px"></div>`;
 }
 
 function renderStage(stage, wide) {
@@ -368,13 +378,11 @@ function renderStage(stage, wide) {
   const tz = mainDay ? tzName(mainDay.date) : "CET";
   G = wide ? G_WIDE : G_TALL;
   const L = wide ? layoutWide(days) : layoutTall(days);
-  // area utile per le partite: dal cap top della prima intestazione al piè di pagina
-  const maxBottom = wide ? 985 : H - G.bottomMargin;
-  const maxW = wide ? L.width : W - 2 * 64;
-  const avail = maxBottom - G.bodyCapTop;
-  const k = Math.min(wide ? 1 : maxW / L.width, avail / Math.max(L.height, 1), wide ? 1 : 1.12);
-  // nel 9:16, se avanza spazio, il blocco partite viene centrato verticalmente
-  const top = wide ? G.bodyCapTop : G.bodyCapTop + Math.max(0, (avail - L.height * k) / 2);
+  // area utile per le partite: dal cap top della prima intestazione al piè di pagina.
+  // Come nei riferimenti il blocco parte sempre dalla stessa altezza e si riduce solo se non ci sta.
+  const maxBottom = wide ? 985 : G.maxBottom;
+  const top = G.bodyCapTop;
+  const k = Math.min(1, (maxBottom - top) / Math.max(L.height, 1));
   const left = (W - L.width * k) / 2;
   root.style.width = `${W}px`;
   root.style.height = `${H}px`;
