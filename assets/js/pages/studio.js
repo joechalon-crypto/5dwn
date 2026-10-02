@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021826";
-import { getScoreboard, getWeek, getStandings, currentWeekIndex } from "../api.js?v=202610021826";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021829";
+import { getScoreboard, getWeek, getStandings, currentWeekIndex } from "../api.js?v=202610021829";
 
 renderChrome("");
 
@@ -163,6 +163,19 @@ let G = G_WIDE; // geometria attiva (impostata da renderStage)
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
 let tpl = { risultati: "results", classifiche: "standings" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
+
+// Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
+let fmt = new URLSearchParams(location.search).get("f") === "storie" ? "tall" : "wide";
+
+/** Mostra solo le anteprime del tipo e del formato scelti, poi le riadatta alla larghezza. */
+function applyVisibility() {
+  document.querySelectorAll(".studio-block[data-fmt]").forEach((el) => {
+    const tplOk = el.classList.contains("tpl-std") ? tpl === "standings" : tpl !== "standings";
+    el.hidden = !(tplOk && el.dataset.fmt === fmt);
+  });
+  document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
+  Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
+}
 
 // ---------------------------------------------------------------------------- dati della settimana
 let sb = null;
@@ -814,8 +827,7 @@ function renderSelect() {
   weekSelect.innerHTML = group(2, "Regular season") + group(3, "Playoff");
   weekSelect.classList.toggle("is-current", selectedKey === currentKey);
   document.querySelectorAll(".tpl-name").forEach((el) => (el.textContent = tpl === "results" ? "Risultati settimanali" : "Calendario settimanale"));
-  document.querySelectorAll(".tpl-cal").forEach((el) => (el.hidden = tpl === "standings"));
-  document.querySelectorAll(".tpl-std").forEach((el) => (el.hidden = tpl !== "standings"));
+  applyVisibility();
   tplToggle.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tpl === tpl)));
 }
 
@@ -823,6 +835,7 @@ function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
   url.searchParams.set("t", { results: "risultati", standings: "classifiche" }[tpl] || "calendario");
+  url.searchParams.set("f", fmt === "tall" ? "storie" : "16-9");
   history.replaceState(null, "", url);
 }
 
@@ -831,6 +844,14 @@ weekSelect.addEventListener("change", () => {
   syncUrl();
   renderSelect();
   loadWeek();
+});
+
+document.getElementById("fmt-toggle").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-fmt]");
+  if (!b || b.dataset.fmt === fmt) return;
+  fmt = b.dataset.fmt;
+  applyVisibility();
+  syncUrl();
 });
 
 const tplToggle = document.getElementById("tpl-toggle");
