@@ -123,7 +123,7 @@ ESPN fino a quella settimana (ordine per percentuale e vittorie: i tiebreaker NF
 completi non sono disponibili per le settimane passate).
 
 **Template 4 — Partita della settimana** (riferimento "NFL Game of the Week",
-per ora solo 16:9): voce **Partita** nello Studio. Si sceglie la settimana (solo
+16:9 e storia IG 9:16 da "NFL Game of the Week-selection storia"): voce **Partita** nello Studio, formato scelto con il selettore 16:9 / Storie IG. Si sceglie la settimana (solo
 quelle già giocate), poi la **partita** conclusa di quella giornata e la **foto**.
 La grafica mostra squadre, loghi, punteggio (vincente in blu scuro, perdente in
 grigio) e 8 statistiche ESPN a confronto (yard totali, palle perse, primi down,

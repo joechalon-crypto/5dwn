@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021843";
-import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021843";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021849";
+import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021849";
 
 renderChrome("");
 
@@ -20,6 +20,7 @@ const stages = {
   afcTall: { root: document.getElementById("gfx-afc-tall"), wrap: document.getElementById("preview-afc-tall"), W: 1080, H: 1920 },
   nfcTall: { root: document.getElementById("gfx-nfc-tall"), wrap: document.getElementById("preview-nfc-tall"), W: 1080, H: 1920 },
   game: { root: document.getElementById("gfx-game"), wrap: document.getElementById("preview-game"), W: 1920, H: 1080 },
+  gameTall: { root: document.getElementById("gfx-game-tall"), wrap: document.getElementById("preview-game-tall"), W: 1080, H: 1920 },
 };
 
 // ---------------------------------------------------------------------------- palette del riferimento
@@ -178,12 +179,11 @@ function applyVisibility() {
   document.querySelectorAll(".studio-block[data-fmt]").forEach((el) => {
     let ok;
     if (el.classList.contains("tpl-std")) ok = tpl === "standings" && el.dataset.fmt === fmt;
-    else if (el.classList.contains("tpl-game")) ok = tpl === "game"; // per ora solo 16:9
+    else if (el.classList.contains("tpl-game")) ok = tpl === "game" && el.dataset.fmt === fmt;
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
     el.hidden = !ok;
   });
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = tpl !== "game"));
-  document.getElementById("fmt-toggle").hidden = tpl === "game";
   document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
   Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
 }
@@ -471,7 +471,10 @@ function fitPreview(stage) {
 
 function renderAll() {
   if (tpl === "game") {
-    if (gameData) renderGameStage(stages.game);
+    if (gameData) {
+      renderGameStage(stages.game, GW);
+      renderGameStage(stages.gameTall, GW_TALL);
+    }
     return;
   }
   if (tpl === "standings") {
@@ -652,11 +655,12 @@ const stdFile = (conf, fmt) => {
   const e = weeks.find((x) => keyOf(x) === selectedKey);
   return `5dwn-classifica-${conf.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}-${fmt}.png`;
 };
-document.getElementById("dl-game").addEventListener("click", () => {
-  if (!gameData) return;
+const gameFile = (f) => {
   const e = weeks.find((x) => keyOf(x) === selectedKey);
-  exportPng(stages.game, `5dwn-partita-${gameData.away.team.abbr.toLowerCase()}-${gameData.home.team.abbr.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}.png`);
-});
+  return `5dwn-partita-${gameData.away.team.abbr.toLowerCase()}-${gameData.home.team.abbr.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}-${f}.png`;
+};
+document.getElementById("dl-game").addEventListener("click", () => gameData && exportPng(stages.game, gameFile("16x9")));
+document.getElementById("dl-game-tall").addEventListener("click", () => gameData && exportPng(stages.gameTall, gameFile("9x16")));
 document.getElementById("dl-afc").addEventListener("click", () => exportPng(stages.afc, stdFile("AFC", "16x9")));
 document.getElementById("dl-nfc").addEventListener("click", () => exportPng(stages.nfc, stdFile("NFC", "16x9")));
 document.getElementById("dl-afc-tall").addEventListener("click", () => exportPng(stages.afcTall, stdFile("AFC", "9x16")));
@@ -866,7 +870,26 @@ const GW = {
   scoreCap: 437.4, barY: 615.0, barW: 125.2, barH: 7.4,
   frame: { cx: 959.8, cy: 402.75, w: 539.6, h: 424.1, rot: 3.0, inset: 14 },
   tape: { cx: 958, cy: 200.5, w: 190, h: 46, rot: 1.5 },
-  stats: { topLine: 640.0, firstLine: 692.0, pitch: 49.0, x0: 176.0, x1: 1743.6, valL: 177.2, valR: 1742.4, max: 522.5, barH: 7.4, labelX: 959.15 },
+  stats: { topLine: 640.0, firstLine: 692.0, pitch: 49.0, x0: 176.0, x1: 1743.6, valL: 177.2, valR: 1742.4, max: 522.5, barH: 7.4, barDy: 7.8, valDy: 37.7, labelX: 959.15 },
+  // intestazione
+  side: { x: 48.3, tops: [58.1, 83.5, 108.9, 134.2], scale: 1 }, sideDash: [47.9, 167.8, 25.8, 2],
+  yearDash: [1832, 56.1, 39.7, 1.6], year: { right: 1867.6, cap: 75.3, scale: 1 },
+  brand: [892.1, 29.4, 135, 32.42], at: { x: 960.6, cap: 86.3, h: 66.3 },
+  cityScale: 1, nickMaxW: 460, scoreScale: 1,
+};
+// Misurato su "NFL Game of the Week-selection storia.png" (1448×2576 → 1080×1920).
+const GW_TALL = {
+  colL: 290, colR: 790,
+  cityCap: 302.8, nickCap: 333.4, nickRefCap: 53.7,
+  logoCy: 495, logoBox: 182.6,
+  scoreCap: 626.5, barY: 786.1, barW: 124.6, barH: 6.8,
+  frame: { cx: 539.8, cy: 1043.8, w: 818.5, h: 419.2, rot: 3.0, inset: 12 },
+  tape: { cx: 540, cy: 845, w: 160, h: 49, rot: 1.5 },
+  stats: { topLine: 1268.0, firstLine: 1338.1, pitch: 49.0, x0: 67.9, x1: 1012.1, valL: 70.1, valR: 1009.9, max: 440.0, barH: 7.4, barDy: 8.2, valDy: 38.8, labelX: 540 },
+  side: { x: 49.2, tops: [166.3, 192.4, 217.0, 243.1], scale: 0.911 }, sideDash: [47.7, 276.0, 25.4, 1.6],
+  yearDash: [992, 165.6, 39.5, 1.5], year: { right: 1025.3, cap: 185.0, scale: 0.881 },
+  brand: [472.1, 152.3, 135, 32.42], at: { x: 540.4, cap: 209.6, h: 53.7 },
+  cityScale: 1, nickMaxW: 420, scoreScale: 0.881,
 };
 const WIN_INK = "#0f1e3f", WIN_SCORE = "#111111", LOSE_INK = "#8a9097", BAR_GREY = "#8a9097";
 const ratioNum = (v) => {
@@ -957,19 +980,19 @@ document.getElementById("photo-upload").addEventListener("change", (e) => {
   renderAll();
 });
 
-function gameTeamColumn(side, cx, isWinner, tie) {
+function gameTeamColumn(GW, side, cx, isWinner, tie) {
   const t = side.team, abbr = t.abbr;
   const color = ST_CELL[abbr] || t.color || "#333";
   const nickScale = GW.nickRefCap / STYLES.week.ref[1];
   const logo = espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png`, 430);
-  return `${T("gCity", (t.location || "").toUpperCase(), cx, GW.cityCap, "center")}
-    ${T("week", (t.nickname || t.short || "").toUpperCase(), cx, GW.nickCap, "center", { scale: nickScale, maxW: 460 })}
+  return `${T("gCity", (t.location || "").toUpperCase(), cx, GW.cityCap, "center", { scale: GW.cityScale })}
+    ${T("week", (t.nickname || t.short || "").toUpperCase(), cx, GW.nickCap, "center", { scale: nickScale, maxW: GW.nickMaxW })}
     <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${cx - GW.logoBox / 2}px;top:${GW.logoCy - GW.logoBox / 2}px;width:${GW.logoBox}px;height:${GW.logoBox}px">
-    ${T("gScore", String(side.score ?? 0), cx, GW.scoreCap, "center", { color: isWinner || tie ? WIN_SCORE : LOSE_INK })}
+    ${T("gScore", String(side.score ?? 0), cx, GW.scoreCap, "center", { scale: GW.scoreScale, color: isWinner || tie ? WIN_SCORE : LOSE_INK })}
     <div class="g-bar" style="left:${cx - GW.barW / 2}px;top:${GW.barY}px;width:${GW.barW}px;height:${GW.barH}px;background:${color}"></div>`;
 }
 
-function statRows(m) {
+function statRows(GW, m) {
   const S = GW.stats;
   const byName = Object.fromEntries((m.teamStats || []).map((r) => [r.name, r]));
   const colA = ST_CELL[m.away.team.abbr] || m.away.team.color || "#333";
@@ -988,17 +1011,19 @@ function statRows(m) {
     const aBetter = st.lowerBetter ? a < h : a > h, hBetter = st.lowerBetter ? h < a : h > a;
     const cA = a === h || aBetter ? colA : BAR_GREY, cH = a === h || hBetter ? colH : BAR_GREY;
     const fmt = st.fmt || ((v) => String(v));
-    html += `${T("gVal", fmt(va), S.valL, line - 37.7, "left", { color: WIN_INK })}
+    html += `${T("gVal", fmt(va), S.valL, line - S.valDy, "left", { color: WIN_INK })}
       ${T("gLabel", st.label, S.labelX, line - 32.8, "center")}
-      ${T("gVal", fmt(vh), S.valR, line - 37.7, "right", { color: WIN_INK })}
-      <div class="g-bar" style="left:${S.x0}px;top:${line - 7.8}px;width:${lenA}px;height:${S.barH}px;background:${cA}"></div>
-      <div class="g-bar" style="left:${S.x1 - lenH}px;top:${line - 7.8}px;width:${lenH}px;height:${S.barH}px;background:${cH}"></div>
+      ${T("gVal", fmt(vh), S.valR, line - S.valDy, "right", { color: WIN_INK })}
+      <div class="g-bar" style="left:${S.x0}px;top:${line - S.barDy}px;width:${lenA}px;height:${S.barH}px;background:${cA}"></div>
+      <div class="g-bar" style="left:${S.x1 - lenH}px;top:${line - S.barDy}px;width:${lenH}px;height:${S.barH}px;background:${cH}"></div>
       <div class="g-sep" style="left:${S.x0}px;top:${line}px;width:${S.x1 - S.x0}px;height:1px;background:#dcdddf"></div>`;
   });
   return html;
 }
 
-function renderGameStage(stage) {
+const rectBar = ([l, t, w, h], c) => `<div class="g-bar" style="left:${l}px;top:${t}px;width:${w}px;height:${h}px;background:${c}"></div>`;
+
+function renderGameStage(stage, GW) {
   const { W, H, root } = stage;
   const m = gameData;
   const year = sb.season.year;
@@ -1012,21 +1037,21 @@ function renderGameStage(stage) {
     : `<div class="g-photo-empty" style="left:${f.inset}px;top:${f.inset}px;right:${f.inset}px;bottom:${f.inset}px">Foto principale</div>`;
   root.style.width = `${W}px`;
   root.style.height = `${H}px`;
-  root.innerHTML = `${background(W, H, true)}
+  root.innerHTML = `${background(W, H, W > H)}
     <div class="gfx-layer" style="width:${W}px;height:${H}px">
-      ${T("stSide", "FOOTBALL", 48.3, 58.1)}${T("stSide", "MORE", 48.3, 83.5)}${T("stSide", "THAN", 48.3, 108.9)}${T("stSide", "A GAME", 48.3, 134.2)}
-      <div class="g-bar" style="left:47.9px;top:167.8px;width:25.8px;height:2px;background:#5e6574"></div>
-      <div class="g-bar" style="left:1832px;top:56.1px;width:39.7px;height:1.6px;background:#222222"></div>
-      ${T("stInk", String(year), 1867.6, 75.3, "right")}
-      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:892.1px;top:29.4px;width:135px;height:32.42px">
-      ${T("at", m.neutral ? "VS" : "@", 960.6, 86.3, "center", { scale: 66.3 / STYLES.at.ref[1], color: "#111111" })}
-      ${gameTeamColumn(m.away, GW.colL, as > hs, tie)}
-      ${gameTeamColumn(m.home, GW.colR, hs > as, tie)}
+      ${["FOOTBALL", "MORE", "THAN", "A GAME"].map((w, i) => T("stSide", w, GW.side.x, GW.side.tops[i], "left", { scale: GW.side.scale })).join("")}
+      ${rectBar(GW.sideDash, "#5e6574")}
+      ${rectBar(GW.yearDash, "#222222")}
+      ${T("stInk", String(year), GW.year.right, GW.year.cap, "right", { scale: GW.year.scale })}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${GW.brand[0]}px;top:${GW.brand[1]}px;width:${GW.brand[2]}px;height:${GW.brand[3]}px">
+      ${T("at", m.neutral ? "VS" : "@", GW.at.x, GW.at.cap, "center", { scale: GW.at.h / STYLES.at.ref[1], color: "#111111" })}
+      ${gameTeamColumn(GW, m.away, GW.colL, as > hs, tie)}
+      ${gameTeamColumn(GW, m.home, GW.colR, hs > as, tie)}
       <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}"
         style="left:${f.cx - f.w / 2}px;top:${f.cy - f.h / 2}px;width:${f.w}px;height:${f.h}px;transform:rotate(${f.rot}deg)">${photo}</div>
       <div class="g-tape" data-cx="${tp.cx}" data-cy="${tp.cy}" data-w="${tp.w}" data-h="${tp.h}" data-rot="${tp.rot}"
         style="left:${tp.cx - tp.w / 2}px;top:${tp.cy - tp.h / 2}px;width:${tp.w}px;height:${tp.h}px;transform:rotate(${tp.rot}deg)"></div>
-      ${statRows(m)}
+      ${statRows(GW, m)}
     </div>`;
   fitPreview(stage);
 }
@@ -1116,6 +1141,7 @@ async function loadWeek() {
       if (!weekGames.length) {
         gameData = null;
         stages.game.root.innerHTML = "";
+        stages.gameTall.root.innerHTML = "";
         status.textContent = `Nessuna partita conclusa in ${weekLabel(entry)}.`;
         return;
       }
