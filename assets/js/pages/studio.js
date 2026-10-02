@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021824";
-import { getScoreboard, getWeek, getStandings, currentWeekIndex } from "../api.js?v=202610021824";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021826";
+import { getScoreboard, getWeek, getStandings, currentWeekIndex } from "../api.js?v=202610021826";
 
 renderChrome("");
 
@@ -17,6 +17,8 @@ const stages = {
   tall: { root: document.getElementById("gfx-tall"), wrap: document.getElementById("preview-tall"), W: 1080, H: 1920 },
   afc: { root: document.getElementById("gfx-afc"), wrap: document.getElementById("preview-afc"), W: 1920, H: 1080 },
   nfc: { root: document.getElementById("gfx-nfc"), wrap: document.getElementById("preview-nfc"), W: 1920, H: 1080 },
+  afcTall: { root: document.getElementById("gfx-afc-tall"), wrap: document.getElementById("preview-afc-tall"), W: 1080, H: 1920 },
+  nfcTall: { root: document.getElementById("gfx-nfc-tall"), wrap: document.getElementById("preview-nfc-tall"), W: 1080, H: 1920 },
 };
 
 // ---------------------------------------------------------------------------- palette del riferimento
@@ -446,6 +448,8 @@ function renderAll() {
     if (!standingsData) return;
     renderStandingsStage(stages.afc, "AFC");
     renderStandingsStage(stages.nfc, "NFC");
+    renderStandingsTall(stages.afcTall, "AFC");
+    renderStandingsTall(stages.nfcTall, "NFC");
     return;
   }
   if (!weekData) return;
@@ -578,12 +582,14 @@ async function exportPng(stage, name) {
 const fileBase = () => `5dwn-${tpl === "results" ? "risultati" : "calendario"}-${titleFor(weekData.entry).toLowerCase().replace(/\s+/g, "-")}-${weekData.year}`;
 document.getElementById("dl-wide").addEventListener("click", () => exportPng(stages.wide, `${fileBase()}-16x9.png`));
 document.getElementById("dl-tall").addEventListener("click", () => exportPng(stages.tall, `${fileBase()}-9x16.png`));
-const stdFile = (conf) => {
+const stdFile = (conf, fmt) => {
   const e = weeks.find((x) => keyOf(x) === selectedKey);
-  return `5dwn-classifica-${conf.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}.png`;
+  return `5dwn-classifica-${conf.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}-${fmt}.png`;
 };
-document.getElementById("dl-afc").addEventListener("click", () => exportPng(stages.afc, stdFile("AFC")));
-document.getElementById("dl-nfc").addEventListener("click", () => exportPng(stages.nfc, stdFile("NFC")));
+document.getElementById("dl-afc").addEventListener("click", () => exportPng(stages.afc, stdFile("AFC", "16x9")));
+document.getElementById("dl-nfc").addEventListener("click", () => exportPng(stages.nfc, stdFile("NFC", "16x9")));
+document.getElementById("dl-afc-tall").addEventListener("click", () => exportPng(stages.afcTall, stdFile("AFC", "9x16")));
+document.getElementById("dl-nfc-tall").addEventListener("click", () => exportPng(stages.nfcTall, stdFile("NFC", "9x16")));
 
 // ---------------------------------------------------------------------------- template Classifiche
 // Misurato su "NFL Standings-selection.png" (AFC) e "(1)" (NFC), 4692×2640 → 1920×1080.
@@ -656,26 +662,27 @@ async function standingsAfter(entry) {
   };
 }
 
-function stdBlock(div, x, capTop) {
-  const rowTop = capTop + SG.hdrToRow;
-  const c = SG.cells;
-  let html = T("stDiv", `${div.conf} ${div.short}`.toUpperCase(), x, capTop);
+function stdBlock(div, x, capTop, g = SG) {
+  const SG_ = g, ts = g.ts || 1;
+  const rowTop = capTop + SG_.hdrToRow;
+  const c = SG_.cells;
+  let html = T("stDiv", `${div.conf} ${div.short}`.toUpperCase(), x, capTop, "left", { scale: ts });
   for (const [k, label] of [["w", "W"], ["l", "L"], ["pct", "PCT"]]) {
-    html += T("stCol", label, x + c[k][0] + c[k][1] / 2, capTop + SG.colCap, "center");
+    html += T("stCol", label, x + c[k][0] + c[k][1] / 2, capTop + SG_.colCap, "center", { scale: ts });
   }
   div.teams.slice(0, 4).forEach((r, i) => {
-    const y = rowTop + i * SG.pitch;
+    const y = rowTop + i * SG_.pitch;
     const t = r.team, abbr = t.abbr;
     const ink = ST_DARK_TEXT.has(abbr) ? "#111111" : "#ffffff";
     const logo = espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${abbr.toLowerCase()}.png`, 160);
-    html += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${c.team[1]}px;height:${SG.rowH}px;background:${ST_CELL[abbr] || t.color || "#333"}"></div>
-      <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${x + SG.logoCx - SG.logoBox / 2}px;top:${y + (SG.rowH - SG.logoBox) / 2}px;width:${SG.logoBox}px;height:${SG.logoBox}px">
-      ${T("stT1", (t.location || "").toUpperCase(), x + SG.textX, y + SG.t1, "left", { color: ink })}
-      ${T("stT2", (t.nickname || t.short || "").toUpperCase(), x + SG.textX, y + SG.t2, "left", { color: ink })}`;
+    html += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${c.team[1]}px;height:${SG_.rowH}px;background:${ST_CELL[abbr] || t.color || "#333"}"></div>
+      <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${x + SG_.logoCx - SG_.logoBox / 2}px;top:${y + (SG_.rowH - SG_.logoBox) / 2}px;width:${SG_.logoBox}px;height:${SG_.logoBox}px">
+      ${T("stT1", (t.location || "").toUpperCase(), x + SG_.textX, y + SG_.t1, "left", { color: ink, scale: ts })}
+      ${T("stT2", (t.nickname || t.short || "").toUpperCase(), x + SG_.textX, y + SG_.t2, "left", { color: ink, scale: ts })}`;
     const vals = { w: String(r.w), l: String(r.l), pct: pctOf(r).toFixed(3) };
     for (const k of ["w", "l", "pct"]) {
-      html += `<div class="g-cell g-white" style="left:${x + c[k][0]}px;top:${y}px;width:${c[k][1]}px;height:${SG.rowH}px"></div>
-        ${T("stNum", vals[k], x + c[k][0] + c[k][1] / 2, y + SG.numCap, "center")}`;
+      html += `<div class="g-cell g-white" style="left:${x + c[k][0]}px;top:${y}px;width:${c[k][1]}px;height:${SG_.rowH}px"></div>
+        ${T("stNum", vals[k], x + c[k][0] + c[k][1] / 2, y + SG_.numCap, "center", { scale: ts })}`;
     }
   });
   return html;
@@ -714,6 +721,67 @@ function renderStandingsStage(stage, conf) {
       <div class="g-bar" style="left:55.2px;top:1036.1px;width:27.5px;height:1.3px"></div>
       ${T("stInk", "QUINTO", 1860.3, 960.0, "right")}${T("stInk", "DOWN", 1860.3, 982.1, "right")}${T("stInk", String(year), 1860.3, 1004.2, "right")}
       <div class="g-bar" style="left:1835.7px;top:1035.7px;width:27.8px;height:2px;background:#b5b8bd"></div>
+    </div>`;
+  fitPreview(stage);
+}
+
+// 9:16 (storie IG): impianto del "Calendario storie" (sfondo, titolo, angoli e piè di pagina più in basso);
+// le quattro division una sotto l'altra a tutta larghezza (48,3 → 1032,3).
+const SG_TALL = {
+  x: 48.3, firstCap: 389.4, maxBottom: 1690, blockGap: 40,
+  hdrToRow: 35.6, colCap: 9.0,
+  cells: { team: [0, 588], w: [590, 112], l: [704, 112], pct: [818, 166] },
+};
+
+function standingsTallGeometry() {
+  // passo righe calcolato per far stare 4 division × 4 squadre tra intestazione e piè di pagina
+  const avail = SG_TALL.maxBottom - SG_TALL.firstCap - 3 * SG_TALL.blockGap - 4 * SG_TALL.hdrToRow;
+  const pitch = Math.min(SG.pitch, avail / 16);
+  const rowH = pitch - 2.4;
+  const k = rowH / SG.rowH; // riduzione di logo e testi rispetto al 16:9
+  return {
+    ...SG_TALL, pitch, rowH, ts: Math.min(1, k + 0.04),
+    logoBox: SG.logoBox * k, logoCx: 80, textX: 158,
+    t1: SG.t1 * k, t2: SG.t2 * k, numCap: (rowH - 20.8 * Math.min(1, k + 0.04)) / 2,
+  };
+}
+
+function renderStandingsTall(stage, conf) {
+  const { W, H, root } = stage;
+  const year = sb.season.year;
+  const g = standingsTallGeometry();
+  const divs = SG.order.map((name) => standingsData.divisions.find((d) => d.conf === conf && d.short === name)).filter(Boolean);
+  const t = 130, sd = 117.6, f = 712; // spostamenti del formato storie (come il calendario 9:16)
+  const lg = CONF_LOGO[conf], scale = 0.328, box = 500 * scale;
+  const visW = (lg.x1 - lg.x0) * scale;
+  const titleScale = 110.9 / STYLES.week.ref[1];
+  const tW = inkWidth("week", conf) * titleScale;
+  const tLeft = W / 2 - (tW + 40 + visW) / 2;
+  const logoLeft = tLeft + tW + 40 - lg.x0 * scale;
+  const right = W - 48.3;
+  let y = g.firstCap, blocks = "";
+  divs.forEach((d, i) => {
+    blocks += stdBlock(d, g.x, y, g);
+    y += g.hdrToRow + 4 * g.pitch - 2.4 + g.blockGap;
+  });
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, false)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${T("side", "FOOTBALL", 45.3, 46.6 + sd)}${T("side", "MORE", 45.3, 70.7 + sd)}${T("side", "THAN", 45.3, 94.4 + sd)}${T("side", "A GAME", 45.3, 117.7 + sd)}
+      <div class="g-bar" style="left:44px;top:${149.2 + sd}px;width:25.4px;height:2.2px"></div>
+      <div class="g-bar" style="left:${right - 21.6}px;top:${48.3 + sd}px;width:25.5px;height:2.2px"></div>
+      ${T("year", String(year), right, 66.4 + sd, "right")}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${W / 2 - 64}px;top:${22.4 + t}px;width:128px;height:30.74px">
+      ${T("week", conf, tLeft, 66.7 + t, "left", { scale: titleScale })}
+      <img class="g-logo" crossorigin="anonymous" src="${lg.src}" alt="${conf}" style="left:${logoLeft.toFixed(1)}px;top:${41 + t}px;width:${box}px;height:${box}px">
+      ${T("sub", "CLASSIFICA", W / 2, 201.7 + t, "center")}
+      ${blocks}
+      <div class="g-bar" style="left:44px;top:${1025.1 + f}px;width:25.4px;height:2.2px"></div>
+      ${T("foot", CONF_NAME[conf], 78.5, 1041.5 + f)}
+      ${T("year", "QUINTO DOWN", right, 1008.3 + f, "right")}
+      ${T("year", String(year), right, 1032.0 + f, "right")}
+      <div class="g-bar" style="left:${right - 21.6}px;top:${1060.9 + f}px;width:25.5px;height:2.6px"></div>
     </div>`;
   fitPreview(stage);
 }

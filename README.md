@@ -113,8 +113,9 @@ nel piè di pagina. La tendina mostra solo le settimane già iniziate e la grafi
 include solo le partite concluse; di default propone l'ultima settimana completa.
 I punteggi arrivano da ESPN tramite il sito, come tutti gli altri dati.
 
-**Template 3 — Classifiche** (riferimenti "NFL Standings"): due grafiche 16:9,
-una per l'**AFC** e una per l'**NFC**, con le 4 division (W, L, PCT), logo della
+**Template 3 — Classifiche** (riferimenti "NFL Standings"): una grafica per
+l'**AFC** e una per l'**NFC**, ciascuna in 16:9 e in 9:16 per le storie IG
+(stesso sfondo e impianto del calendario storie, division una sotto l'altra), con le 4 division (W, L, PCT), logo della
 conference e i colori ufficiali delle squadre. Si generano **settimana per
 settimana**: per la settimana in corso si usa la classifica ufficiale ESPN; per le
 settimane passate vittorie/sconfitte/percentuale vengono ricalcolate dai risultati

@@ -1,5 +1,5 @@
-import { renderChrome, loading, showError, staleNotice, updatedLine, teamLogo, teamHref, every, esc } from "../ui.js?v=202610021824";
-import { getStandings } from "../api.js?v=202610021824";
+import { renderChrome, loading, showError, staleNotice, updatedLine, teamLogo, teamHref, every, esc } from "../ui.js?v=202610021826";
+import { getStandings } from "../api.js?v=202610021826";
 
 renderChrome("classifiche");
 
