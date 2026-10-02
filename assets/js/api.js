@@ -8,7 +8,7 @@
 
 const SITE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 const STANDINGS = "https://site.web.api.espn.com/apis/v2/sports/football/nfl/standings";
-const CACHE_PREFIX = "5dwn:v3:";
+const CACHE_PREFIX = "5dwn:v4:";
 const ATHLETE = "https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes";
 const TIMEOUT_MS = 12000;
 
@@ -615,6 +615,11 @@ async function loadSummary(id) {
     players,
     injuries,
     lastFive,
+    // Foto della partita: miniature 1920×1080 dei video highlights (con titolo) e immagini del recap.
+    photos: [
+      ...(json.videos || []).filter((v) => v.thumbnail).map((v) => ({ url: v.thumbnail, title: v.headline || "" })),
+      ...((json.article && json.article.images) || []).filter((im) => im.url).map((im) => ({ url: im.url, title: im.caption || json.article.headline || "" })),
+    ],
     scoringPlays: (json.scoringPlays || []).map((p) => ({
       period: p.period?.number ?? 0,
       clock: p.clock?.displayValue || "",

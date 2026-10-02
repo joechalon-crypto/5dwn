@@ -122,6 +122,17 @@ settimane passate vittorie/sconfitte/percentuale vengono ricalcolate dai risulta
 ESPN fino a quella settimana (ordine per percentuale e vittorie: i tiebreaker NFL
 completi non sono disponibili per le settimane passate).
 
+**Template 4 — Partita della settimana** (riferimento "NFL Game of the Week",
+per ora solo 16:9): voce **Partita** nello Studio. Si sceglie la settimana (solo
+quelle già giocate), poi la **partita** conclusa di quella giornata e la **foto**.
+La grafica mostra squadre, loghi, punteggio (vincente in blu scuro, perdente in
+grigio) e 8 statistiche ESPN a confronto (yard totali, palle perse, primi down,
+penalità, terzi e quarti down, red zone, possesso) con barre proporzionali, colorate
+per chi ha fatto meglio. La foto viene proposta tra quelle ESPN della partita
+(miniature 1920×1080 degli highlights), scegliendo quella il cui titolo cita la
+squadra vincente; dalla tendina **Foto** si può cambiare, oppure si può caricare
+una foto propria con **Carica foto** (resta nel browser, non viene pubblicata).
+
 Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
 `STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,
 quindi vanno cambiati solo se cambia il template.

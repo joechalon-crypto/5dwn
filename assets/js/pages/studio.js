@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021829";
-import { getScoreboard, getWeek, getStandings, currentWeekIndex } from "../api.js?v=202610021829";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021837";
+import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021837";
 
 renderChrome("");
 
@@ -19,6 +19,7 @@ const stages = {
   nfc: { root: document.getElementById("gfx-nfc"), wrap: document.getElementById("preview-nfc"), W: 1920, H: 1080 },
   afcTall: { root: document.getElementById("gfx-afc-tall"), wrap: document.getElementById("preview-afc-tall"), W: 1080, H: 1920 },
   nfcTall: { root: document.getElementById("gfx-nfc-tall"), wrap: document.getElementById("preview-nfc-tall"), W: 1080, H: 1920 },
+  game: { root: document.getElementById("gfx-game"), wrap: document.getElementById("preview-game"), W: 1920, H: 1080 },
 };
 
 // ---------------------------------------------------------------------------- palette del riferimento
@@ -72,6 +73,11 @@ const STYLES = {
   stSide: { cls: "gt-st-side", family: "Archivo", weight: 600, stretch: "normal", ref: ["FOOTBALL", 12.3, 116.2] },
   stInk: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO", 13.5, 78.2] },
   stFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["AMERICAN FOOTBALL CONFERENCE", 13.5, 414.6] },
+  // Template "Partita della settimana" (misurato su "NFL Game of the Week-selection (1).png")
+  gCity: { cls: "gt-g-city", family: "Archivo", weight: 600, stretch: "expanded", ref: ["NEW ORLEANS", 13.5, 229.6] },
+  gScore: { cls: "gt-g-score", family: "Archivo", weight: 800, stretch: "condensed", ref: ["24", 157.5, 207.4] },
+  gVal: { cls: "gt-g-val", family: "Archivo", weight: 700, stretch: "normal", ref: ["298", 18.4, 43.8] },
+  gLabel: { cls: "gt-g-label", family: "Archivo", weight: 600, stretch: "normal", ref: ["Yard totali", 14.4, 93.3] },
   gp: { cls: "gt-gp", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["GAME", 15.1, 41.0] },
 };
 
@@ -161,7 +167,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -170,9 +176,14 @@ let fmt = new URLSearchParams(location.search).get("f") === "storie" ? "tall" : 
 /** Mostra solo le anteprime del tipo e del formato scelti, poi le riadatta alla larghezza. */
 function applyVisibility() {
   document.querySelectorAll(".studio-block[data-fmt]").forEach((el) => {
-    const tplOk = el.classList.contains("tpl-std") ? tpl === "standings" : tpl !== "standings";
-    el.hidden = !(tplOk && el.dataset.fmt === fmt);
+    let ok;
+    if (el.classList.contains("tpl-std")) ok = tpl === "standings" && el.dataset.fmt === fmt;
+    else if (el.classList.contains("tpl-game")) ok = tpl === "game"; // per ora solo 16:9
+    else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
+    el.hidden = !ok;
   });
+  document.querySelectorAll(".game-only").forEach((el) => (el.hidden = tpl !== "game"));
+  document.getElementById("fmt-toggle").hidden = tpl === "game";
   document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
   Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
 }
@@ -457,6 +468,10 @@ function fitPreview(stage) {
 }
 
 function renderAll() {
+  if (tpl === "game") {
+    if (gameData) renderGameStage(stages.game);
+    return;
+  }
   if (tpl === "standings") {
     if (!standingsData) return;
     renderStandingsStage(stages.afc, "AFC");
@@ -520,8 +535,13 @@ async function drawStage(stage) {
   c.drawImage(bg, 0, 0, W, H);
 
   // 2) elementi nell'ordine del documento (rettangoli, loghi, testi)
-  const els = root.querySelectorAll(".g-cell, .g-band, .g-bar, .g-sep, .g-dash, img, .gt");
+  const els = root.querySelectorAll(".g-cell, .g-band, .g-bar, .g-sep, .g-dash, .g-photo, .g-tape, img, .gt");
   for (const el of els) {
+    if (el.closest(".g-photo") && !el.classList.contains("g-photo")) continue; // disegnati insieme alla cornice
+    if (el.classList.contains("g-photo") || el.classList.contains("g-tape")) {
+      drawRotated(c, el);
+      continue;
+    }
     const b = box(el);
     const cs = getComputedStyle(el);
     if (el.tagName === "IMG") {
@@ -534,7 +554,7 @@ async function drawStage(stage) {
       const size = parseFloat(cs.fontSize) * eff;
       const ls = (parseFloat(cs.letterSpacing) || 0) * eff;
       const fs = parseFloat(cs.fontStretch) || 100;
-      const stretch = fs >= 120 ? "expanded " : fs >= 110 ? "semi-expanded " : "";
+      const stretch = fs >= 120 ? "expanded " : fs >= 110 ? "semi-expanded " : fs <= 70 ? "extra-condensed " : fs <= 80 ? "condensed " : fs <= 90 ? "semi-condensed " : "";
       const family = cs.fontFamily.split(",")[0].replace(/["']/g, "").trim();
       c.font = `${stretch}${cs.fontWeight} ${size}px "${family}"`;
       c.fillStyle = cs.color;
@@ -568,6 +588,37 @@ async function drawStage(stage) {
   return canvas;
 }
 
+/** Cornice foto (polaroid) e scotch: elementi ruotati, disegnati dalle loro misure (data-*). */
+function drawRotated(c, el) {
+  const d = el.dataset;
+  const w = +d.w, h = +d.h;
+  c.save();
+  c.translate(+d.cx, +d.cy);
+  c.rotate((+d.rot * Math.PI) / 180);
+  if (el.classList.contains("g-tape")) {
+    c.fillStyle = getComputedStyle(el).backgroundColor;
+    c.fillRect(-w / 2, -h / 2, w, h);
+  } else {
+    c.shadowColor = "rgba(0,0,0,0.18)";
+    c.shadowBlur = 24;
+    c.shadowOffsetY = 10;
+    c.fillStyle = "#ffffff";
+    c.fillRect(-w / 2, -h / 2, w, h);
+    c.shadowColor = "transparent";
+    const ins = +d.inset, tw = w - 2 * ins, th = h - 2 * ins;
+    const img = el.querySelector("img");
+    if (img && img.naturalWidth) {
+      const k = Math.max(tw / img.naturalWidth, th / img.naturalHeight); // object-fit: cover
+      const sw = tw / k, sh = th / k;
+      c.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, -w / 2 + ins, -h / 2 + ins, tw, th);
+    } else {
+      c.fillStyle = "#f5f5f5";
+      c.fillRect(-w / 2 + ins, -h / 2 + ins, tw, th);
+    }
+  }
+  c.restore();
+}
+
 /** PNG (data URL) della grafica a grandezza reale. */
 async function pngData(stage) {
   const canvas = await drawStage(stage);
@@ -599,6 +650,11 @@ const stdFile = (conf, fmt) => {
   const e = weeks.find((x) => keyOf(x) === selectedKey);
   return `5dwn-classifica-${conf.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}-${fmt}.png`;
 };
+document.getElementById("dl-game").addEventListener("click", () => {
+  if (!gameData) return;
+  const e = weeks.find((x) => keyOf(x) === selectedKey);
+  exportPng(stages.game, `5dwn-partita-${gameData.away.team.abbr.toLowerCase()}-${gameData.home.team.abbr.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}.png`);
+});
 document.getElementById("dl-afc").addEventListener("click", () => exportPng(stages.afc, stdFile("AFC", "16x9")));
 document.getElementById("dl-nfc").addEventListener("click", () => exportPng(stages.nfc, stdFile("NFC", "16x9")));
 document.getElementById("dl-afc-tall").addEventListener("click", () => exportPng(stages.afcTall, stdFile("AFC", "9x16")));
@@ -799,10 +855,185 @@ function renderStandingsTall(stage, conf) {
   fitPreview(stage);
 }
 
+// ---------------------------------------------------------------------------- template Partita della settimana
+// Misurato su "NFL Game of the Week-selection (1).png" (4692×2640 → 1920×1080). Trasferta a sinistra, casa a destra.
+const GW = {
+  colL: 400, colR: 1520,
+  cityCap: 87.2, nickCap: 120.3, nickRefCap: 69.2,
+  logoCy: 317, logoBox: 215,
+  scoreCap: 437.4, barY: 615.0, barW: 125.2, barH: 7.4,
+  frame: { cx: 959.8, cy: 402.75, w: 539.6, h: 424.1, rot: 3.0, inset: 14 },
+  tape: { cx: 958, cy: 200.5, w: 190, h: 46, rot: 1.5 },
+  stats: { topLine: 640.0, firstLine: 692.0, pitch: 49.0, x0: 176.0, x1: 1743.6, valL: 177.2, valR: 1742.4, max: 522.5, barH: 7.4, labelX: 959.15 },
+};
+const WIN_INK = "#0f1e3f", LOSE_INK = "#8a9097", BAR_GREY = "#8a9097";
+const ratioNum = (v) => {
+  const [m, a] = String(v).split("-").map(Number);
+  return a ? m / a : 0;
+};
+const GAME_STATS = [
+  { name: "totalYards", label: "Yard totali" },
+  { name: "turnovers", label: "Palle perse", lowerBetter: true },
+  { name: "firstDowns", label: "Primi down" },
+  { name: "totalPenaltiesYards", label: "Penalità (yard)", lowerBetter: true,
+    fmt: (v) => { const [n, y] = String(v).split("-"); return y !== undefined ? `${n} (${y})` : String(v); },
+    num: (v) => parseFloat(String(v).split("-")[0]) || 0 },
+  { name: "thirdDownEff", label: "Terzi down (convertiti/tentati)", fmt: (v) => String(v).replace("-", "/"), num: ratioNum },
+  { name: "fourthDownEff", label: "Quarti down (convertiti/tentati)", fmt: (v) => String(v).replace("-", "/"), num: ratioNum },
+  { name: "redZoneAttempts", label: "Red zone", fmt: (v) => String(v).replace("-", "/"), num: ratioNum },
+  { name: "possessionTime", label: "Possesso", num: (v) => { const [m, s2] = String(v).split(":").map(Number); return (m || 0) * 60 + (s2 || 0); } },
+];
+
+const gameSelect = document.getElementById("game-select");
+const photoSelect = document.getElementById("photo-select");
+let weekGames = [];
+let selectedGame = "";
+let gameData = null;
+let photoIndex = 0;
+let uploadedPhoto = null; // object URL della foto caricata dall'utente
+
+/** Foto che "mette in risalto" la vincente: titolo che cita la squadra vincente (e non la perdente). */
+function pickPhoto(photos, win, lose) {
+  if (!photos.length || !win) return 0;
+  const wn = (win.nickname || win.short || "").toLowerCase(), wl = (win.location || "").toLowerCase();
+  const ln = (lose?.nickname || "").toLowerCase();
+  let best = 0, bestScore = -Infinity;
+  photos.forEach((p, i) => {
+    const t = (p.title || "").toLowerCase();
+    let sc = 0;
+    if (wn && t.includes(wn)) sc += 3;
+    if (wl && t.includes(wl)) sc += 1;
+    if (ln && t.includes(ln)) sc -= 1;
+    if (wn && t.includes(wn) && /\b(win|wins|won|prevail|beat|beats|edge|top|rout|seal|clinch)/.test(t)) sc += 1;
+    if (sc > bestScore) { bestScore = sc; best = i; }
+  });
+  return best;
+}
+
+function renderPhotoSelect() {
+  const photos = gameData?.photos || [];
+  const opts = photos.map((p, i) => `<option value="${i}">${esc((p.title || `Foto ${i + 1}`).slice(0, 70))}</option>`);
+  if (uploadedPhoto) opts.unshift(`<option value="upload">Foto caricata da te</option>`);
+  if (!opts.length) opts.push(`<option value="">Nessuna foto ESPN: caricane una</option>`);
+  photoSelect.innerHTML = opts.join("");
+  photoSelect.value = uploadedPhoto ? "upload" : String(photoIndex);
+}
+
+async function loadGame() {
+  status.textContent = "Carico statistiche e foto della partita…";
+  let res = await getSummary(selectedGame);
+  if (!res.data.photos) res = await getSummary(selectedGame, { force: true }); // cache precedente senza foto
+  gameData = res.data;
+  if (uploadedPhoto) { URL.revokeObjectURL(uploadedPhoto); uploadedPhoto = null; }
+  const [win, lose] = (gameData.home.score ?? 0) >= (gameData.away.score ?? 0) ? [gameData.home.team, gameData.away.team] : [gameData.away.team, gameData.home.team];
+  photoIndex = pickPhoto(gameData.photos || [], win, lose);
+  renderPhotoSelect();
+  syncUrl();
+  renderAll();
+  const nPhotos = (gameData.photos || []).length;
+  status.textContent = `${gameData.away.team.short} @ ${gameData.home.team.short} · ${gameData.away.score}-${gameData.home.score} · ${nPhotos ? `${nPhotos} foto ESPN, proposta quella sulla vincente` : "nessuna foto ESPN: puoi caricarne una"}`;
+}
+
+gameSelect.addEventListener("change", () => {
+  selectedGame = gameSelect.value;
+  if (selectedGame) loadGame().catch((err) => { console.error(err); status.textContent = "Non riesco a caricare la partita: riprova."; });
+});
+photoSelect.addEventListener("change", () => {
+  if (photoSelect.value === "upload") return;
+  if (uploadedPhoto) { URL.revokeObjectURL(uploadedPhoto); uploadedPhoto = null; }
+  photoIndex = Number(photoSelect.value) || 0;
+  renderPhotoSelect();
+  renderAll();
+});
+document.getElementById("photo-upload").addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (uploadedPhoto) URL.revokeObjectURL(uploadedPhoto);
+  uploadedPhoto = URL.createObjectURL(file);
+  e.target.value = "";
+  renderPhotoSelect();
+  renderAll();
+});
+
+function gameTeamColumn(side, cx, isWinner, tie) {
+  const t = side.team, abbr = t.abbr;
+  const color = ST_CELL[abbr] || t.color || "#333";
+  const nickScale = GW.nickRefCap / STYLES.week.ref[1];
+  const logo = espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png`, 430);
+  return `${T("gCity", (t.location || "").toUpperCase(), cx, GW.cityCap, "center")}
+    ${T("week", (t.nickname || t.short || "").toUpperCase(), cx, GW.nickCap, "center", { scale: nickScale, maxW: 460 })}
+    <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${cx - GW.logoBox / 2}px;top:${GW.logoCy - GW.logoBox / 2}px;width:${GW.logoBox}px;height:${GW.logoBox}px">
+    ${T("gScore", String(side.score ?? 0), cx, GW.scoreCap, "center", { color: isWinner || tie ? WIN_INK : LOSE_INK })}
+    <div class="g-bar" style="left:${cx - GW.barW / 2}px;top:${GW.barY}px;width:${GW.barW}px;height:${GW.barH}px;background:${color}"></div>`;
+}
+
+function statRows(m) {
+  const S = GW.stats;
+  const byName = Object.fromEntries((m.teamStats || []).map((r) => [r.name, r]));
+  const colA = ST_CELL[m.away.team.abbr] || m.away.team.color || "#333";
+  const colH = ST_CELL[m.home.team.abbr] || m.home.team.color || "#333";
+  let html = `<div class="g-sep" style="left:${S.x0}px;top:${S.topLine}px;width:${S.x1 - S.x0}px;height:1px;background:#dcdddf"></div>`;
+  GAME_STATS.forEach((st, i) => {
+    const line = S.firstLine + i * S.pitch;
+    const r = byName[st.name];
+    const va = r ? r.away : "–", vh = r ? r.home : "–";
+    const num = st.num || ((v) => parseFloat(v) || 0);
+    const a = r ? num(va) : 0, h = r ? num(vh) : 0;
+    const sum = a + h;
+    let shA = 0, shH = 0;
+    if (sum > 0) [shA, shH] = st.lowerBetter ? [h / sum, a / sum] : [a / sum, h / sum];
+    const lenA = Math.max(5, shA * S.max), lenH = Math.max(5, shH * S.max);
+    const aBetter = st.lowerBetter ? a < h : a > h, hBetter = st.lowerBetter ? h < a : h > a;
+    const cA = a === h || aBetter ? colA : BAR_GREY, cH = a === h || hBetter ? colH : BAR_GREY;
+    const fmt = st.fmt || ((v) => String(v));
+    html += `${T("gVal", fmt(va), S.valL, line - 37.7, "left", { color: WIN_INK })}
+      ${T("gLabel", st.label, S.labelX, line - 32.8, "center")}
+      ${T("gVal", fmt(vh), S.valR, line - 37.7, "right", { color: WIN_INK })}
+      <div class="g-bar" style="left:${S.x0}px;top:${line - 7.8}px;width:${lenA}px;height:${S.barH}px;background:${cA}"></div>
+      <div class="g-bar" style="left:${S.x1 - lenH}px;top:${line - 7.8}px;width:${lenH}px;height:${S.barH}px;background:${cH}"></div>
+      <div class="g-sep" style="left:${S.x0}px;top:${line}px;width:${S.x1 - S.x0}px;height:1px;background:#dcdddf"></div>`;
+  });
+  return html;
+}
+
+function renderGameStage(stage) {
+  const { W, H, root } = stage;
+  const m = gameData;
+  const year = sb.season.year;
+  const as = m.away.score ?? 0, hs = m.home.score ?? 0;
+  const tie = as === hs;
+  const f = GW.frame, tp = GW.tape;
+  const photos = m.photos || [];
+  const src = uploadedPhoto || photos[photoIndex]?.url || "";
+  const photo = src
+    ? `<img class="g-photo-img" ${uploadedPhoto ? "" : 'crossorigin="anonymous"'} src="${esc(src)}" alt="" style="left:${f.inset}px;top:${f.inset}px;width:${f.w - 2 * f.inset}px;height:${f.h - 2 * f.inset}px">`
+    : `<div class="g-photo-empty" style="left:${f.inset}px;top:${f.inset}px;right:${f.inset}px;bottom:${f.inset}px">Foto principale</div>`;
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, true)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${T("stSide", "FOOTBALL", 48.3, 58.1)}${T("stSide", "MORE", 48.3, 83.5)}${T("stSide", "THAN", 48.3, 108.9)}${T("stSide", "A GAME", 48.3, 134.2)}
+      <div class="g-bar" style="left:47.9px;top:167.8px;width:25.8px;height:2px;background:#5e6574"></div>
+      <div class="g-bar" style="left:1832px;top:56.1px;width:39.7px;height:1.6px;background:#222222"></div>
+      ${T("stInk", String(year), 1867.6, 75.3, "right")}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:892.1px;top:29.4px;width:135px;height:32.42px">
+      ${T("at", m.neutral ? "VS" : "@", 960.6, 86.3, "center", { scale: 66.3 / STYLES.at.ref[1], color: "#111111" })}
+      ${gameTeamColumn(m.away, GW.colL, as > hs, tie)}
+      ${gameTeamColumn(m.home, GW.colR, hs > as, tie)}
+      <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}"
+        style="left:${f.cx - f.w / 2}px;top:${f.cy - f.h / 2}px;width:${f.w}px;height:${f.h}px;transform:rotate(${f.rot}deg)">${photo}</div>
+      <div class="g-tape" data-cx="${tp.cx}" data-cy="${tp.cy}" data-w="${tp.w}" data-h="${tp.h}" data-rot="${tp.rot}"
+        style="left:${tp.cx - tp.w / 2}px;top:${tp.cy - tp.h / 2}px;width:${tp.w}px;height:${tp.h}px;transform:rotate(${tp.rot}deg)"></div>
+      ${statRows(m)}
+    </div>`;
+  fitPreview(stage);
+}
+
 // ---------------------------------------------------------------------------- tendina e caricamento
 let lastPlayedKey = ""; // ultima settimana completa (risultati)
 let standingsKey = ""; // settimana proposta per le classifiche
-const defaultKey = () => (tpl === "results" ? lastPlayedKey : tpl === "standings" ? standingsKey : currentKey);
+let gameKey = ""; // settimana proposta per la partita (ultima con partite concluse)
+const defaultKey = () => (tpl === "results" ? lastPlayedKey : tpl === "standings" ? standingsKey : tpl === "game" ? gameKey : currentKey);
 
 /** Calendario: tutte le settimane. Risultati: solo quelle già iniziate (con partite giocate). */
 const visibleWeeks = () =>
@@ -810,7 +1041,9 @@ const visibleWeeks = () =>
     ? weeks.filter((e) => new Date(e.start).getTime() <= Date.now())
     : tpl === "standings"
       ? weeks.filter((e) => e.seasonType === 2 && new Date(e.start).getTime() <= Date.now()) // classifica: solo regular season giocata
-      : weeks;
+      : tpl === "game"
+        ? weeks.filter((e) => new Date(e.start).getTime() <= Date.now()) // partita: settimane già iniziate
+        : weeks;
 
 function renderSelect() {
   const list = visibleWeeks();
@@ -834,7 +1067,9 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita" }[tpl] || "calendario");
+  if (tpl === "game" && selectedGame) url.searchParams.set("g", selectedGame);
+  else url.searchParams.delete("g");
   url.searchParams.set("f", fmt === "tall" ? "storie" : "16-9");
   history.replaceState(null, "", url);
 }
@@ -869,6 +1104,29 @@ async function loadWeek() {
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
   status.textContent = "Carico le partite…";
+  if (tpl === "game") {
+    try {
+      const res = await getWeek(entry, sb.season.year);
+      weekGames = res.data.games.filter((g) => g.state === "post");
+      gameSelect.innerHTML = weekGames.length
+        ? weekGames.map((g) => `<option value="${g.id}">${esc(g.away.team.short)} @ ${esc(g.home.team.short)} · ${g.away.score}-${g.home.score} · ${esc(fItDay.format(new Date(g.date)))}</option>`).join("")
+        : `<option value="">Nessuna partita conclusa</option>`;
+      if (!weekGames.length) {
+        gameData = null;
+        stages.game.root.innerHTML = "";
+        status.textContent = `Nessuna partita conclusa in ${weekLabel(entry)}.`;
+        return;
+      }
+      const wanted = selectedGame || new URLSearchParams(location.search).get("g");
+      selectedGame = weekGames.some((g) => g.id === wanted) ? wanted : weekGames[0].id;
+      gameSelect.value = selectedGame;
+      await loadGame();
+    } catch (err) {
+      console.error(err);
+      status.textContent = "Non riesco a caricare le partite: riprova.";
+    }
+    return;
+  }
   if (tpl === "standings") {
     try {
       standingsData = await standingsAfter(entry);
@@ -924,6 +1182,8 @@ async function init() {
   // Classifiche: la settimana in corso se ha già partite giocate, altrimenti la precedente.
   const curHasGames = sb.games.some((g) => g.state !== "pre") && cur && keyOf(cur) === currentKey && cur.seasonType === 2;
   standingsKey = keyOf(weeks[Math.max(0, curHasGames ? curPos : curPos - 1)] || weeks[0]);
+  const curHasFinals = sb.games.some((g) => g.state === "post") && cur && keyOf(cur) === currentKey;
+  gameKey = keyOf(weeks[Math.max(0, curHasFinals ? curPos : curPos - 1)] || weeks[0]);
   selectedKey = visibleWeeks().some((e) => keyOf(e) === fromUrl) ? fromUrl : defaultKey();
   renderSelect();
   loadWeek();
