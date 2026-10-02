@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021849";
-import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021849";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021852";
+import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021852";
 
 renderChrome("");
 
@@ -889,7 +889,7 @@ const GW_TALL = {
   side: { x: 49.2, tops: [166.3, 192.4, 217.0, 243.1], scale: 0.911 }, sideDash: [47.7, 276.0, 25.4, 1.6],
   yearDash: [992, 165.6, 39.5, 1.5], year: { right: 1025.3, cap: 185.0, scale: 0.881 },
   brand: [472.1, 152.3, 135, 32.42], at: { x: 540.4, cap: 209.6, h: 53.7 },
-  cityScale: 1, nickMaxW: 420, scoreScale: 0.881,
+  cityScale: 1, nickMaxW: 450, scoreScale: 0.881,
 };
 const WIN_INK = "#0f1e3f", WIN_SCORE = "#111111", LOSE_INK = "#8a9097", BAR_GREY = "#8a9097";
 const ratioNum = (v) => {
@@ -980,13 +980,20 @@ document.getElementById("photo-upload").addEventListener("change", (e) => {
   renderAll();
 });
 
-function gameTeamColumn(GW, side, cx, isWinner, tie) {
+const nickOf = (t) => (t.nickname || t.short || "").toUpperCase();
+/** I due nickname hanno sempre la stessa dimensione: se uno non ci sta, si riducono entrambi dello stesso fattore. */
+function nickScaleFor(GW, m) {
+  const base = GW.nickRefCap / STYLES.week.ref[1];
+  const widest = base * Math.max(inkWidth("week", nickOf(m.away.team)), inkWidth("week", nickOf(m.home.team)));
+  return base * Math.min(1, GW.nickMaxW / widest);
+}
+
+function gameTeamColumn(GW, side, cx, isWinner, tie, nickScale) {
   const t = side.team, abbr = t.abbr;
   const color = ST_CELL[abbr] || t.color || "#333";
-  const nickScale = GW.nickRefCap / STYLES.week.ref[1];
   const logo = espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${abbr.toLowerCase()}.png`, 430);
   return `${T("gCity", (t.location || "").toUpperCase(), cx, GW.cityCap, "center", { scale: GW.cityScale })}
-    ${T("week", (t.nickname || t.short || "").toUpperCase(), cx, GW.nickCap, "center", { scale: nickScale, maxW: GW.nickMaxW })}
+    ${T("week", nickOf(t), cx, GW.nickCap, "center", { scale: nickScale })}
     <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${cx - GW.logoBox / 2}px;top:${GW.logoCy - GW.logoBox / 2}px;width:${GW.logoBox}px;height:${GW.logoBox}px">
     ${T("gScore", String(side.score ?? 0), cx, GW.scoreCap, "center", { scale: GW.scoreScale, color: isWinner || tie ? WIN_SCORE : LOSE_INK })}
     <div class="g-bar" style="left:${cx - GW.barW / 2}px;top:${GW.barY}px;width:${GW.barW}px;height:${GW.barH}px;background:${color}"></div>`;
@@ -1045,8 +1052,8 @@ function renderGameStage(stage, GW) {
       ${T("stInk", String(year), GW.year.right, GW.year.cap, "right", { scale: GW.year.scale })}
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${GW.brand[0]}px;top:${GW.brand[1]}px;width:${GW.brand[2]}px;height:${GW.brand[3]}px">
       ${T("at", m.neutral ? "VS" : "@", GW.at.x, GW.at.cap, "center", { scale: GW.at.h / STYLES.at.ref[1], color: "#111111" })}
-      ${gameTeamColumn(GW, m.away, GW.colL, as > hs, tie)}
-      ${gameTeamColumn(GW, m.home, GW.colR, hs > as, tie)}
+      ${gameTeamColumn(GW, m.away, GW.colL, as > hs, tie, nickScaleFor(GW, m))}
+      ${gameTeamColumn(GW, m.home, GW.colR, hs > as, tie, nickScaleFor(GW, m))}
       <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}"
         style="left:${f.cx - f.w / 2}px;top:${f.cy - f.h / 2}px;width:${f.w}px;height:${f.h}px;transform:rotate(${f.rot}deg)">${photo}</div>
       <div class="g-tape" data-cx="${tp.cx}" data-cy="${tp.cy}" data-w="${tp.w}" data-h="${tp.h}" data-rot="${tp.rot}"
