@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021803";
-import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021803";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021821";
+import { getScoreboard, getWeek, getStandings, currentWeekIndex } from "../api.js?v=202610021821";
 
 renderChrome("");
 
@@ -15,6 +15,8 @@ const status = document.getElementById("studio-status");
 const stages = {
   wide: { root: document.getElementById("gfx-wide"), wrap: document.getElementById("preview-wide"), W: 1920, H: 1080 },
   tall: { root: document.getElementById("gfx-tall"), wrap: document.getElementById("preview-tall"), W: 1080, H: 1920 },
+  afc: { root: document.getElementById("gfx-afc"), wrap: document.getElementById("preview-afc"), W: 1920, H: 1080 },
+  nfc: { root: document.getElementById("gfx-nfc"), wrap: document.getElementById("preview-nfc"), W: 1920, H: 1080 },
 };
 
 // ---------------------------------------------------------------------------- palette del riferimento
@@ -58,6 +60,17 @@ const STYLES = {
   vs: { cls: "gt-vs", family: "Archivo", weight: 800, stretch: "normal", ref: ["VS", 14.3, 28.5] },
   band: { cls: "gt-band", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INTERNATIONAL GAME — LONDRA, REGNO UNITO", 15.6, 375.6] },
   score: { cls: "gt-score", family: "Archivo", weight: 900, stretch: "normal", ref: ["28", 23.9, 44.9] }, // misurato su "Risultati"
+  // Template "Classifiche" (misurato su "NFL Standings-selection")
+  stTitle: { cls: "gt-st-title", family: "Archivo", weight: 900, stretch: "expanded", ref: ["AFC", 110.9, 347.4] },
+  stSub: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["CLASSIFICA", 21.3, 359.7] },
+  stDiv: { cls: "gt-day", family: "Archivo", weight: 700, stretch: "expanded", ref: ["AFC EAST", 21.2, 248.0] },
+  stCol: { cls: "gt-st-col", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["PCT", 15.9, 32.0] },
+  stNum: { cls: "gt-st-num", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["1.000", 20.8, 57.3] },
+  stT1: { cls: "gt-st-t1", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["BUFFALO", 16.8, 69.1] },
+  stT2: { cls: "gt-st-t2", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["BILLS", 18.8, 51.5] },
+  stSide: { cls: "gt-st-side", family: "Archivo", weight: 600, stretch: "normal", ref: ["FOOTBALL", 12.3, 116.2] },
+  stInk: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO", 13.5, 78.2] },
+  stFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["AMERICAN FOOTBALL CONFERENCE", 13.5, 414.6] },
   gp: { cls: "gt-gp", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["GAME", 15.1, 41.0] },
 };
 
@@ -147,7 +160,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = new URLSearchParams(location.search).get("t") === "risultati" ? "results" : "calendar";
+let tpl = { risultati: "results", classifiche: "standings" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // ---------------------------------------------------------------------------- dati della settimana
@@ -430,12 +443,18 @@ function fitPreview(stage) {
 }
 
 function renderAll() {
+  if (tpl === "standings") {
+    if (!standingsData) return;
+    renderStandingsStage(stages.afc, "AFC");
+    renderStandingsStage(stages.nfc, "NFC");
+    return;
+  }
   if (!weekData) return;
   renderStage(stages.wide, true);
   renderStage(stages.tall, false);
 }
 
-window.addEventListener("resize", () => Object.values(stages).forEach((s) => s.root.innerHTML && fitPreview(s)));
+window.addEventListener("resize", () => Object.values(stages).forEach((s) => s.root.innerHTML && s.wrap.offsetParent && fitPreview(s)));
 
 // Clic sulla cella TV dell'anteprima: alterna DAZN / Game Pass (salvato nel browser).
 document.addEventListener("click", (e) => {
@@ -494,6 +513,17 @@ async function drawStage(stage) {
       const k = Math.min(b.w / el.naturalWidth, b.h / el.naturalHeight); // object-fit: contain
       const w = el.naturalWidth * k, h = el.naturalHeight * k;
       c.drawImage(el, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+    } else if (el.classList.contains("gt-wm")) {
+      // filigrana ruotata: disegnata attorno al suo punto di ancoraggio (cima delle maiuscole, a sinistra)
+      const cs2 = getComputedStyle(el);
+      c.save();
+      c.translate(parseFloat(el.dataset.x), parseFloat(el.dataset.y));
+      c.rotate((parseFloat(el.dataset.rot) * Math.PI) / 180);
+      c.font = `semi-expanded ${cs2.fontWeight} ${el.dataset.size}px "Archivo"`;
+      c.fillStyle = cs2.color;
+      c.textBaseline = "alphabetic";
+      c.fillText(el.textContent, 0, parseFloat(el.dataset.cap));
+      c.restore();
     } else if (el.classList.contains("gt")) {
       const eff = b.h / el.offsetHeight; // scala effettiva (es. corpo partite ridotto)
       const size = parseFloat(cs.fontSize) * eff;
@@ -560,16 +590,192 @@ async function exportPng(stage, name) {
 const fileBase = () => `5dwn-${tpl === "results" ? "risultati" : "calendario"}-${titleFor(weekData.entry).toLowerCase().replace(/\s+/g, "-")}-${weekData.year}`;
 document.getElementById("dl-wide").addEventListener("click", () => exportPng(stages.wide, `${fileBase()}-16x9.png`));
 document.getElementById("dl-tall").addEventListener("click", () => exportPng(stages.tall, `${fileBase()}-9x16.png`));
+const stdFile = (conf) => {
+  const e = weeks.find((x) => keyOf(x) === selectedKey);
+  return `5dwn-classifica-${conf.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}.png`;
+};
+document.getElementById("dl-afc").addEventListener("click", () => exportPng(stages.afc, stdFile("AFC")));
+document.getElementById("dl-nfc").addEventListener("click", () => exportPng(stages.nfc, stdFile("NFC")));
+
+// ---------------------------------------------------------------------------- template Classifiche
+// Misurato su "NFL Standings-selection.png" (AFC) e "(1)" (NFC), 4692×2640 → 1920×1080.
+const ST_CELL = {
+  BUF: "#00338d", NE: "#002244", NYJ: "#125740", MIA: "#008e97", PIT: "#ffb612", CIN: "#fb4f14", CLE: "#311d00", BAL: "#241773",
+  IND: "#002c5f", JAX: "#006778", HOU: "#03202f", TEN: "#0c2340", DEN: "#fb4f14", LAC: "#0080c6", KC: "#e31837", LV: "#1a1a1a",
+  DAL: "#0b2a55", PHI: "#004c54", NYG: "#0b3fd0", WSH: "#5a1414", MIN: "#4f2683", CHI: "#0b1f44", DET: "#0e86d4", GB: "#203731",
+  NO: "#d3bc8d", CAR: "#0b2a55", ATL: "#c8102e", TB: "#d50a0a", SEA: "#002244", LAR: "#0a3fc2", ARI: "#a6192e", SF: "#aa0000",
+};
+const ST_DARK_TEXT = new Set(["PIT", "NO"]);
+const CONF_NAME = { AFC: "AMERICAN FOOTBALL CONFERENCE", NFC: "NATIONAL FOOTBALL CONFERENCE" };
+// Loghi di conference ESPN (500×500): riquadro visibile in px dell'immagine originale.
+const CONF_LOGO = { AFC: { src: "https://a.espncdn.com/i/teamlogos/nfl/500/afc.png", x0: 16, x1: 483 }, NFC: { src: "https://a.espncdn.com/i/teamlogos/nfl/500/nfc.png", x0: 20, x1: 479 } };
+const SG = {
+  blocks: [[116.2, 247.6], [1010.3, 247.6], [116.2, 608.5], [1010.3, 608.5]], // x, cap top intestazione
+  order: ["East", "North", "South", "West"],
+  hdrToRow: 35.6, pitch: 72.97, rowH: 70.6,
+  cells: { team: [0, 466.5], w: [469.0, 95.8], l: [566.8, 86.3], pct: [654.7, 139.1] },
+  logoCx: 92.5, logoBox: 70, textX: 185.4, t1: 13.5, t2: 40.5, numCap: 26.6, colCap: 9.0,
+};
+
+let standingsData = null; // { divisions: [{conf, short, teams:[{team,w,l,t}]}], live: bool }
+
+function inkWidth(style, text) {
+  const st = STYLES[style];
+  ctx.font = fontStr(st, st.size);
+  const m = ctx.measureText(text);
+  return m.actualBoundingBoxLeft + m.actualBoundingBoxRight + st.ls * ([...text].length - 1);
+}
+
+const pctOf = (r) => {
+  const g = r.w + r.l + r.t;
+  return g ? (r.w + r.t / 2) / g : 0;
+};
+
+/**
+ * Classifica dopo la settimana scelta.
+ * Settimana in corso: classifica ufficiale ESPN (come nella pagina Classifiche).
+ * Settimane passate: V/S/P ricalcolati dai risultati ESPN fino a quella settimana;
+ * ordine per percentuale, poi vittorie, poi l'ordine ESPN attuale (i tiebreaker NFL completi non sono disponibili).
+ */
+async function standingsAfter(entry) {
+  const st = (await getStandings()).data;
+  const live = entry.seasonType === Number(sb.season.type) && entry.week === Number(sb.week);
+  if (live) {
+    return { live, divisions: st.divisions.map((d) => ({ conf: d.conf, short: d.short, teams: d.teams.map((r) => ({ team: r.team, w: r.w, l: r.l, t: r.t })) })) };
+  }
+  const regular = weeks.filter((e) => e.seasonType === 2 && e.week <= entry.week);
+  const res = await Promise.all(regular.map((e) => getWeek(e, sb.season.year)));
+  const rec = {};
+  const add = (id, k) => { rec[id] = rec[id] || { w: 0, l: 0, t: 0 }; rec[id][k] += 1; };
+  for (const r of res) {
+    for (const g of r.data.games) {
+      if (g.state !== "post" || !g.home || !g.away) continue;
+      const h = g.home.score ?? 0, a = g.away.score ?? 0;
+      if (h === a) { add(g.home.team.id, "t"); add(g.away.team.id, "t"); }
+      else if (h > a) { add(g.home.team.id, "w"); add(g.away.team.id, "l"); }
+      else { add(g.away.team.id, "w"); add(g.home.team.id, "l"); }
+    }
+  }
+  return {
+    live,
+    divisions: st.divisions.map((d) => ({
+      conf: d.conf,
+      short: d.short,
+      teams: d.teams
+        .map((r, i) => ({ team: r.team, ...(rec[r.team.id] || { w: 0, l: 0, t: 0 }), _i: i }))
+        .sort((x, y) => pctOf(y) - pctOf(x) || y.w - x.w || x._i - y._i),
+    })),
+  };
+}
+
+function bgStandings(W, H) {
+  // Strisce: bande chiare 70,8 px ogni 224,1 px, inclinazione -0,61 (misurate sul riferimento).
+  return `<svg class="gfx-bg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <pattern id="sst-${W}" patternUnits="userSpaceOnUse" width="224.1" height="${H}" patternTransform="skewX(-31.38)">
+          <rect x="208.2" y="0" width="70.8" height="${H}" fill="#f7f7f7"/>
+        </pattern>
+        <radialGradient id="sglow-${W}" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="${W}" height="${H}" fill="#ececec"/>
+      <rect width="${W * 2}" height="${H}" x="${-W / 2}" fill="url(#sst-${W})"/>
+      <g fill="none" stroke="#ffffff" opacity="0.6">
+        <ellipse cx="1567" cy="156" rx="430" ry="200" transform="rotate(-14 1567 156)" stroke-width="10"/>
+        <g stroke-width="18" stroke-linecap="round">
+          <line x1="1525" y1="121" x2="1540" y2="217"/><line x1="1566" y1="106" x2="1582" y2="201"/>
+          <line x1="1611" y1="86" x2="1627" y2="182"/><line x1="1657" y1="72" x2="1672" y2="168"/>
+          <line x1="1698" y1="60" x2="1714" y2="156"/></g></g>
+      <ellipse cx="960" cy="120" rx="470" ry="150" fill="url(#sglow-${W})"/>
+    </svg>`;
+}
+
+/** Grande "5DWN" in filigrana, ruotato, in basso a destra (come nel riferimento). */
+function watermark() {
+  const st = STYLES.brand; // Archivo 900 semi-espanso
+  const capH = 125, x0 = 1199, y0 = 1047, rot = -9.3;
+  const size = (st.size * capH) / st.cap;
+  const k = size / st.size, A = st.A * k, D = st.D * k;
+  const top = y0 - ((size - (A + D)) / 2 + A - capH);
+  return `<span class="gt gt-wm" data-x="${x0}" data-y="${y0}" data-cap="${capH}" data-rot="${rot}" data-size="${size.toFixed(3)}"
+    style="left:${x0}px;top:${top.toFixed(2)}px;font-size:${size.toFixed(3)}px;transform-origin:0 ${(y0 - top).toFixed(2)}px;transform:rotate(${rot}deg)">5DWN</span>`;
+}
+
+function stdBlock(div, x, capTop) {
+  const rowTop = capTop + SG.hdrToRow;
+  const c = SG.cells;
+  let html = T("stDiv", `${div.conf} ${div.short}`.toUpperCase(), x, capTop);
+  for (const [k, label] of [["w", "W"], ["l", "L"], ["pct", "PCT"]]) {
+    html += T("stCol", label, x + c[k][0] + c[k][1] / 2, capTop + SG.colCap, "center");
+  }
+  div.teams.slice(0, 4).forEach((r, i) => {
+    const y = rowTop + i * SG.pitch;
+    const t = r.team, abbr = t.abbr;
+    const ink = ST_DARK_TEXT.has(abbr) ? "#111111" : "#ffffff";
+    const logo = espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${abbr.toLowerCase()}.png`, 160);
+    html += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${c.team[1]}px;height:${SG.rowH}px;background:${ST_CELL[abbr] || t.color || "#333"}"></div>
+      <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${x + SG.logoCx - SG.logoBox / 2}px;top:${y + (SG.rowH - SG.logoBox) / 2}px;width:${SG.logoBox}px;height:${SG.logoBox}px">
+      ${T("stT1", (t.location || "").toUpperCase(), x + SG.textX, y + SG.t1, "left", { color: ink })}
+      ${T("stT2", (t.nickname || t.short || "").toUpperCase(), x + SG.textX, y + SG.t2, "left", { color: ink })}`;
+    const vals = { w: String(r.w), l: String(r.l), pct: pctOf(r).toFixed(3) };
+    for (const k of ["w", "l", "pct"]) {
+      html += `<div class="g-cell g-white" style="left:${x + c[k][0]}px;top:${y}px;width:${c[k][1]}px;height:${SG.rowH}px"></div>
+        ${T("stNum", vals[k], x + c[k][0] + c[k][1] / 2, y + SG.numCap, "center")}`;
+    }
+  });
+  return html;
+}
+
+function renderStandingsStage(stage, conf) {
+  const { W, H, root } = stage;
+  const year = sb.season.year;
+  const divs = SG.order.map((name) => standingsData.divisions.find((d) => d.conf === conf && d.short === name)).filter(Boolean);
+  // Titolo: sigla + logo conference, gruppo centrato come nel riferimento (centro a x 952, spazio 40 px).
+  const lg = CONF_LOGO[conf], scale = 0.328, box = 500 * scale;
+  const visW = (lg.x1 - lg.x0) * scale;
+  const tW = inkWidth("stTitle", conf);
+  const tLeft = 952 - (tW + 40 + visW) / 2;
+  const logoLeft = tLeft + tW + 40 - lg.x0 * scale;
+  const right = 1859.8;
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${bgStandings(W, H)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${watermark()}
+      ${T("stSide", "FOOTBALL", 56.5, 54.4)}${T("stSide", "MORE", 56.5, 81.4)}${T("stSide", "THAN", 56.5, 108.8)}${T("stSide", "A GAME", 56.5, 135.4)}
+      <div class="g-bar" style="left:54.8px;top:169.8px;width:27.9px;height:1.7px;background:#b5b8bd"></div>
+      <div class="g-bar" style="left:1835.7px;top:59.7px;width:27.8px;height:2.1px;background:#b5b8bd"></div>
+      ${T("stInk", String(year), right, 79.4, "right")}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:892.1px;top:17px;width:135px;height:32.42px">
+      ${T("stTitle", conf, tLeft, 66.7, "left")}
+      <img class="g-logo" crossorigin="anonymous" src="${lg.src}" alt="${conf}" style="left:${logoLeft.toFixed(1)}px;top:41px;width:${box}px;height:${box}px">
+      ${T("stSub", "CLASSIFICA", 960.25, 201.7, "center")}
+      ${divs.map((d, i) => stdBlock(d, SG.blocks[i][0], SG.blocks[i][1])).join("")}
+      <div class="g-sep" style="left:959.9px;top:254.1px;width:1px;height:701.4px;background:#b9bcc2"></div>
+      <div class="g-bar" style="left:55.2px;top:984.1px;width:27.5px;height:1.3px"></div>
+      ${T("stFoot", CONF_NAME[conf], 55.2, 1004.2)}
+      <div class="g-bar" style="left:55.2px;top:1036.1px;width:27.5px;height:1.3px"></div>
+      ${T("stInk", "QUINTO", 1860.3, 960.0, "right")}${T("stInk", "DOWN", 1860.3, 982.1, "right")}${T("stInk", String(year), 1860.3, 1004.2, "right")}
+      <div class="g-bar" style="left:1835.7px;top:1035.7px;width:27.8px;height:2px;background:#b5b8bd"></div>
+    </div>`;
+  fitPreview(stage);
+}
 
 // ---------------------------------------------------------------------------- tendina e caricamento
-let lastPlayedKey = ""; // ultima settimana con almeno una partita conclusa (per i risultati)
+let lastPlayedKey = ""; // ultima settimana completa (risultati)
+let standingsKey = ""; // settimana proposta per le classifiche
+const defaultKey = () => (tpl === "results" ? lastPlayedKey : tpl === "standings" ? standingsKey : currentKey);
 
 /** Calendario: tutte le settimane. Risultati: solo quelle già iniziate (con partite giocate). */
-const visibleWeeks = () => (tpl === "results" ? weeks.filter((e) => new Date(e.start).getTime() <= Date.now()) : weeks);
+const visibleWeeks = () =>
+  tpl === "results"
+    ? weeks.filter((e) => new Date(e.start).getTime() <= Date.now())
+    : tpl === "standings"
+      ? weeks.filter((e) => e.seasonType === 2 && new Date(e.start).getTime() <= Date.now()) // classifica: solo regular season giocata
+      : weeks;
 
 function renderSelect() {
   const list = visibleWeeks();
-  if (!list.some((e) => keyOf(e) === selectedKey)) selectedKey = tpl === "results" ? lastPlayedKey : currentKey;
+  if (!list.some((e) => keyOf(e) === selectedKey)) selectedKey = defaultKey();
   const group = (type, label) => {
     const items = list.filter((e) => e.seasonType === type);
     return items.length
@@ -582,13 +788,15 @@ function renderSelect() {
   weekSelect.innerHTML = group(2, "Regular season") + group(3, "Playoff");
   weekSelect.classList.toggle("is-current", selectedKey === currentKey);
   document.querySelectorAll(".tpl-name").forEach((el) => (el.textContent = tpl === "results" ? "Risultati settimanali" : "Calendario settimanale"));
+  document.querySelectorAll(".tpl-cal").forEach((el) => (el.hidden = tpl === "standings"));
+  document.querySelectorAll(".tpl-std").forEach((el) => (el.hidden = tpl !== "standings"));
   tplToggle.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tpl === tpl)));
 }
 
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", tpl === "results" ? "risultati" : "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche" }[tpl] || "calendario");
   history.replaceState(null, "", url);
 }
 
@@ -604,8 +812,7 @@ tplToggle.addEventListener("click", (e) => {
   const b = e.target.closest("button[data-tpl]");
   if (!b || b.dataset.tpl === tpl) return;
   tpl = b.dataset.tpl;
-  // Passando ai risultati si parte dall'ultima settimana giocata; al calendario dalla settimana in corso.
-  selectedKey = tpl === "results" ? lastPlayedKey : currentKey;
+  selectedKey = defaultKey();
   renderSelect();
   syncUrl();
   loadWeek();
@@ -615,6 +822,17 @@ async function loadWeek() {
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
   status.textContent = "Carico le partite…";
+  if (tpl === "standings") {
+    try {
+      standingsData = await standingsAfter(entry);
+      renderAll();
+      status.textContent = `Classifica dopo la ${weekLabel(entry)} ${sb.season.year} · ${standingsData.live ? "classifica ufficiale ESPN" : "ricalcolata dai risultati ESPN fino a questa settimana"}`;
+    } catch (err) {
+      console.error(err);
+      status.textContent = "Non riesco a caricare la classifica: riprova.";
+    }
+    return;
+  }
   try {
     // Titolo e contenuto seguono sempre la settimana scelta nella tendina (dati ESPN via api.js).
     const res = await getWeek(entry, sb.season.year);
@@ -656,7 +874,10 @@ async function init() {
   const curDone = sb.games.length > 0 && sb.games.every((g) => g.state === "post") && cur && keyOf(cur) === currentKey;
   lastPlayedKey = keyOf(weeks[Math.max(0, curDone ? curPos : curPos - 1)] || weeks[0]);
   const fromUrl = new URLSearchParams(location.search).get("w");
-  selectedKey = visibleWeeks().some((e) => keyOf(e) === fromUrl) ? fromUrl : tpl === "results" ? lastPlayedKey : currentKey;
+  // Classifiche: la settimana in corso se ha già partite giocate, altrimenti la precedente.
+  const curHasGames = sb.games.some((g) => g.state !== "pre") && cur && keyOf(cur) === currentKey && cur.seasonType === 2;
+  standingsKey = keyOf(weeks[Math.max(0, curHasGames ? curPos : curPos - 1)] || weeks[0]);
+  selectedKey = visibleWeeks().some((e) => keyOf(e) === fromUrl) ? fromUrl : defaultKey();
   renderSelect();
   loadWeek();
 }
