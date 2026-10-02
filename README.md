@@ -160,12 +160,24 @@ Sotto i controlli ci sono i link di ricerca su Google Immagini, Getty Images e C
 **Orizzontale** e **Verticale** oppure trascinandola nell'anteprima; "Centra foto" la
 riporta al centro. L'export PNG usa esattamente lo stesso ritaglio.
 
+**Template 7 — Confronto giocatori** (riferimento "NFL Player Comparison", solo 16:9):
+voce **Confronto giocatori** nello Studio. Si sceglie il **periodo** (ultima partita,
+ultime 2…10 partite, intera stagione), quanti **giocatori** (2 o 3, ognuno con tendina
+Squadra → Giocatore dal roster ESPN) e quante **statistiche** (5, 6 o 7, ognuna con la sua
+tendina). Le statistiche vengono sommate dal gamelog ESPN di ogni giocatore sulle sue
+ultime N partite della stagione; percentuali, medie e passer rating sono ricalcolati
+(es. COMP %, YDS/ATT, PASSER RTG con la formula NFL). Foto = foto profilo ESPN, logo
+squadra ingrandito nella card. **Titolo e sottotitolo non hanno un testo automatico**:
+vanno sempre scritti in "Testi personalizzati" (senza, il download è bloccato). Footer
+automatico "NFL 2026 REGULAR SEASON" (sostituibile) e nota facoltativa sotto le card.
+
 **Testi personalizzati**: il riquadro "Testi personalizzati" sotto i controlli ha tre
 campi opzionali (Titolo, Sottotitolo, Footer) per il template attivo. Vuoto = testo
 automatico (mostrato come segnaposto); compilato = il testo digitato sostituisce quello
 automatico in anteprima e nel PNG. Ogni template ricorda i propri testi finché la pagina
 resta aperta; "Testi automatici" li azzera. Nelle Classifiche il testo vale per AFC e NFC;
-Giocatore non ha footer; Partita non ha testi sostituibili (campi disattivati).
+Giocatore non ha footer; Partita non ha testi sostituibili (campi disattivati); nel
+Confronto giocatori titolo e sottotitolo sono obbligatori.
 
 Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
 `STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,

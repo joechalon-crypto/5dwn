@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <link rel="preconnect" href="https://site.api.espn.com" crossorigin>
   <link rel="preconnect" href="https://a.espncdn.com">
-  <link rel="stylesheet" href="assets/css/style.css?v=202610021944">
-  <link rel="stylesheet" href="assets/css/studio.css?v=202610021944">
+  <link rel="stylesheet" href="assets/css/style.css?v=202610022000">
+  <link rel="stylesheet" href="assets/css/studio.css?v=202610022000">
 </head>
 <body>
   <header id="site-header" class="site-header">
@@ -44,6 +44,7 @@
           <button type="button" data-tpl="standings" aria-pressed="false">Classifiche</button>
           <button type="button" data-tpl="game" aria-pressed="false">Partita</button>
           <button type="button" data-tpl="player" aria-pressed="false">Giocatore</button>
+          <button type="button" data-tpl="compare" aria-pressed="false">Confronto giocatori</button>
         </div>
         <div class="segmented" id="fmt-toggle" role="group" aria-label="Formato">
           <button type="button" data-fmt="wide" aria-pressed="true">16:9</button>
@@ -78,6 +79,40 @@
         </div>
         <span class="studio-hint game-only" id="photo-links" hidden></span>
         <span class="studio-status" id="studio-status" role="status"></span>
+      </div>
+      <div class="studio-compare compare-only" hidden>
+        <div class="cmp-row">
+          <label class="select-field"><span class="select-label">Periodo</span><span class="select-wrap"><select id="cmp-period" class="select" aria-label="Periodo" autocomplete="off"><option value="season" selected>Intera stagione</option><option value="1">Ultima partita</option><option value="2">Ultime 2 partite</option><option value="3">Ultime 3 partite</option><option value="4">Ultime 4 partite</option><option value="5">Ultime 5 partite</option><option value="6">Ultime 6 partite</option><option value="7">Ultime 7 partite</option><option value="8">Ultime 8 partite</option><option value="9">Ultime 9 partite</option><option value="10">Ultime 10 partite</option></select></span></label>
+          <label class="select-field"><span class="select-label">Giocatori</span><span class="select-wrap"><select id="cmp-nplayers" class="select" aria-label="Numero di giocatori" autocomplete="off"><option value="2">2</option><option value="3" selected>3</option></select></span></label>
+          <label class="select-field"><span class="select-label">Statistiche</span><span class="select-wrap"><select id="cmp-nstats" class="select" aria-label="Numero di statistiche" autocomplete="off"><option value="5" selected>5</option><option value="6">6</option><option value="7">7</option></select></span></label>
+        </div>
+        <div class="cmp-players">
+        <div class="cmp-player" id="cmp-p0">
+          <span class="select-label">Giocatore 1</span>
+          <span class="select-wrap"><select id="cmp-team0" class="select" aria-label="Squadra giocatore 1" autocomplete="off"></select></span>
+          <span class="select-wrap"><select id="cmp-player0" class="select" aria-label="Giocatore 1" autocomplete="off"></select></span>
+        </div>
+        <div class="cmp-player" id="cmp-p1">
+          <span class="select-label">Giocatore 2</span>
+          <span class="select-wrap"><select id="cmp-team1" class="select" aria-label="Squadra giocatore 2" autocomplete="off"></select></span>
+          <span class="select-wrap"><select id="cmp-player1" class="select" aria-label="Giocatore 2" autocomplete="off"></select></span>
+        </div>
+        <div class="cmp-player" id="cmp-p2">
+          <span class="select-label">Giocatore 3</span>
+          <span class="select-wrap"><select id="cmp-team2" class="select" aria-label="Squadra giocatore 3" autocomplete="off"></select></span>
+          <span class="select-wrap"><select id="cmp-player2" class="select" aria-label="Giocatore 3" autocomplete="off"></select></span>
+        </div>
+        </div>
+        <div class="cmp-stats">
+          <label class="select-field"><span class="select-label">Statistica 1</span><span class="select-wrap"><select class="select cmp-stat" aria-label="Statistica 1" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 2</span><span class="select-wrap"><select class="select cmp-stat" aria-label="Statistica 2" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 3</span><span class="select-wrap"><select class="select cmp-stat" aria-label="Statistica 3" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 4</span><span class="select-wrap"><select class="select cmp-stat" aria-label="Statistica 4" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 5</span><span class="select-wrap"><select class="select cmp-stat" aria-label="Statistica 5" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 6</span><span class="select-wrap"><select class="select cmp-stat" aria-label="Statistica 6" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 7</span><span class="select-wrap"><select class="select cmp-stat" aria-label="Statistica 7" autocomplete="off"></select></span></label>
+        </div>
+        <label class="text-field cmp-note-field"><span class="select-label">Nota sotto le card (facoltativa)</span><input type="text" id="cmp-note" class="text-input" autocomplete="off" placeholder="Es. * 3 fumble, tutti recuperati dall'attacco (0 persi)"></label>
       </div>
       <details class="studio-texts">
         <summary>Testi personalizzati (titolo, sottotitolo, footer)</summary>
@@ -157,6 +192,13 @@
         </div>
         <div class="gfx-preview portrait" id="preview-game-tall"><div class="gfx-scaler"><div class="gfx" id="gfx-game-tall"></div></div></div>
       </section>
+      <section data-fmt="wide" class="studio-block tpl-compare" hidden>
+        <div class="section-head">
+          <div><span class="eyebrow">Confronto giocatori</span><h2>16:9 · 1920 × 1080</h2></div>
+          <div class="studio-actions"><button type="button" class="btn btn-primary" id="dl-compare">Scarica PNG confronto</button></div>
+        </div>
+        <div class="gfx-preview" id="preview-compare"><div class="gfx-scaler"><div class="gfx" id="gfx-compare"></div></div></div>
+      </section>
       <section data-fmt="wide" class="studio-block tpl-team" hidden>
         <div class="section-head">
           <div><span class="eyebrow">Calendario squadra individuale</span><h2>16:9 · 1920 × 1080</h2></div>
@@ -175,6 +217,6 @@
   </main>
 
   <footer id="site-footer" class="site-footer"></footer>
-  <script type="module" src="assets/js/pages/studio.js?v=202610021944"></script>
+  <script type="module" src="assets/js/pages/studio.js?v=202610022000"></script>
 </body>
 </html>

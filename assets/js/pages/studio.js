@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021944";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, currentWeekIndex } from "../api.js?v=202610021944";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610022000";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610022000";
 
 renderChrome("");
 
@@ -21,6 +21,7 @@ const stages = {
   nfcTall: { root: document.getElementById("gfx-nfc-tall"), wrap: document.getElementById("preview-nfc-tall"), W: 1080, H: 1920 },
   game: { root: document.getElementById("gfx-game"), wrap: document.getElementById("preview-game"), W: 1920, H: 1080 },
   gameTall: { root: document.getElementById("gfx-game-tall"), wrap: document.getElementById("preview-game-tall"), W: 1080, H: 1920 },
+  compare: { root: document.getElementById("gfx-compare"), wrap: document.getElementById("preview-compare"), W: 1920, H: 1080 },
   team: { root: document.getElementById("gfx-team"), wrap: document.getElementById("preview-team"), W: 1920, H: 1080 },
   player: { root: document.getElementById("gfx-player"), wrap: document.getElementById("preview-player"), W: 1920, H: 1080 },
 };
@@ -92,6 +93,14 @@ const STYLES = {
   tsQd: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO DOWN 2026", 12.5, 212] },
   tsRecL: { cls: "gt-ts-rec", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["RECORD", 14, 68] },
   tsRecV: { cls: "gt-ts-recv", family: "Archivo", weight: 900, stretch: "normal", ref: ["0-3", 18, 42] },
+  // Template Confronto giocatori ("NFL Player Comparison-selection.png", 10984×6180 → 1920×1080)
+  cmpFirst: { cls: "gt-cmp-first", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["JUSTIN", 22, 76] },
+  cmpLast: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["HERBERT", 28, 132] },
+  cmpLabel: { cls: "gt-cmp-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["COMP/ATT", 20, 92] },
+  cmpVal: { cls: "gt-cmp-val", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["32/54", 33, 99] },
+  cmpNote: { cls: "gt-cmp-note", family: "Barlow", weight: 400, stretch: "normal", italic: true, ref: ["* 3 fumble, tutti recuperati dall'attacco (0 persi)", 12.5, 318] },
+  cmpSub: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["STATISTICHE AGGREGATE", 21, 680] },
+  cmpFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["NFL 2026 REGULAR SEASON", 13, 272] },
   // Template Giocatore ("NFL Player Performance-selection.png", 11064×6224 → 1920×1080)
   pName: { cls: "gt-p-name", family: "Archivo", weight: 900, stretch: "condensed", ref: ["JA'MARR CHASE", 111, 1113] },
   pVs: { cls: "gt-p-vs", family: "Archivo", weight: 400, stretch: "normal", ref: ["contro i Texans", 27, 262] },
@@ -106,7 +115,7 @@ const STYLES = {
 };
 
 const ctx = document.createElement("canvas").getContext("2d");
-const fontStr = (st, size) => `${st.stretch && st.stretch !== "normal" ? `${st.stretch} ` : ""}${st.weight} ${size}px "${st.family}"`;
+const fontStr = (st, size) => `${st.italic ? "italic " : ""}${st.stretch && st.stretch !== "normal" ? `${st.stretch} ` : ""}${st.weight} ${size}px "${st.family}"`;
 
 function calibrate() {
   for (const st of Object.values(STYLES)) {
@@ -191,7 +200,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -210,8 +219,12 @@ const OV_FIELDS = {
   standings: { title: true, sub: true, foot: true },
   team: { title: true, sub: true, foot: true },
   player: { title: true, sub: true },
+  compare: { title: true, sub: true, foot: true },
   game: {},
 };
+// Testi senza valore automatico: vanno sempre scritti (Confronto giocatori).
+const OV_REQUIRED = { compare: { title: true, sub: true } };
+const ovPlaceholder = (k) => (OV_REQUIRED[tpl]?.[k] ? "Obbligatorio: scrivi il testo" : `Automatico: ${lastAuto[tpl]?.[k] ?? "…"}`);
 const overrides = {}; // { [tpl]: { title, sub, foot } }
 const lastAuto = {}; // testi automatici dell'ultimo render, mostrati come segnaposto
 const ovInputs = Object.fromEntries(OV_KEYS.map((k) => [k, document.getElementById(`ov-${k}`)]));
@@ -227,7 +240,7 @@ function syncOverrideFields() {
     const el = ovInputs[k];
     el.disabled = !fields[k];
     el.value = fields[k] ? overrides[tpl]?.[k] || "" : "";
-    el.placeholder = fields[k] ? `Automatico: ${lastAuto[tpl]?.[k] ?? "…"}` : "Non presente in questa grafica";
+    el.placeholder = fields[k] ? ovPlaceholder(k) : "Non presente in questa grafica";
   }
   document.getElementById("ov-note").textContent = Object.keys(fields).length
     ? "Lascia vuoto per usare il testo automatico."
@@ -251,14 +264,17 @@ function applyVisibility() {
     else if (el.classList.contains("tpl-game")) ok = tpl === "game" && el.dataset.fmt === fmt;
     else if (el.classList.contains("tpl-player")) ok = tpl === "player"; // per ora solo 16:9
     else if (el.classList.contains("tpl-team")) ok = tpl === "team"; // per ora solo 16:9
+    else if (el.classList.contains("tpl-compare")) ok = tpl === "compare"; // per ora solo 16:9
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
     el.hidden = !ok;
   });
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
   document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
-  document.getElementById("fmt-toggle").hidden = tpl === "player" || tpl === "team";
+  document.getElementById("fmt-toggle").hidden = tpl === "player" || tpl === "team" || tpl === "compare";
   document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
-  weekSelect.closest(".select-field").hidden = tpl === "team";
+  document.querySelectorAll(".compare-only").forEach((el) => (el.hidden = tpl !== "compare"));
+  weekSelect.closest(".select-field").hidden = tpl === "team" || tpl === "compare";
+  if (tpl === "compare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
   syncOverrideFields();
   document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
   Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
@@ -551,9 +567,13 @@ function renderAll() {
 }
 function syncOverridePlaceholders() {
   const fields = OV_FIELDS[tpl] || {};
-  for (const k of OV_KEYS) if (fields[k]) ovInputs[k].placeholder = `Automatico: ${lastAuto[tpl]?.[k] ?? "…"}`;
+  for (const k of OV_KEYS) if (fields[k]) ovInputs[k].placeholder = ovPlaceholder(k);
 }
 function renderAllInner() {
+  if (tpl === "compare") {
+    if (cmpReady()) renderCompareStage(stages.compare);
+    return;
+  }
   if (tpl === "team") {
     if (teamSched) renderTeamStage(stages.team);
     return;
@@ -646,7 +666,10 @@ async function drawStage(stage) {
       const k = Math.min(b.w / el.naturalWidth, b.h / el.naturalHeight); // object-fit: contain
       const w = el.naturalWidth * k, h = el.naturalHeight * k;
       c.globalAlpha = parseFloat(cs.opacity) || 1; // es. logo in filigrana
+      const clipEl = el.closest(".g-clip"); // immagine ritagliata dal contenitore (es. foto profilo)
+      if (clipEl) { const cb = box(clipEl); c.save(); c.beginPath(); c.rect(cb.x, cb.y, cb.w, cb.h); c.clip(); }
       c.drawImage(el, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+      if (clipEl) c.restore();
       c.globalAlpha = 1;
     } else if (el.classList.contains("gt")) {
       const eff = b.h / el.offsetHeight; // scala effettiva (es. corpo partite ridotto)
@@ -655,7 +678,7 @@ async function drawStage(stage) {
       const fs = parseFloat(cs.fontStretch) || 100;
       const stretch = fs >= 120 ? "expanded " : fs >= 110 ? "semi-expanded " : fs <= 70 ? "extra-condensed " : fs <= 80 ? "condensed " : fs <= 90 ? "semi-condensed " : "";
       const family = cs.fontFamily.split(",")[0].replace(/["']/g, "").trim();
-      c.font = `${stretch}${cs.fontWeight} ${size}px "${family}"`;
+      c.font = `${cs.fontStyle === "italic" ? "italic " : ""}${stretch}${cs.fontWeight} ${size}px "${family}"`;
       c.fillStyle = cs.color;
       c.textBaseline = "alphabetic";
       const m = c.measureText("H");
@@ -764,6 +787,18 @@ const gameFile = (f) => {
   return `5dwn-partita-${gameData.away.team.abbr.toLowerCase()}-${gameData.home.team.abbr.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}-${f}.png`;
 };
 document.getElementById("dl-game").addEventListener("click", () => gameData && exportPng(stages.game, gameFile("16x9")));
+document.getElementById("dl-compare").addEventListener("click", () => {
+  if (!cmpReady()) return;
+  const o = overrides.compare || {};
+  if (!o.title?.trim() || !o.sub?.trim()) {
+    status.textContent = "Prima di scaricare scrivi titolo e sottotitolo in \"Testi personalizzati\".";
+    document.querySelector(".studio-texts").open = true;
+    (o.title?.trim() ? ovInputs.sub : ovInputs.title).focus();
+    return;
+  }
+  const slug = cmp.slots.slice(0, cmp.nPlayers).map((sl) => (sl.player?.last || sl.player?.name || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-")).join("-vs-");
+  exportPng(stages.compare, `5dwn-confronto-${slug}-${sb.season.year}.png`);
+});
 document.getElementById("dl-team").addEventListener("click", () => {
   if (!teamSched) return;
   exportPng(stages.team, `5dwn-calendario-${teamSched.team.abbr.toLowerCase()}-${sb.season.year}.png`);
@@ -1567,6 +1602,312 @@ function renderPlayerStage(stage) {
   fitPreview(stage);
 }
 
+// ---------------------------------------------------------------------------- template Confronto giocatori
+// Misurato su "NFL Player Comparison-selection.png" (10984×6180 → 1920×1080). Solo 16:9.
+const CP = {
+  cardW: 526, gap: 21, panelTop: 241, panelBot: 527.5, rowsBot: 872, barH: 5.5,
+  photo: { x: 0, w: 320, top: 222, h: 305.5 }, // box della foto profilo (relativo alla card), sotto il sottotitolo
+  logo: { cx: 421.5, cy: 333, box: 180 }, // logo squadra ingrandito
+  nameX: 319.5, firstCap: 433, lastCap: 469, nameMaxW: 195,
+  labelX: 36, valCx: 421.5, rowRef: 68.8, labelDy: 26, valDy: 20,
+  title: { cap: 81, h: 86, maxW: 1500 }, sub: { cap: 191 }, note: { x: 152, cap: 898 },
+  brand: [892, 29.3, 136, 32.66],
+};
+const CMP_GREY = "#f3f4f6";
+// Statistiche confrontabili (chiave "categoria.nome" del gamelog ESPN; combinazioni calcolate).
+const CMP_STATS = [
+  { key: "cmpatt", label: "COMP/ATT", get: (a) => (a["passing.passingAttempts"] != null ? `${a["passing.completions"] ?? 0}/${a["passing.passingAttempts"]}` : null) },
+  { key: "passing.completionPct", label: "COMP %", dec: 1 },
+  { key: "passing.passingYards", label: "PASS YDS" },
+  { key: "passing.yardsPerPassAttempt", label: "YDS/ATT", dec: 1 },
+  { key: "passing.passingTouchdowns", label: "PASS TD" },
+  { key: "passing.interceptions", label: "INT" },
+  { key: "passing.QBRating", label: "PASSER RTG", dec: 1 },
+  { key: "passing.adjQBR", label: "QBR", dec: 1 },
+  { key: "passing.sacks", label: "SACK SUBITI" },
+  { key: "passing.longPassing", label: "PASS LNG" },
+  { key: "rushing.rushingAttempts", label: "RUSH ATT" },
+  { key: "rushing.rushingYards", label: "RUSH YDS" },
+  { key: "rushing.yardsPerRushAttempt", label: "YDS/CAR", dec: 1 },
+  { key: "rushing.rushingTouchdowns", label: "RUSH TD" },
+  { key: "rushing.longRushing", label: "RUSH LNG" },
+  { key: "receiving.receptions", label: "REC" },
+  { key: "receiving.receivingTargets", label: "TARGET" },
+  { key: "rectgt", label: "REC/TGT", get: (a) => (a["receiving.receivingTargets"] != null ? `${a["receiving.receptions"] ?? 0}/${a["receiving.receivingTargets"]}` : null) },
+  { key: "receiving.receivingYards", label: "REC YDS" },
+  { key: "receiving.yardsPerReception", label: "YDS/REC", dec: 1 },
+  { key: "receiving.receivingTouchdowns", label: "REC TD" },
+  { key: "receiving.longReception", label: "REC LNG" },
+  { key: "scrimYds", label: "YDS TOTALI", get: (a) => (a["rushing.rushingYards"] != null || a["receiving.receivingYards"] != null ? String((a["rushing.rushingYards"] || 0) + (a["receiving.receivingYards"] || 0)) : null) },
+  { key: "totTd", label: "TD TOTALI", get: (a) => (a["rushing.rushingTouchdowns"] != null || a["receiving.receivingTouchdowns"] != null ? String((a["rushing.rushingTouchdowns"] || 0) + (a["receiving.receivingTouchdowns"] || 0)) : null) },
+  { key: "tackles.totalTackles", label: "TACKLE" },
+  { key: "tackles.soloTackles", label: "TACKLE SOLO" },
+  { key: "tackles.assistTackles", label: "TACKLE ASSISTITI" },
+  { key: "tackles.sacks", label: "SACK", dec: 1 },
+  { key: "tackles.stuffs", label: "STUFF" },
+  { key: "interceptions.interceptions", label: "INT" },
+  { key: "interceptions.passesDefended", label: "PASS DEF" },
+  { key: "interceptions.interceptionTouchdowns", label: "INT TD" },
+  { key: "fumbles.fumbles", label: "FUMBLE" },
+  { key: "fumbles.fumblesLost", label: "FUMBLE PERSI" },
+  { key: "fumbles.fumblesForced", label: "FUMBLE FORZATI" },
+  { key: "fumbles.fumblesRecovered", label: "FUMBLE RECUPERATI" },
+];
+const CMP_DEFAULTS = {
+  QB: ["cmpatt", "passing.passingYards", "passing.passingTouchdowns", "passing.interceptions", "passing.QBRating", "passing.completionPct", "passing.yardsPerPassAttempt"],
+  RB: ["rushing.rushingAttempts", "rushing.rushingYards", "rushing.yardsPerRushAttempt", "rushing.rushingTouchdowns", "receiving.receivingYards", "receiving.receptions", "scrimYds"],
+  WR: ["receiving.receptions", "receiving.receivingTargets", "receiving.receivingYards", "receiving.yardsPerReception", "receiving.receivingTouchdowns", "receiving.longReception", "rectgt"],
+  DEF: ["tackles.totalTackles", "tackles.soloTackles", "tackles.sacks", "tackles.stuffs", "interceptions.interceptions", "interceptions.passesDefended", "fumbles.fumblesForced"],
+};
+const posGroup = (pos) => (pos === "QB" ? "QB" : ["RB", "FB"].includes(pos) ? "RB" : ["WR", "TE"].includes(pos) ? "WR" : "DEF");
+const cmp = { period: "season", nPlayers: 3, nStats: 5, slots: [{}, {}, {}], stats: [], note: "", loaded: false };
+const cmpReady = () => cmp.loaded && cmp.slots.slice(0, cmp.nPlayers).every((sl) => sl.player && sl.team);
+
+/** Somma le ultime n partite (o tutta la stagione) dal gamelog; medie e percentuali ricalcolate. */
+function aggregateGamelog(gl, n) {
+  const keys = [];
+  let i = 0;
+  for (const g of gl.groups) for (let j = 0; j < g.count; j++, i++) keys.push(`${g.name}.${gl.keys[i]}`);
+  const rows = gl.blocks.flatMap((b) => b.rows)
+    .filter((r) => gl.events[r.eventId])
+    .sort((a, b) => new Date(gl.events[b.eventId].date) - new Date(gl.events[a.eventId].date));
+  const used = n === "season" ? rows : rows.slice(0, n);
+  const agg = { games: used.length };
+  const sums = {}, cnt = {};
+  for (const r of used) {
+    r.stats.forEach((raw, idx) => {
+      const k = keys[idx];
+      if (!k) return;
+      const v = parseFloat(String(raw).replace(",", ""));
+      if (Number.isNaN(v)) return;
+      if (/\.long/.test(k)) sums[k] = Math.max(sums[k] ?? -Infinity, v);
+      else sums[k] = (sums[k] || 0) + v;
+      cnt[k] = (cnt[k] || 0) + 1;
+    });
+  }
+  for (const k of Object.keys(sums)) agg[k] = /Pct|yardsPer|avg|QBRating|adjQBR/.test(k) ? sums[k] / cnt[k] : sums[k];
+  const div = (a, b) => (b ? a / b : 0);
+  const P = (k) => agg[`passing.${k}`] || 0;
+  if (agg["passing.passingAttempts"] != null) {
+    const att = P("passingAttempts"), c = P("completions"), y = P("passingYards"), td = P("passingTouchdowns"), it = P("interceptions");
+    agg["passing.completionPct"] = div(c, att) * 100;
+    agg["passing.yardsPerPassAttempt"] = div(y, att);
+    // passer rating NFL
+    const cl = (x) => Math.max(0, Math.min(2.375, x));
+    agg["passing.QBRating"] = att ? ((cl((c / att - 0.3) * 5) + cl((y / att - 3) * 0.25) + cl((td / att) * 20) + cl(2.375 - (it / att) * 25)) / 6) * 100 : 0;
+  }
+  if (agg["rushing.rushingAttempts"] != null) agg["rushing.yardsPerRushAttempt"] = div(agg["rushing.rushingYards"] || 0, agg["rushing.rushingAttempts"]);
+  if (agg["receiving.receptions"] != null) agg["receiving.yardsPerReception"] = div(agg["receiving.receivingYards"] || 0, agg["receiving.receptions"]);
+  return agg;
+}
+function cmpValue(st, agg) {
+  if (!agg) return null;
+  if (st.get) return st.get(agg);
+  const v = agg[st.key];
+  if (v == null) return null;
+  return st.dec ? v.toFixed(st.dec) : Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
+const cmpEls = {
+  period: document.getElementById("cmp-period"),
+  nPlayers: document.getElementById("cmp-nplayers"),
+  nStats: document.getElementById("cmp-nstats"),
+  note: document.getElementById("cmp-note"),
+  slots: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`cmp-p${i}`), team: document.getElementById(`cmp-team${i}`), player: document.getElementById(`cmp-player${i}`) })),
+  stats: [...document.querySelectorAll(".cmp-stat")],
+};
+
+async function fillRoster(i) {
+  const sl = cmp.slots[i], el = cmpEls.slots[i];
+  const roster = (await getRoster(sl.team.id)).data;
+  const order = ["offense", "defense", "specialTeam"];
+  const groups = roster.groups.slice().sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
+  sl.roster = groups.flatMap((g) => g.players.map((p) => ({ ...p, teamId: sl.team.id })));
+  el.player.innerHTML = groups.map((g) => `<optgroup label="${esc(g.label)}">${g.players
+    .slice().sort((a, b) => ["QB", "RB", "WR", "TE"].indexOf(a.pos) - ["QB", "RB", "WR", "TE"].indexOf(b.pos) || a.name.localeCompare(b.name))
+    .map((p) => `<option value="${p.id}">${esc(p.name)}${p.pos ? ` · ${esc(p.pos)}` : ""}</option>`).join("")}</optgroup>`).join("");
+  if (sl.player) el.player.value = sl.player.id;
+}
+async function loadSlotStats(i) {
+  const sl = cmp.slots[i];
+  if (!sl.player) return;
+  let res = await getGamelog(sl.player.id);
+  if (!res.data.keys || res.data.groups.some((g) => !g.name)) res = await getGamelog(sl.player.id, { force: true }); // cache precedente senza nomi categoria
+  sl.gamelog = res.data;
+  sl.agg = aggregateGamelog(res.data, cmp.period);
+}
+function cmpAvailable() {
+  const aggs = cmp.slots.slice(0, cmp.nPlayers).map((sl) => sl.agg);
+  return CMP_STATS.filter((st) => aggs.some((a) => cmpValue(st, a) != null));
+}
+function renderCmpStatSelects() {
+  const avail = cmpAvailable();
+  const opts = avail.map((st) => `<option value="${st.key}">${esc(st.label)}</option>`).join("");
+  cmpEls.stats.forEach((sel, i) => {
+    sel.closest(".select-field").hidden = i >= cmp.nStats;
+    sel.innerHTML = opts;
+    sel.value = cmp.stats[i] || "";
+  });
+}
+function defaultCmpStats() {
+  const first = cmp.slots[0].player;
+  const wanted = CMP_DEFAULTS[posGroup(first?.pos || "QB")];
+  const availKeys = new Set(cmpAvailable().map((s) => s.key));
+  const out = wanted.filter((k) => availKeys.has(k));
+  for (const k of availKeys) if (out.length < 7 && !out.includes(k)) out.push(k);
+  cmp.stats = out.slice(0, 7);
+}
+function renderCmpSlotsVisibility() {
+  cmpEls.slots.forEach((el, i) => (el.wrap.hidden = i >= cmp.nPlayers));
+}
+
+async function loadCompare() {
+  try {
+    status.textContent = "Carico squadre, giocatori e statistiche…";
+    if (!teamList.length) teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+    const teamOpts = teamList.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+    cmpEls.slots.forEach((el) => { if (!el.team.options.length) el.team.innerHTML = teamOpts; });
+    if (!cmp.loaded) {
+      // Giocatori proposti: i 3 leader stagionali in yard su passaggio (poi si cambiano dalle tendine).
+      const rk = (await getAthleteRanking({ category: "offense:passing", group: "passing", field: "passingYards" })).data.rows;
+      rk.slice(0, 3).forEach((r, i) => {
+        const team = teamList.find((t) => t.id === r.team?.id) || teamList[i];
+        const parts = r.name.split(" ");
+        cmp.slots[i] = { team, player: { id: r.id, name: r.name, first: parts[0], last: parts.slice(1).join(" "), pos: r.pos || "QB" } };
+      });
+    }
+    await Promise.all(cmp.slots.map(async (sl, i) => {
+      cmpEls.slots[i].team.value = sl.team.id;
+      await fillRoster(i);
+      await loadSlotStats(i);
+    }));
+    if (!cmp.loaded || !cmp.stats.length) defaultCmpStats();
+    cmp.loaded = true;
+    renderCmpSlotsVisibility();
+    renderCmpStatSelects();
+    renderAll();
+    cmpStatus();
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare il confronto: riprova.";
+  }
+}
+function cmpStatus() {
+  const per = cmp.period === "season" ? "intera stagione" : cmp.period === 1 ? "ultima partita" : `ultime ${cmp.period} partite`;
+  const games = cmp.slots.slice(0, cmp.nPlayers).map((sl) => `${sl.player?.name}: ${sl.agg?.games ?? 0} partite`).join(" · ");
+  const o = overrides.compare || {};
+  status.textContent = `Statistiche ESPN, ${per} · ${games}${!o.title?.trim() || !o.sub?.trim() ? " · scrivi titolo e sottotitolo in \"Testi personalizzati\"" : ""}`;
+}
+
+cmpEls.period.addEventListener("change", () => {
+  cmp.period = cmpEls.period.value === "season" ? "season" : Number(cmpEls.period.value);
+  cmp.slots.forEach((sl) => { if (sl.gamelog) sl.agg = aggregateGamelog(sl.gamelog, cmp.period); });
+  renderAll();
+  cmpStatus();
+});
+cmpEls.nPlayers.addEventListener("change", async () => {
+  cmp.nPlayers = Number(cmpEls.nPlayers.value);
+  renderCmpSlotsVisibility();
+  renderCmpStatSelects();
+  renderAll();
+  cmpStatus();
+});
+cmpEls.nStats.addEventListener("change", () => {
+  cmp.nStats = Number(cmpEls.nStats.value);
+  renderCmpStatSelects();
+  renderAll();
+});
+cmpEls.note.addEventListener("input", () => { cmp.note = cmpEls.note.value; renderAll(); });
+cmpEls.stats.forEach((sel, i) => sel.addEventListener("change", () => { cmp.stats[i] = sel.value; renderAll(); }));
+cmpEls.slots.forEach((el, i) => {
+  el.team.addEventListener("change", async () => {
+    const sl = cmp.slots[i];
+    sl.team = teamList.find((t) => t.id === el.team.value);
+    await fillRoster(i);
+    // stesso ruolo del giocatore precedente, se c'è; altrimenti il primo della lista
+    const pos = sl.player?.pos;
+    const pick = sl.roster.find((p) => p.pos === pos) || sl.roster[0];
+    sl.player = pick ? { ...pick } : null;
+    el.player.value = sl.player?.id || "";
+    await loadSlotStats(i);
+    renderCmpStatSelects();
+    renderAll();
+    cmpStatus();
+  });
+  el.player.addEventListener("change", async () => {
+    const sl = cmp.slots[i];
+    sl.player = { ...(sl.roster.find((p) => p.id === el.player.value) || {}) };
+    await loadSlotStats(i);
+    renderCmpStatSelects();
+    renderAll();
+    cmpStatus();
+  });
+});
+
+function cmpCard(sl, x, stats) {
+  const t = sl.team, p = sl.player;
+  const col = TEAM_CELL[t.abbr] || t.color || "#333";
+  const ink = DARK_TEXT.has(t.abbr) ? "#111111" : "#ffffff";
+  const ph = CP.photo, lg = CP.logo;
+  const first = (p.first || p.name.split(" ")[0] || "").toUpperCase();
+  const last = (p.last || p.name.split(" ").slice(1).join(" ") || "").toUpperCase();
+  // foto profilo ESPN (scontornata): altezza del box, centrata, ritagliata ai bordi della card
+  const hsH = ph.h, hsW = hsH * (600 / 436);
+  const headshot = `https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png`;
+  const n = stats.length, pitch = (CP.rowsBot - CP.panelBot) / n;
+  const kt = Math.min(1, (pitch / CP.rowRef) * 1.15);
+  let rows = "";
+  stats.forEach((st, i) => {
+    const y = CP.panelBot + i * pitch;
+    const v = cmpValue(st, sl.agg);
+    rows += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${CP.cardW}px;height:${pitch + 0.5}px;background:${i % 2 ? CMP_GREY : "#ffffff"}"></div>
+      ${T("cmpLabel", st.label, x + CP.labelX, y + (pitch - STYLES.cmpLabel.ref[1] * kt) / 2, "left", { scale: kt, maxW: 260 })}
+      ${v != null ? T("cmpVal", v, x + CP.valCx, y + (pitch - STYLES.cmpVal.ref[1] * kt) / 2, "center", { scale: kt, maxW: 190 }) : ""}`;
+  });
+  return `<div class="g-cell" style="left:${x}px;top:${CP.panelTop}px;width:${CP.cardW}px;height:${CP.panelBot - CP.panelTop}px;background:${col}"></div>
+    <div class="g-clip" style="position:absolute;overflow:hidden;left:${x + ph.x}px;top:${ph.top}px;width:${ph.w}px;height:${ph.h}px">
+      <img class="g-logo" crossorigin="anonymous" src="${headshot}" alt="" onerror="this.remove()" style="left:${ph.w / 2 - hsW / 2}px;top:0;width:${hsW}px;height:${hsH}px">
+    </div>
+    <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${t.abbr.toLowerCase()}.png`, 400)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
+    ${T("cmpFirst", first, x + CP.nameX, CP.firstCap, "left", { color: ink, maxW: CP.nameMaxW })}
+    ${T("cmpLast", last, x + CP.nameX, CP.lastCap, "left", { color: ink, maxW: CP.nameMaxW })}
+    ${rows}
+    <div class="g-bar" style="left:${x}px;top:${CP.rowsBot}px;width:${CP.cardW}px;height:${CP.barH}px;background:${col}"></div>`;
+}
+
+function renderCompareStage(stage) {
+  const { W, H, root } = stage;
+  const year = sb.season.year;
+  const n = cmp.nPlayers;
+  const stats = cmp.stats.slice(0, cmp.nStats).map((k) => CMP_STATS.find((s) => s.key === k)).filter(Boolean);
+  const total = n * CP.cardW + (n - 1) * CP.gap;
+  const x0 = W / 2 - total / 2;
+  const cards = cmp.slots.slice(0, n).map((sl, i) => cmpCard(sl, x0 + i * (CP.cardW + CP.gap), stats)).join("");
+  const title = ovr("title", ""), sub = ovr("sub", "");
+  const seasonLabel = Number(sb.season.type) === 3 ? "PLAYOFF" : "REGULAR SEASON";
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, true)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${["FOOTBALL", "MORE", "THAN", "A GAME"].map((w, i) => T("stSide", w, 46, [47, 71, 95, 118][i], "left", { scale: 1.06 })).join("")}
+      ${rectBar([45, 149, 25, 3], TS_BLUE)}
+      ${rectBar([1850, 48, 25, 3], TS_BLUE)}
+      ${T("stInk", String(year), 1872, 67, "right", { scale: 1.04 })}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${CP.brand[0]}px;top:${CP.brand[1]}px;width:${CP.brand[2]}px;height:${CP.brand[3]}px">
+      ${title ? T("week", title, W / 2, CP.title.cap, "center", { scale: CP.title.h / STYLES.week.ref[1], maxW: CP.title.maxW }) : ""}
+      ${sub ? T("cmpSub", sub, W / 2, CP.sub.cap, "center", { maxW: 1500 }) : ""}
+      ${cards}
+      ${cmp.note.trim() ? T("cmpNote", cmp.note, CP.note.x, CP.note.cap, "left", { color: "#474c54", maxW: total }) : ""}
+      ${T("cmpFoot", ovr("foot", `NFL ${year} ${seasonLabel}`), 46, 966, "left", { color: TS_BLUE, maxW: 900 })}
+      ${rectBar([45, 995, 25, 2.5], TS_BLUE)}
+      ${T("tsQd", `QUINTO DOWN ${year}`, 1872, 966, "right")}
+      ${rectBar([1850, 995, 25, 2.5], TS_BLUE)}
+    </div>`;
+  fitPreview(stage);
+}
+// titolo/sottotitolo: aggiorna anche l'avviso nello stato
+for (const k of ["title", "sub"]) ovInputs[k].addEventListener("input", () => { if (tpl === "compare" && cmp.loaded) cmpStatus(); });
+
 // ---------------------------------------------------------------------------- template Calendario squadra
 // Misurato su "NFL Team Schedule-selection.png" (10984×6180 → 1920×1080). Solo 16:9.
 const TS = {
@@ -1760,7 +2101,7 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto" }[tpl] || "calendario");
   if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
   if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
@@ -1799,6 +2140,7 @@ tplToggle.addEventListener("click", (e) => {
 
 async function loadWeek() {
   if (tpl === "team") return loadTeamSchedule();
+  if (tpl === "compare") return loadCompare();
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
   status.textContent = "Carico le partite…";

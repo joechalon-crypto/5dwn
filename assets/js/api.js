@@ -400,6 +400,8 @@ async function loadRoster(id) {
         players: g.items.map((a) => ({
           id: a.id,
           name: a.displayName || a.fullName,
+          first: a.firstName || "",
+          last: a.lastName || "",
           jersey: a.jersey || "",
           pos: a.position?.abbreviation || "",
           posName: a.position?.displayName || "",
@@ -759,7 +761,8 @@ async function loadGamelog(id) {
   return {
     labels: json.labels || [],
     names: json.displayNames || [],
-    groups: (json.categories || []).map((c) => ({ title: c.displayName, count: c.count || 0 })),
+    keys: json.names || [], // nomi tecnici (es. "completions"), per le somme del Confronto giocatori
+    groups: (json.categories || []).map((c) => ({ name: c.name || "", title: c.displayName, count: c.count || 0 })),
     blocks: (json.seasonTypes || []).map((st) => ({
       title: st.displayName,
       team: st.displayTeam || "",
