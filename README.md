@@ -105,6 +105,14 @@ progetto ma non vengono pubblicati (vedi `.gitignore`).
 - **Scarica PNG:** la grafica viene ridisegnata su canvas a grandezza reale con gli
   stessi font e loghi ufficiali ESPN dell'anteprima.
 
+**Template 2 — Risultati settimanali** (riferimenti "Risultati orizzontale" e
+"risultati verticale"): si sceglie con l'interruttore **Calendario / Risultati** in
+cima alla pagina. Stesso impianto del calendario, ma con sottotitolo «RISULTATI»,
+una cella punteggio unica (punteggio di chi perde in grigio) e «RISULTATI FINALI»
+nel piè di pagina. La tendina mostra solo le settimane già iniziate e la grafica
+include solo le partite concluse; di default propone l'ultima settimana completa.
+I punteggi arrivano da ESPN tramite il sito, come tutti gli altri dati.
+
 Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
 `STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,
 quindi vanno cambiati solo se cambia il template.

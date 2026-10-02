@@ -36,7 +36,7 @@
 
 /* Testi posizionati per altezza delle maiuscole (vedi studio.js) */
 .gt { position: absolute; white-space: nowrap; line-height: 1; }
-.gt-brand { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 125%; }
+.gt-brand { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 112.5%; }
 .gt-week { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 125%; }
 .gt-sub { font-family: "Archivo", sans-serif; font-weight: 500; font-stretch: 125%; }
 .gt-day { font-family: "Archivo", sans-serif; font-weight: 700; font-stretch: 125%; color: var(--g-dark); }
@@ -48,6 +48,7 @@
 .gt-at { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-blue); }
 .gt-vs { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: var(--g-blue); }
 .gt-band { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: var(--g-band-ink); }
+.gt-score { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 100%; }
 .gt-gp { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-blue); }
 
 .g-bar { position: absolute; background: var(--g-blue); }
@@ -56,5 +57,6 @@
 .g-white { background: #ffffff; }
 .g-band { position: absolute; background: var(--g-band); }
 .g-logo { position: absolute; object-fit: contain; }
+.g-dash { position: absolute; }
 .g-tv { cursor: pointer; }
 .g-tv:hover { outline: 3px solid var(--orange); outline-offset: -3px; }

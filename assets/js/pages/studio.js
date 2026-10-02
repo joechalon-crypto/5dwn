@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021751";
-import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021751";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021759";
+import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021759";
 
 renderChrome("");
 
@@ -43,7 +43,7 @@ const COUNTRY_IT = { England: "Regno Unito", "United Kingdom": "Regno Unito", UK
 // Per ogni stile: famiglia e il campione del riferimento (testo, altezza maiuscole, larghezza inchiostro).
 // Corpo e spaziatura vengono ricavati a runtime misurando il font reale.
 const STYLES = {
-  brand: { cls: "gt-brand", family: "Archivo", weight: 900, stretch: "expanded", ref: ["5DWN", 26.3, 128.1] },
+  brand: { cls: "gt-brand", family: "Archivo", weight: 900, stretch: "semi-expanded", ref: ["5DWN", 26.3, 128.1] },
   week: { cls: "gt-week", family: "Archivo", weight: 900, stretch: "expanded", ref: ["WEEK 4", 93.2, 640.0] },
   sub: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["ORARI ITALIA", 22.5, 408.9] },
   day: { cls: "gt-day", family: "Archivo", weight: 700, stretch: "expanded", ref: ["DOMENICA 4 OTTOBRE", 20.2, 430.4] },
@@ -55,11 +55,12 @@ const STYLES = {
   at: { cls: "gt-at", family: "Archivo", weight: 600, stretch: "normal", ref: ["@", 17.2, 18.9], ink: true }, // altezza del simbolo
   vs: { cls: "gt-vs", family: "Archivo", weight: 800, stretch: "normal", ref: ["VS", 14.3, 28.5] },
   band: { cls: "gt-band", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INTERNATIONAL GAME — LONDRA, REGNO UNITO", 15.6, 375.6] },
+  score: { cls: "gt-score", family: "Archivo", weight: 900, stretch: "normal", ref: ["28", 23.9, 44.9] }, // misurato su "Risultati"
   gp: { cls: "gt-gp", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["GAME", 15.1, 41.0] },
 };
 
 const ctx = document.createElement("canvas").getContext("2d");
-const fontStr = (st, size) => `${st.stretch === "expanded" ? "expanded " : ""}${st.weight} ${size}px "${st.family}"`;
+const fontStr = (st, size) => `${st.stretch && st.stretch !== "normal" ? `${st.stretch} ` : ""}${st.weight} ${size}px "${st.family}"`;
 
 function calibrate() {
   for (const st of Object.values(STYLES)) {
@@ -120,6 +121,7 @@ const G_WIDE = {
   bodyCapTop: 223.9,
   atTop: 22.0, ts: 1,
   daznBox: 43.5, shield: [20.8, 14.4, 30.7], gpX: 62.9, gpCap: [13.4, 33.7],
+  scoreCap: 16.9, dash: { y: 28.8, w: 10.2, h: 4.2, gapL: 9.0, gapR: 9.6 }, // risultati
   titleDy: 0, sideDy: 0, footDy: 0,
 };
 
@@ -134,12 +136,17 @@ const G_TALL = {
   teamTextX: 92.7, teamCap1: 12.0, teamCap2: 32.4,
   timeCap: 19.9, atTop: 21.6, vsCap: 21.6, bandCap: 22.1, ts: 0.949,
   daznBox: 40.9, shield: [22.2, 13.5, 29.8], gpX: 62.5, gpCap: [12.5, 32.0],
+  scoreCap: 16.0, dash: { y: 27.3, w: 9.7, h: 4.0, gapL: 8.5, gapR: 9.1 },
   headerToRow: 32.4, rowToSep: 19.3, sepToHeader: 24.7,
   bodyCapTop: 389.4, bodyLeft: 48.3, maxBottom: 1690,
   titleDy: 130, sideDy: 117.6, footDy: 712,
 };
 
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
+
+// Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
+let tpl = new URLSearchParams(location.search).get("t") === "risultati" ? "results" : "calendar";
+const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // ---------------------------------------------------------------------------- dati della settimana
 let sb = null;
@@ -238,9 +245,26 @@ function gameRow(g, x, y) {
     <div class="g-cell g-white" style="left:${x + atX}px;top:${y}px;width:${atW}px;height:${G.rowH}px"></div>
     ${g.intl ? T("vs", "VS", x + atX + atW / 2, y + G.vsCap, "center", { scale: G.ts }) : T("at", "@", x + atX + atW / 2, y + G.atTop, "center", { scale: G.ts })}
     ${teamCell(second, cellLeft(x, "b"), y)}
-    <div class="g-cell g-white" style="left:${x + tX}px;top:${y}px;width:${tW}px;height:${G.rowH}px"></div>
+    ${tpl === "results"
+      ? scoreCell(g, x, y)
+      : `<div class="g-cell g-white" style="left:${x + tX}px;top:${y}px;width:${tW}px;height:${G.rowH}px"></div>
     ${T("time", fItTime.format(new Date(g.date)), x + tX + tW / 2, y + G.timeCap, "center", { scale: G.ts })}
-    ${tvCell(g, x, y)}`;
+    ${tvCell(g, x, y)}`}`;
+}
+
+/** Risultati: un'unica cella bianca (orario + TV) con "punteggio - punteggio", centrata sul trattino. */
+function scoreCell(g, x, y) {
+  const [tX] = G.cells.time;
+  const [tvX, tvW] = G.cells.tv;
+  const left = x + tX, w = tvX + tvW - tX;
+  const [c1, c2] = g.intl ? [g.home, g.away] : [g.away, g.home]; // stesso ordine delle squadre
+  const s1 = c1.score ?? 0, s2 = c2.score ?? 0;
+  const col1 = s1 < s2 ? SCORE_LOSE : SCORE_WIN, col2 = s2 < s1 ? SCORE_LOSE : SCORE_WIN; // pareggio: entrambi scuri
+  const d = G.dash, cx = left + w / 2;
+  return `<div class="g-cell g-white" style="left:${left}px;top:${y}px;width:${w}px;height:${G.rowH}px"></div>
+    <div class="g-dash" style="left:${cx - d.w / 2}px;top:${y + d.y}px;width:${d.w}px;height:${d.h}px;background:${DASH}"></div>
+    ${T("score", String(s1), cx - d.w / 2 - d.gapL, y + G.scoreCap, "right", { color: col1, scale: G.ts })}
+    ${T("score", String(s2), cx + d.w / 2 + d.gapR, y + G.scoreCap, "left", { color: col2, scale: G.ts })}`;
 }
 
 function bandRow(info, x, y) {
@@ -362,9 +386,9 @@ function chrome(W, H, title, year, tz) {
     ${T("year", String(year), right, 66.4 + sd, "right")}
     ${T("brand", "5DWN", cx, 24.6 + t, "center")}
     ${T("week", title, cx, 66.4 + t, "center", { maxW: W - 2 * 200 })}
-    ${T("sub", "ORARI ITALIA", cx, 182.4 + t, "center")}
+    ${T("sub", tpl === "results" ? "RISULTATI" : "ORARI ITALIA", cx, 182.4 + t, "center")}
     <div class="g-bar" style="left:44px;top:${1025.1 + f}px;width:25.4px;height:2.2px"></div>
-    ${T("foot", `TUTTI GLI ORARI IN ORA ITALIANA (${tz})`, 78.5, 1041.5 + f)}
+    ${T("foot", tpl === "results" ? "RISULTATI FINALI" : `TUTTI GLI ORARI IN ORA ITALIANA (${tz})`, 78.5, 1041.5 + f)}
     ${T("year", "QUINTO DOWN", right, 1008.3 + f, "right")}
     ${T("year", String(year), right, 1032.0 + f, "right")}
     <div class="g-bar" style="left:${right - 21.6}px;top:${1060.9 + f}px;width:25.5px;height:2.6px"></div>`;
@@ -459,7 +483,7 @@ async function drawStage(stage) {
   c.drawImage(bg, 0, 0, W, H);
 
   // 2) elementi nell'ordine del documento (rettangoli, loghi, testi)
-  const els = root.querySelectorAll(".g-cell, .g-band, .g-bar, .g-sep, img, .gt");
+  const els = root.querySelectorAll(".g-cell, .g-band, .g-bar, .g-sep, .g-dash, img, .gt");
   for (const el of els) {
     const b = box(el);
     const cs = getComputedStyle(el);
@@ -472,7 +496,8 @@ async function drawStage(stage) {
       const eff = b.h / el.offsetHeight; // scala effettiva (es. corpo partite ridotto)
       const size = parseFloat(cs.fontSize) * eff;
       const ls = (parseFloat(cs.letterSpacing) || 0) * eff;
-      const stretch = parseFloat(cs.fontStretch) >= 112 ? "expanded " : "";
+      const fs = parseFloat(cs.fontStretch) || 100;
+      const stretch = fs >= 120 ? "expanded " : fs >= 110 ? "semi-expanded " : "";
       const family = cs.fontFamily.split(",")[0].replace(/["']/g, "").trim();
       c.font = `${stretch}${cs.fontWeight} ${size}px "${family}"`;
       c.fillStyle = cs.color;
@@ -530,16 +555,23 @@ async function exportPng(stage, name) {
   }
 }
 
-const fileBase = () => `5dwn-${titleFor(weekData.entry).toLowerCase().replace(/\s+/g, "-")}-${weekData.year}`;
+const fileBase = () => `5dwn-${tpl === "results" ? "risultati" : "calendario"}-${titleFor(weekData.entry).toLowerCase().replace(/\s+/g, "-")}-${weekData.year}`;
 document.getElementById("dl-wide").addEventListener("click", () => exportPng(stages.wide, `${fileBase()}-16x9.png`));
 document.getElementById("dl-tall").addEventListener("click", () => exportPng(stages.tall, `${fileBase()}-9x16.png`));
 
 // ---------------------------------------------------------------------------- tendina e caricamento
+let lastPlayedKey = ""; // ultima settimana con almeno una partita conclusa (per i risultati)
+
+/** Calendario: tutte le settimane. Risultati: solo quelle già iniziate (con partite giocate). */
+const visibleWeeks = () => (tpl === "results" ? weeks.filter((e) => new Date(e.start).getTime() <= Date.now()) : weeks);
+
 function renderSelect() {
+  const list = visibleWeeks();
+  if (!list.some((e) => keyOf(e) === selectedKey)) selectedKey = tpl === "results" ? lastPlayedKey : currentKey;
   const group = (type, label) => {
-    const list = weeks.filter((e) => e.seasonType === type);
-    return list.length
-      ? `<optgroup label="${label}">${list.map((e) => {
+    const items = list.filter((e) => e.seasonType === type);
+    return items.length
+      ? `<optgroup label="${label}">${items.map((e) => {
           const k = keyOf(e);
           return `<option value="${k}"${k === selectedKey ? " selected" : ""}>${esc(weekLabel(e))} · ${esc(weekRange(e))}${k === currentKey ? " — in corso" : ""}</option>`;
         }).join("")}</optgroup>`
@@ -547,14 +579,33 @@ function renderSelect() {
   };
   weekSelect.innerHTML = group(2, "Regular season") + group(3, "Playoff");
   weekSelect.classList.toggle("is-current", selectedKey === currentKey);
+  document.querySelectorAll(".tpl-name").forEach((el) => (el.textContent = tpl === "results" ? "Risultati settimanali" : "Calendario settimanale"));
+  tplToggle.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tpl === tpl)));
+}
+
+function syncUrl() {
+  const url = new URL(location.href);
+  url.searchParams.set("w", selectedKey);
+  url.searchParams.set("t", tpl === "results" ? "risultati" : "calendario");
+  history.replaceState(null, "", url);
 }
 
 weekSelect.addEventListener("change", () => {
   selectedKey = weekSelect.value;
-  const url = new URL(location.href);
-  url.searchParams.set("w", selectedKey);
-  history.replaceState(null, "", url);
+  syncUrl();
   renderSelect();
+  loadWeek();
+});
+
+const tplToggle = document.getElementById("tpl-toggle");
+tplToggle.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-tpl]");
+  if (!b || b.dataset.tpl === tpl) return;
+  tpl = b.dataset.tpl;
+  // Passando ai risultati si parte dall'ultima settimana giocata; al calendario dalla settimana in corso.
+  selectedKey = tpl === "results" ? lastPlayedKey : currentKey;
+  renderSelect();
+  syncUrl();
   loadWeek();
 });
 
@@ -563,12 +614,16 @@ async function loadWeek() {
   if (!entry) return;
   status.textContent = "Carico le partite…";
   try {
-    // Titolo e contenuto seguono sempre la settimana scelta nella tendina (dati ESPN).
+    // Titolo e contenuto seguono sempre la settimana scelta nella tendina (dati ESPN via api.js).
     const res = await getWeek(entry, sb.season.year);
-    const games = res.data.games;
+    const all = res.data.games;
+    const games = tpl === "results" ? all.filter((g) => g.state === "post") : all;
     weekData = { entry, year: sb.season.year, games, days: buildDays(games) };
     renderAll();
-    status.textContent = `${games.length} partite · ${weekLabel(entry)} ${sb.season.year} · clic su una cella TV per alternare DAZN / Game Pass`;
+    status.textContent =
+      tpl === "results"
+        ? `${games.length} risultati su ${all.length} partite · ${weekLabel(entry)} ${sb.season.year}${games.length < all.length ? " · le partite non ancora concluse non compaiono" : ""}`
+        : `${games.length} partite · ${weekLabel(entry)} ${sb.season.year} · clic su una cella TV per alternare DAZN / Game Pass`;
   } catch (err) {
     console.error(err);
     status.textContent = "Non riesco a caricare la settimana: riprova.";
@@ -590,10 +645,16 @@ async function init() {
   calibrate();
   // Anno e settimane dalle API ESPN.
   weeks = sb.calendar.filter((e) => e.seasonType === 2 || e.seasonType === 3);
-  const cur = sb.calendar[currentWeekIndex(sb)];
+  const idx = currentWeekIndex(sb);
+  const cur = sb.calendar[idx];
   currentKey = cur && (cur.seasonType === 2 || cur.seasonType === 3) ? keyOf(cur) : cur?.seasonType === 1 ? keyOf(weeks[0]) : keyOf(weeks[weeks.length - 1] || {});
+  // Risultati, settimana proposta: la corrente se è tutta conclusa, altrimenti l'ultima completa.
+  // (La settimana in corso resta comunque selezionabile con i risultati già disponibili.)
+  const curPos = weeks.findIndex((e) => keyOf(e) === currentKey);
+  const curDone = sb.games.length > 0 && sb.games.every((g) => g.state === "post") && cur && keyOf(cur) === currentKey;
+  lastPlayedKey = keyOf(weeks[Math.max(0, curDone ? curPos : curPos - 1)] || weeks[0]);
   const fromUrl = new URLSearchParams(location.search).get("w");
-  selectedKey = weeks.some((e) => keyOf(e) === fromUrl) ? fromUrl : currentKey;
+  selectedKey = visibleWeeks().some((e) => keyOf(e) === fromUrl) ? fromUrl : tpl === "results" ? lastPlayedKey : currentKey;
   renderSelect();
   loadWeek();
 }
