@@ -763,13 +763,18 @@ async function loadAthleteRanking(def, seasonType) {
         team: at.teamId ? { id: String(at.teamId), abbr: at.teamShortName || "", name: at.teamName || at.teamShortName || "", short: at.teamShortName || "", logo: (at.teamLogos?.[0]?.href || "").replace("/500/", "/500-dark/"), logoLight: at.teamLogos?.[0]?.href || "" } : null,
         gp: pick(a, "general", "gamesPlayed"),
         value: pick(a, def.group, def.field),
+        qual: def.qual ? pick(a, def.qual.group, def.qual.field) : null, // es. tentativi, per la soglia minima
         extra: (def.extra || []).map((e) => pick(a, e.group, e.field)),
       };
     }),
   };
 }
-export const getAthleteRanking = (key, def, opts) =>
-  cached(`rank:athlete:${key}`, TTL.rankings, () => loadAthleteRanking(def), opts);
+/** Stessa statistica = stessa richiesta (la versione "a partita" riusa i totali in cache). */
+export function getAthleteRanking(def, opts) {
+  const f = (x) => (x ? `${x.group}.${x.field}` : "");
+  const key = ["rank:athlete", def.category, f(def), f(def.qual), ...(def.extra || []).map(f)].join("|");
+  return cached(key, TTL.rankings, () => loadAthleteRanking(def), opts);
+}
 
 /** Statistiche di tutte le 32 squadre: proprie (splitId 0) e degli avversari (splitId 900). */
 async function loadTeamStats() {

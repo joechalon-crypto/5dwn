@@ -1,6 +1,7 @@
-import { renderChrome, loading, showError, staleNotice, updatedLine, teamLogo, teamHref, playerHref, espnImg, every, esc } from "../ui.js?v=202610021634";
-import { getAthleteRanking, getTeamStats, getRedZone } from "../api.js?v=202610021634";
+import { renderChrome, loading, showError, staleNotice, updatedLine, teamLogo, teamHref, playerHref, espnImg, every, esc } from "../ui.js?v=202610021645";
+import { getAthleteRanking, getTeamStats, getRedZone } from "../api.js?v=202610021645";
 
+window.__5dwnStatsStarted = true;
 renderChrome("statistiche");
 
 const box = document.getElementById("ranking");
@@ -14,43 +15,79 @@ const seasonEl = document.getElementById("season-label");
 const PAGE = 50; // righe mostrate prima di "Mostra tutti"
 
 // ============================================================================ definizioni
-// Individuali: categoria ESPN, gruppo e campo della statistica; `nonzero` esclude chi è a 0.
+// Soglie minime (anti-outlier), ispirate ai criteri NFL e rapportate alle partite di
+// squadra giocate finora (T = massimo di partite giocate nella lista):
+//   passaggi: 5 tentativi a partita per i totali, 14 per rating e medie a partita
+//   corse: 1 a partita per i totali, 6,25 per le medie a partita
+//   ricezioni: 1,875 a partita per le medie a partita
+//   field goal: 0,75 tentativi a partita per la percentuale
+//   medie a partita: almeno metà delle partite di squadra giocate
 const P = (group, field) => ({ group, field });
-const PLAYER_STATS = [
+const QUAL = {
+  passing: { ...P("passing", "passingAttempts"), noun: "tentativi di passaggio", total: 5, rate: 14 },
+  rushing: { ...P("rushing", "rushingAttempts"), noun: "corse", total: 1, rate: 6.25 },
+  receiving: { ...P("receiving", "receptions"), noun: "ricezioni", total: 0, rate: 1.875 },
+  kicking: { ...P("kicking", "fieldGoalAttempts"), noun: "tentativi di field goal", total: 0, rate: 0.75 },
+};
+
+// Ogni statistica a conteggio ha anche la versione "a partita" (pg: true).
+const BASE_PLAYER = [
   { group: "Quarterback", items: [
-    { key: "passYds", title: "Yard su passaggio", unit: "yd", category: "offense:passing", ...P("passing", "passingYards"), extra: [P("passing", "passingAttempts")], extraLabel: (x) => `${x[0] ?? 0} tentativi`, filter: (r) => (r.extra[0] || 0) > 0 },
-    { key: "passTd", title: "Touchdown su passaggio", unit: "TD", category: "offense:passing", ...P("passing", "passingTouchdowns"), nonzero: true, extra: [P("passing", "interceptions")], extraLabel: (x) => `${x[0] ?? 0} INT` },
-    { key: "rating", title: "Passer rating", unit: "", decimals: 1, category: "offense:passing", ...P("passing", "QBRating"), extra: [P("passing", "passingAttempts")], extraLabel: (x) => `${x[0] ?? 0} tentativi`, filter: (r) => (r.extra[0] || 0) > 0 },
+    { key: "passYds", title: "Yard su passaggio", category: "offense:passing", ...P("passing", "passingYards"), q: QUAL.passing, pg: true, extra: [P("passing", "passingAttempts")], extraLabel: (x) => `${x[0] ?? 0} tentativi` },
+    { key: "passTd", title: "Touchdown su passaggio", category: "offense:passing", ...P("passing", "passingTouchdowns"), q: QUAL.passing, pg: true, nonzero: true, extra: [P("passing", "interceptions")], extraLabel: (x) => `${x[0] ?? 0} INT` },
+    { key: "passInt", title: "Intercetti lanciati", asc: true, category: "offense:passing", ...P("passing", "interceptions"), q: QUAL.passing, rateQual: true, pg: true, extra: [P("passing", "passingAttempts")], extraLabel: (x) => `${x[0] ?? 0} tentativi` },
+    { key: "rating", title: "Passer rating", decimals: 1, category: "offense:passing", ...P("passing", "QBRating"), q: QUAL.passing, rateQual: true, extra: [P("passing", "passingAttempts")], extraLabel: (x) => `${x[0] ?? 0} tentativi` },
   ]},
   { group: "Running back", items: [
-    { key: "rushYds", title: "Yard su corsa", unit: "yd", category: "offense:rushing", ...P("rushing", "rushingYards"), extra: [P("rushing", "rushingAttempts")], extraLabel: (x) => `${x[0] ?? 0} corse` },
-    { key: "rushTd", title: "Touchdown su corsa", unit: "TD", category: "offense:rushing", ...P("rushing", "rushingTouchdowns"), nonzero: true, extra: [P("rushing", "rushingAttempts")], extraLabel: (x) => `${x[0] ?? 0} corse` },
+    { key: "rushYds", title: "Yard su corsa", category: "offense:rushing", ...P("rushing", "rushingYards"), q: QUAL.rushing, pg: true, extra: [P("rushing", "rushingAttempts")], extraLabel: (x) => `${x[0] ?? 0} corse` },
+    { key: "rushTd", title: "Touchdown su corsa", category: "offense:rushing", ...P("rushing", "rushingTouchdowns"), q: QUAL.rushing, pg: true, nonzero: true, extra: [P("rushing", "rushingAttempts")], extraLabel: (x) => `${x[0] ?? 0} corse` },
+    { key: "rushAvg", title: "Yard per corsa", decimals: 1, category: "offense:rushing", ...P("rushing", "yardsPerRushAttempt"), q: QUAL.rushing, rateQual: true, extra: [P("rushing", "rushingAttempts")], extraLabel: (x) => `${x[0] ?? 0} corse` },
   ]},
   { group: "Wide receiver / Tight end", items: [
-    { key: "rec", title: "Ricezioni", unit: "rec", category: "offense:receiving", ...P("receiving", "receptions"), nonzero: true, extra: [P("receiving", "receivingTargets")], extraLabel: (x) => `${x[0] ?? 0} target` },
-    { key: "recYds", title: "Yard su ricezione", unit: "yd", category: "offense:receiving", ...P("receiving", "receivingYards"), extra: [P("receiving", "receptions")], extraLabel: (x) => `${x[0] ?? 0} ricezioni` },
-    { key: "recTd", title: "Touchdown su ricezione", unit: "TD", category: "offense:receiving", ...P("receiving", "receivingTouchdowns"), nonzero: true, extra: [P("receiving", "receptions")], extraLabel: (x) => `${x[0] ?? 0} ricezioni` },
+    { key: "rec", title: "Ricezioni", category: "offense:receiving", ...P("receiving", "receptions"), q: QUAL.receiving, pg: true, nonzero: true, extra: [P("receiving", "receivingTargets")], extraLabel: (x) => `${x[0] ?? 0} target` },
+    { key: "recYds", title: "Yard su ricezione", category: "offense:receiving", ...P("receiving", "receivingYards"), q: QUAL.receiving, pg: true, extra: [P("receiving", "receptions")], extraLabel: (x) => `${x[0] ?? 0} ricezioni` },
+    { key: "recTd", title: "Touchdown su ricezione", category: "offense:receiving", ...P("receiving", "receivingTouchdowns"), q: QUAL.receiving, pg: true, nonzero: true, extra: [P("receiving", "receptions")], extraLabel: (x) => `${x[0] ?? 0} ricezioni` },
   ]},
   { group: "Difesa", items: [
-    { key: "sacks", title: "Sack", unit: "sack", decimals: 1, category: "defense:defensive", ...P("defensive", "sacks"), nonzero: true, extra: [P("defensive", "tacklesForLoss")], extraLabel: (x) => `${x[0] ?? 0} TFL` },
-    { key: "int", title: "Intercetti", unit: "INT", category: "defense:defensiveInterceptions", ...P("defensiveInterceptions", "interceptions"), nonzero: true, extra: [P("defensiveInterceptions", "interceptionYards")], extraLabel: (x) => `${x[0] ?? 0} yd di ritorno` },
-    { key: "tackles", title: "Placcaggi (tackle)", unit: "tkl", category: "defense:defensive", ...P("defensive", "totalTackles"), nonzero: true, extra: [P("defensive", "soloTackles")], extraLabel: (x) => `${x[0] ?? 0} solitari` },
+    { key: "sacks", title: "Sack", decimals: 1, trimInt: true, category: "defense:defensive", ...P("defensive", "sacks"), pg: true, nonzero: true, extra: [P("defensive", "tacklesForLoss")], extraLabel: (x) => `${x[0] ?? 0} TFL` },
+    { key: "int", title: "Intercetti", category: "defense:defensiveInterceptions", ...P("defensiveInterceptions", "interceptions"), pg: true, nonzero: true, extra: [P("defensiveInterceptions", "interceptionYards")], extraLabel: (x) => `${x[0] ?? 0} yd di ritorno` },
+    { key: "tackles", title: "Placcaggi (tackle)", category: "defense:defensive", ...P("defensive", "totalTackles"), pg: true, nonzero: true, extra: [P("defensive", "soloTackles")], extraLabel: (x) => `${x[0] ?? 0} solitari` },
   ]},
   { group: "Kicker", items: [
-    { key: "fgPct", title: "Field goal %", unit: "%", decimals: 1, category: "specialTeams:kicking", ...P("kicking", "fieldGoalPct"), extra: [P("kicking", "fieldGoalsMade"), P("kicking", "fieldGoalAttempts")], extraLabel: (x) => `${x[0] ?? 0}/${x[1] ?? 0} FG`, filter: (r) => (r.extra[1] || 0) > 0 },
+    { key: "fgPct", title: "Field goal %", unit: "%", decimals: 1, category: "specialTeams:kicking", ...P("kicking", "fieldGoalPct"), q: QUAL.kicking, rateQual: true, extra: [P("kicking", "fieldGoalsMade"), P("kicking", "fieldGoalAttempts")], extraLabel: (x) => `${x[0] ?? 0}/${x[1] ?? 0} FG` },
   ]},
 ];
 
-// Squadra: dove leggere il valore (proprie o avversari) e se "meno è meglio".
+const PLAYER_STATS = BASE_PLAYER.map((g) => ({
+  group: g.group,
+  items: g.items.flatMap((s) =>
+    s.pg ? [s, { ...s, key: `${s.key}Pg`, title: `${s.title} a partita`, perGame: true, decimals: 1, trimInt: false }] : [s]
+  ),
+}));
+
+// Squadra: dove leggere il valore (proprie = own, concesse agli avversari = opp) e se "meno è meglio".
 const TEAM_STATS = [
   { group: "Punti", items: [
+    { key: "pts", title: "Punti fatti", get: (t) => t.own.passing?.totalPoints },
     { key: "ppg", title: "Punti fatti a partita", decimals: 1, get: (t) => t.own.passing?.totalPointsPerGame },
-    { key: "papg", title: "Punti subiti a partita", decimals: 1, asc: true, get: (t) => t.opp.passing?.totalPointsPerGame },
+    { key: "ptsAg", title: "Punti concessi", asc: true, get: (t) => t.opp.passing?.totalPoints },
+    { key: "papg", title: "Punti concessi a partita", decimals: 1, asc: true, get: (t) => t.opp.passing?.totalPointsPerGame },
   ]},
-  { group: "Yard (a partita)", items: [
+  { group: "Attacco · yard guadagnate", items: [
+    { key: "yds", title: "Yard totali", get: (t) => t.own.passing?.totalYards },
     { key: "ydsPg", title: "Yard totali a partita", decimals: 1, get: (t) => t.own.passing?.yardsPerGame },
+    { key: "pass", title: "Yard su passaggio", get: (t) => t.own.passing?.netPassingYards },
     { key: "passPg", title: "Yard su passaggio a partita", decimals: 1, get: (t) => t.own.passing?.netPassingYardsPerGame },
+    { key: "rush", title: "Yard su corsa", get: (t) => t.own.rushing?.rushingYards },
     { key: "rushPg", title: "Yard su corsa a partita", decimals: 1, get: (t) => t.own.rushing?.rushingYardsPerGame },
+  ]},
+  { group: "Difesa · yard concesse", items: [
+    { key: "ydsAg", title: "Yard totali concesse", asc: true, get: (t) => t.opp.passing?.totalYards },
+    { key: "ydsAgPg", title: "Yard totali concesse a partita", decimals: 1, asc: true, get: (t) => t.opp.passing?.yardsPerGame },
+    { key: "passAg", title: "Yard su passaggio concesse", asc: true, get: (t) => t.opp.passing?.netPassingYards },
+    { key: "passAgPg", title: "Yard su passaggio concesse a partita", decimals: 1, asc: true, get: (t) => t.opp.passing?.netPassingYardsPerGame },
+    { key: "rushAg", title: "Yard su corsa concesse", asc: true, get: (t) => t.opp.rushing?.rushingYards },
+    { key: "rushAgPg", title: "Yard su corsa concesse a partita", decimals: 1, asc: true, get: (t) => t.opp.rushing?.rushingYardsPerGame },
   ]},
   { group: "Efficienza", items: [
     { key: "third", title: "Conversioni sul terzo down %", unit: "%", decimals: 1, get: (t) => t.own.miscellaneous?.thirdDownConvPct },
@@ -58,10 +95,41 @@ const TEAM_STATS = [
     { key: "toDiff", title: "Turnover differential", signed: true, get: (t) => t.own.miscellaneous?.turnOverDifferential },
   ]},
   { group: "Sack", items: [
-    { key: "sackFor", title: "Sack fatti", decimals: 1, get: (t) => t.opp.passing?.sacks },
-    { key: "sackAgainst", title: "Sack subiti", decimals: 1, asc: true, get: (t) => t.own.passing?.sacks },
+    { key: "sackFor", title: "Sack fatti", decimals: 1, trimInt: true, get: (t) => t.opp.passing?.sacks },
+    { key: "sackForPg", title: "Sack fatti a partita", decimals: 1, get: (t) => perGame(t.opp.passing?.sacks, t.own.general?.gamesPlayed) },
+    { key: "sackAgainst", title: "Sack subiti", decimals: 1, trimInt: true, asc: true, get: (t) => t.own.passing?.sacks },
+    { key: "sackAgainstPg", title: "Sack subiti a partita", decimals: 1, asc: true, get: (t) => perGame(t.own.passing?.sacks, t.own.general?.gamesPlayed) },
   ]},
 ];
+
+function perGame(v, gp) {
+  return v == null || !gp ? null : v / gp;
+}
+
+/** Applica soglia minima e calcola i valori a partita. Restituisce righe + testo della soglia. */
+function qualify(rows, stat) {
+  const T = Math.max(0, ...rows.map((r) => r.gp || 0)) || 1;
+  const notes = [];
+  let out = rows.map((r) => ({ ...r, value: stat.perGame ? perGame(r.value, r.gp) : r.value }));
+  out = out.filter((r) => r.value != null && !Number.isNaN(r.value));
+  if (stat.nonzero) out = out.filter((r) => r.value !== 0);
+  if (stat.q) {
+    const per = stat.perGame || stat.rateQual ? stat.q.rate : stat.q.total;
+    const min = Math.ceil(per * T);
+    if (min > 0) {
+      out = out.filter((r) => (r.qual || 0) >= min);
+      notes.push(`almeno ${min} ${stat.q.noun} (${String(per).replace(".", ",")} per partita di squadra)`);
+    }
+  }
+  if (stat.perGame) {
+    const minGp = Math.ceil(T / 2);
+    if (minGp > 1) {
+      out = out.filter((r) => (r.gp || 0) >= minGp);
+      notes.push(`almeno ${minGp} partite giocate`);
+    }
+  }
+  return { rows: out, note: notes.length ? `Soglia minima: ${notes.join(" e ")}.` : "" };
+}
 
 const all = (groups) => groups.flatMap((g) => g.items);
 const findStat = (mode, key) => all(mode === "teams" ? TEAM_STATS : PLAYER_STATS).find((s) => s.key === key);
@@ -109,7 +177,8 @@ function fmtValue(v, stat) {
   if (v == null || Number.isNaN(v)) return "–";
   const d = stat.decimals ?? 0;
   const n = d ? Math.round(v * 10 ** d) / 10 ** d : Math.round(v);
-  const txt = nf(Number.isInteger(n) && d && stat.unit !== "%" ? 0 : d).format(n);
+  // Solo i sack totali (es. 6 o 5,5) tolgono il decimale quando è intero; le medie lo tengono sempre.
+  const txt = nf(stat.trimInt && Number.isInteger(n) ? 0 : d).format(n);
   return `${stat.signed && n > 0 ? "+" : ""}${txt}${stat.unit === "%" ? "%" : ""}`;
 }
 
@@ -155,10 +224,11 @@ function teamRow(r, pos, stat) {
     </li>`;
 }
 
-function renderList(rows, stat, rowFn, res) {
+function renderList(rows, stat, rowFn, res, note = "") {
   const pos = ranks(rows);
   const shown = rows.length > PAGE + 10 ? PAGE : rows.length;
   box.innerHTML = `${staleNotice(res)}
+    ${note ? `<p class="rank-note">${esc(note)}</p>` : ""}
     <div class="leader-card rank-card">
       ${rows.length ? `<ol class="ld-list">${rows.slice(0, shown).map((r, i) => rowFn(r, pos[i], stat)).join("")}</ol>` : `<div class="placeholder">Nessun dato disponibile per questa statistica.</div>`}
       ${shown < rows.length ? `<button type="button" class="btn show-all">Mostra tutti (${rows.length})</button>` : ""}
@@ -185,22 +255,20 @@ async function load({ quiet = false } = {}) {
   const stat = findStat(mode, key);
   const my = ++reqId;
   titleEl.textContent = stat.title;
-  eyebrowEl.textContent = mode === "teams" ? (stat.asc ? "Squadre · meno è meglio" : "Squadre · tutte le 32") : "Individuali · classifica completa";
+  eyebrowEl.textContent = `${mode === "teams" ? "Squadre · tutte le 32" : "Individuali · classifica completa"}${stat.asc ? " · meno è meglio" : ""}${stat.perGame ? " · media a partita" : ""}`;
   if (!quiet) {
     countEl.textContent = "";
     loading(box, mode === "teams" ? "Carichiamo le statistiche delle squadre…" : "Carichiamo la classifica…");
   }
   try {
     if (mode === "players") {
-      const res = await getAthleteRanking(stat.key, stat);
+      const res = await getAthleteRanking({ category: stat.category, group: stat.group, field: stat.field, qual: stat.q ? P(stat.q.group, stat.q.field) : null, extra: stat.extra });
       if (my !== reqId) return;
-      let rows = res.data.rows.filter((r) => r.value != null && !Number.isNaN(r.value));
-      if (stat.nonzero) rows = rows.filter((r) => r.value !== 0);
-      if (stat.filter) rows = rows.filter(stat.filter);
-      rows.sort((a, b) => b.value - a.value);
+      const { rows, note } = qualify(res.data.rows, stat);
+      rows.sort((a, b) => (stat.asc ? a.value - b.value : b.value - a.value));
       seasonEl.textContent = seasonText(res.data.year, res.data.seasonType);
       countEl.textContent = `${rows.length} giocatori`;
-      renderList(rows, stat, playerRow, res);
+      renderList(rows, stat, playerRow, res, note);
     } else {
       const res = await getTeamStats();
       if (my !== reqId) return;

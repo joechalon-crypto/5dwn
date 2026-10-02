@@ -191,6 +191,15 @@ avversari (punti subiti, sack fatti). La red zone % non è in quell'endpoint e
 arriva da `…/nfl/teams/{ID}/statistics` (32 chiamate, solo quando la scegli).
 Le liste lunghe mostrano i primi 50 con il pulsante «Mostra tutti».
 
+Ogni statistica a conteggio ha anche la versione **a partita**. Per evitare outlier
+(es. un ricevitore con un solo passaggio lanciato in cima al passer rating) si
+applicano soglie minime ispirate ai criteri NFL, rapportate alle partite di
+squadra giocate (T): passaggi 5×T tentativi per i totali e 14×T per rating e medie;
+corse 1×T per i totali e 6,25×T per medie e yard per corsa; ricezioni 1,875×T per
+le medie; field goal 0,75×T tentativi per la percentuale; per tutte le medie almeno
+metà delle partite giocate. La soglia applicata è scritta sopra ogni classifica e
+si modifica in `assets/js/pages/statistiche.js` (oggetto `QUAL`).
+
 **Nota su `/teams`:** l'elenco `…/nfl/teams` funziona da terminale ma **ESPN non
 invia l'header CORS**, quindi i browser lo bloccano. Il sito usa `/groups`
 (stesse squadre, stessi loghi ufficiali, CORS abilitato) e i colori ufficiali

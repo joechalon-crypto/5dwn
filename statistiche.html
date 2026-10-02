@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <link rel="preconnect" href="https://site.api.espn.com" crossorigin>
   <link rel="preconnect" href="https://a.espncdn.com">
-  <link rel="stylesheet" href="assets/css/style.css?v=202610021634">
+  <link rel="stylesheet" href="assets/css/style.css?v=202610021645">
 </head>
 <body>
   <header id="site-header" class="site-header">
@@ -47,13 +47,36 @@
 
       <section class="section rank-section">
         <div class="section-head"><div><span class="eyebrow" id="rank-eyebrow"></span><h2 id="rank-title">Statistica</h2></div><span class="count" id="rank-count"></span></div>
-        <div id="ranking"></div>
+        <div id="ranking"><div class="state" role="status"><div class="spinner"></div>Caricamento della classifica…</div></div>
       </section>
     </div>
   </main>
 
   <footer id="site-footer" class="site-footer"></footer>
   <noscript><div class="container state">Per vedere le statistiche aggiornate attiva JavaScript.</div></noscript>
-  <script type="module" src="assets/js/pages/statistiche.js?v=202610021634"></script>
+  <script>
+    /* Se lo script della pagina non parte (file vecchi in cache, rete, estensioni del browser)
+       mostriamo l'errore invece di lasciare la pagina vuota. */
+    (function () {
+      function fail(msg) {
+        var b = document.getElementById("ranking");
+        if (!b || b.querySelector(".ld-row") || b.querySelector(".state.error")) return;
+        b.innerHTML = '<div class="state error" role="alert"><span class="label">Errore di caricamento</span>' +
+          '<p><strong>La pagina Statistiche non si è avviata.</strong><br>Dettaglio: ' + String(msg).replace(/[<>&]/g, "") + '</p>' +
+          '<p>Chiudi la scheda e riapri la pagina, oppure premi Cmd+Shift+R.</p></div>';
+      }
+      window.addEventListener("error", function (e) {
+        var t = e.target;
+        if (t && t.tagName && t.tagName !== "SCRIPT") return; // immagini e loghi hanno già un ripiego
+        fail((e.message || "file non caricato") + (t && t.src ? " (" + t.src.split("/").pop() + ")" : e.filename ? " (" + e.filename.split("/").pop() + ")" : ""));
+      }, true);
+      window.addEventListener("unhandledrejection", function (e) { fail(e.reason && e.reason.message ? e.reason.message : e.reason); });
+      setTimeout(function () {
+        var b = document.getElementById("ranking");
+        if (b && b.querySelector(".spinner") && !window.__5dwnStatsStarted) fail("lo script non è partito entro 15 secondi");
+      }, 15000);
+    })();
+  </script>
+  <script type="module" src="assets/js/pages/statistiche.js?v=202610021645"></script>
 </body>
 </html>

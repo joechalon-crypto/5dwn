@@ -692,6 +692,7 @@ a.game:hover .game-meta .status { color: var(--accent); }
 .stats-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 8px; }
 .stats-controls .segmented button { padding: 11px 20px; font-size: 1.1rem; }
 .rank-section { margin-top: 28px; }
+.rank-note { font-size: 0.85rem; color: var(--text-muted); margin: -4px 0 12px; padding-left: 10px; border-left: 3px solid var(--accent); }
 .rank-card .ld-list { border-bottom: 1px solid var(--line); }
 .rank-card .placeholder { margin: 14px; }
 .show-all { display: flex; width: calc(100% - 28px); margin: 14px; }
