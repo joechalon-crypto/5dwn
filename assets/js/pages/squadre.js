@@ -1,5 +1,5 @@
-import { renderChrome, loading, showError, teamLogo, teamHref, esc } from "../ui.js?v=202610021841";
-import { getTeams, getStandings } from "../api.js?v=202610021841";
+import { renderChrome, loading, showError, teamLogo, teamHref, esc } from "../ui.js?v=202610021843";
+import { getTeams, getStandings } from "../api.js?v=202610021843";
 
 renderChrome("squadre");
 

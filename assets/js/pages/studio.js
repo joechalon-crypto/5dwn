@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021841";
-import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021841";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021843";
+import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021843";
 
 renderChrome("");
 
@@ -868,7 +868,7 @@ const GW = {
   tape: { cx: 958, cy: 200.5, w: 190, h: 46, rot: 1.5 },
   stats: { topLine: 640.0, firstLine: 692.0, pitch: 49.0, x0: 176.0, x1: 1743.6, valL: 177.2, valR: 1742.4, max: 522.5, barH: 7.4, labelX: 959.15 },
 };
-const WIN_INK = "#0f1e3f", LOSE_INK = "#8a9097", BAR_GREY = "#8a9097";
+const WIN_INK = "#0f1e3f", WIN_SCORE = "#111111", LOSE_INK = "#8a9097", BAR_GREY = "#8a9097";
 const ratioNum = (v) => {
   const [m, a] = String(v).split("-").map(Number);
   return a ? m / a : 0;
@@ -965,7 +965,7 @@ function gameTeamColumn(side, cx, isWinner, tie) {
   return `${T("gCity", (t.location || "").toUpperCase(), cx, GW.cityCap, "center")}
     ${T("week", (t.nickname || t.short || "").toUpperCase(), cx, GW.nickCap, "center", { scale: nickScale, maxW: 460 })}
     <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${cx - GW.logoBox / 2}px;top:${GW.logoCy - GW.logoBox / 2}px;width:${GW.logoBox}px;height:${GW.logoBox}px">
-    ${T("gScore", String(side.score ?? 0), cx, GW.scoreCap, "center", { color: isWinner || tie ? WIN_INK : LOSE_INK })}
+    ${T("gScore", String(side.score ?? 0), cx, GW.scoreCap, "center", { color: isWinner || tie ? WIN_SCORE : LOSE_INK })}
     <div class="g-bar" style="left:${cx - GW.barW / 2}px;top:${GW.barY}px;width:${GW.barW}px;height:${GW.barH}px;background:${color}"></div>`;
 }
 
