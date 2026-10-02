@@ -29,7 +29,7 @@ export const TTL = {
   athlete: 12 * 60 * MIN,
   athleteStats: 6 * 60 * MIN,
   gamelog: 60 * MIN,
-  leaders: 30 * MIN,
+  rankings: 30 * MIN,
 };
 
 const memory = new Map();
@@ -729,25 +729,80 @@ async function loadGamelog(id) {
 export const getGamelog = (id, opts) => cached(`gamelog:${id}`, TTL.gamelog, () => loadGamelog(id), opts);
 
 // ---------------------------------------------------------------------------
-// Leader statistici NFL di stagione (top 10 per categoria)
+// Classifiche statistiche complete (pagina Statistiche)
 // ---------------------------------------------------------------------------
 
-async function loadLeaders() {
-  const json = await fetchJSON(`${SITE.replace("/v2/", "/v3/")}/leaders`);
-  const cats = {};
-  for (const c of json.leaders?.categories || []) {
-    cats[c.name] = (c.leaders || []).map((l) => ({
-      id: l.athlete?.id,
-      name: l.athlete?.displayName || "",
-      pos: l.athlete?.position?.abbreviation || "",
-      jersey: l.athlete?.jersey || "",
-      headshot: l.athlete?.headshot?.href || null,
-      team: l.team ? normTeam(l.team) : null,
-      value: l.value ?? null,
-      display: l.displayValue ?? "",
-    }));
-  }
+const STATS_BASE = "https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics";
+
+/**
+ * Tutti i giocatori con dati per una statistica (anche non "qualificati").
+ * `def` = { category: "offense:passing", group: "passing", field: "passingYards", extra?: [{group, field}] }
+ */
+async function loadAthleteRanking(def, seasonType) {
+  const qs = new URLSearchParams({ isqualified: "false", limit: "1000", category: def.category, sort: `${def.group}.${def.field}:desc` });
+  if (seasonType) qs.set("seasontype", seasonType);
+  const json = await fetchJSON(`${STATS_BASE}/byathlete?${qs}`);
+  const names = {};
+  for (const c of json.categories || []) names[c.name.toLowerCase()] = c.names || [];
+  const pick = (a, group, field) => {
+    const cat = (a.categories || []).find((c) => c.name.toLowerCase() === group.toLowerCase());
+    const i = (names[group.toLowerCase()] || []).indexOf(field);
+    return cat && i > -1 ? cat.values?.[i] ?? null : null;
+  };
   const season = json.requestedSeason || json.currentSeason || {};
-  return { year: season.year ?? null, seasonType: season.type?.name || "", week: season.type?.week?.text || "", cats };
+  return {
+    year: season.year ?? null,
+    seasonType: season.type?.name || "",
+    rows: (json.athletes || []).map((a) => {
+      const at = a.athlete || {};
+      return {
+        id: at.id,
+        name: at.displayName || "",
+        pos: at.position?.abbreviation || "",
+        headshot: at.headshot?.href || null,
+        team: at.teamId ? { id: String(at.teamId), abbr: at.teamShortName || "", name: at.teamName || at.teamShortName || "", short: at.teamShortName || "", logo: (at.teamLogos?.[0]?.href || "").replace("/500/", "/500-dark/"), logoLight: at.teamLogos?.[0]?.href || "" } : null,
+        gp: pick(a, "general", "gamesPlayed"),
+        value: pick(a, def.group, def.field),
+        extra: (def.extra || []).map((e) => pick(a, e.group, e.field)),
+      };
+    }),
+  };
 }
-export const getLeaders = (opts) => cached("leaders", TTL.leaders, loadLeaders, opts);
+export const getAthleteRanking = (key, def, opts) =>
+  cached(`rank:athlete:${key}`, TTL.rankings, () => loadAthleteRanking(def), opts);
+
+/** Statistiche di tutte le 32 squadre: proprie (splitId 0) e degli avversari (splitId 900). */
+async function loadTeamStats() {
+  const json = await fetchJSON(`${STATS_BASE}/byteam`);
+  const names = {};
+  for (const c of json.categories || []) names[c.name] = c.names || [];
+  const season = json.requestedSeason || json.currentSeason || {};
+  return {
+    year: season.year ?? null,
+    seasonType: season.type?.name || "",
+    teams: (json.teams || []).map((t) => {
+      const own = {}, opp = {};
+      for (const c of t.categories || []) {
+        const target = String(c.splitId) === "900" ? opp : own;
+        const n = names[c.name] || [];
+        target[c.name] = {};
+        n.forEach((field, i) => {
+          if (!(field in target[c.name])) target[c.name][field] = c.values?.[i] ?? null;
+        });
+      }
+      return { team: normTeam(t.team || {}), own, opp };
+    }),
+  };
+}
+export const getTeamStats = (opts) => cached("rank:teams", TTL.rankings, loadTeamStats, opts);
+
+/** Red zone % (touchdown) per squadra: dato presente solo nelle statistiche della singola squadra. */
+async function loadRedZone(id) {
+  const json = await fetchJSON(`${SITE}/teams/${id}/statistics`);
+  for (const c of json.results?.stats?.categories || []) {
+    const s = (c.stats || []).find((x) => x.name === "redzoneTouchdownPct");
+    if (s) return s.value ?? null;
+  }
+  return null;
+}
+export const getRedZone = (id, opts) => cached(`redzone:${id}`, TTL.rankings * 2, () => loadRedZone(id), opts);

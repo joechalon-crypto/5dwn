@@ -2,14 +2,15 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
+  <script>try{var t=localStorage.getItem("5dwn-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Statistiche NFL · 5DWN</title>
-  <meta name="description" content="Leader NFL della stagione: yard su passaggio e corsa, touchdown, ricezioni, sack e intercetti. Top 10 per statistica.">
+  <meta name="description" content="Statistiche NFL della stagione: classifiche complete individuali e di squadra.">
   <meta name="theme-color" content="#0a1730">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="5DWN">
   <meta property="og:title" content="Statistiche NFL · 5DWN">
-  <meta property="og:description" content="Leader NFL della stagione: top 10 per statistica.">
+  <meta property="og:description" content="Classifiche complete individuali e di squadra.">
   <meta property="og:image" content="assets/img/logo-5dwn.png">
   <link rel="icon" href="assets/img/favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/img/favicon.png">
@@ -22,7 +23,7 @@
 </head>
 <body>
   <header id="site-header" class="site-header">
-    <div class="container bar"><a class="brand" href="index.html"><img src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293"></a></div>
+    <div class="container bar"><a class="brand" href="index.html"><img class="site-logo" src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293"></a></div>
   </header>
 
   <main>
@@ -30,10 +31,24 @@
       <header class="page-head">
         <span class="eyebrow" id="season-label">Stagione NFL</span>
         <h1>Statistiche</h1>
-        <p>I leader della stagione per statistica: top 10 giocatori. Tocca un giocatore per il suo profilo.</p>
+        <p>Classifiche complete della stagione: tutti i giocatori e tutte le squadre con dati disponibili. Tocca un nome per il profilo.</p>
       </header>
-      <nav class="stat-jump" id="stat-jump" aria-label="Vai alla statistica"></nav>
-      <div id="leaders"></div>
+
+      <div class="stats-controls">
+        <div class="segmented" id="mode-toggle" role="group" aria-label="Tipo di statistiche">
+          <button type="button" data-mode="players" aria-pressed="true">Individuali</button>
+          <button type="button" data-mode="teams" aria-pressed="false">Squadra</button>
+        </div>
+        <label class="select-field">
+          <span class="select-label">Statistica</span>
+          <span class="select-wrap"><select id="stat-select" class="select"></select></span>
+        </label>
+      </div>
+
+      <section class="section rank-section">
+        <div class="section-head"><div><span class="eyebrow" id="rank-eyebrow"></span><h2 id="rank-title">Statistica</h2></div><span class="count" id="rank-count"></span></div>
+        <div id="ranking"></div>
+      </section>
     </div>
   </main>
 

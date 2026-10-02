@@ -20,12 +20,53 @@ export const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
   youtube:
     '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.8 15.1V8.9l5.8 3.1-5.8 3.1Z"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></svg>',
   menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
   close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
 };
 
 export function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+// ---------------------------------------------------------------------------
+// Tema chiaro / scuro (scelta salvata in localStorage, default: scuro)
+// ---------------------------------------------------------------------------
+
+const THEME_KEY = "5dwn-theme";
+const LOGO = { dark: "assets/img/logo-5dwn.png", light: "assets/img/logo-5dwn-nero.png" };
+const THEME_COLOR = { dark: "#0a1730", light: "#f3f4f7" };
+
+export const getTheme = () => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
+
+export function applyTheme(theme, save = false) {
+  const t = theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = t;
+  document.querySelectorAll("img.site-logo").forEach((img) => {
+    if (img.getAttribute("src") !== LOGO[t]) img.setAttribute("src", LOGO[t]);
+  });
+  document.querySelectorAll("img.team-logo").forEach((img) => {
+    const next = t === "light" ? img.dataset.logoLight : img.dataset.logoDark;
+    if (next && img.getAttribute("src") !== next) {
+      delete img.dataset.failed;
+      img.setAttribute("src", next);
+    }
+  });
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[t]);
+  const btn = document.querySelector(".theme-toggle");
+  if (btn) {
+    btn.innerHTML = t === "light" ? ICONS.moon : ICONS.sun;
+    btn.setAttribute("aria-label", t === "light" ? "Passa al tema scuro" : "Passa al tema chiaro");
+    btn.setAttribute("title", t === "light" ? "Tema scuro" : "Tema chiaro");
+  }
+  if (save) {
+    try {
+      localStorage.setItem(THEME_KEY, t);
+    } catch {
+      /* senza storage la scelta vale solo per questa pagina */
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -39,15 +80,19 @@ export function renderChrome(active) {
     header.innerHTML = `
       <div class="container bar">
         <a class="brand" href="index.html" aria-label="5DWN — Home">
-          <img src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293">
+          <img class="site-logo" src="${LOGO[getTheme()]}" alt="5DWN" width="1220" height="293">
         </a>
-        <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Apri menu">${ICONS.menu}</button>
         <nav class="site-nav" id="site-nav" aria-label="Navigazione principale">
           <ul>${NAV.map(
             (n) => `<li><a href="${n.href}"${n.id === active ? ' aria-current="page"' : ""}>${n.label}</a></li>`
           ).join("")}</ul>
         </nav>
+        <div class="header-actions">
+          <button class="theme-toggle icon-btn" type="button"></button>
+          <button class="nav-toggle icon-btn" aria-expanded="false" aria-controls="site-nav" aria-label="Apri menu">${ICONS.menu}</button>
+        </div>
       </div>`;
+    header.querySelector(".theme-toggle").addEventListener("click", () => applyTheme(getTheme() === "light" ? "dark" : "light", true));
     const btn = header.querySelector(".nav-toggle");
     const nav = header.querySelector(".site-nav");
     btn.addEventListener("click", () => {
@@ -65,7 +110,7 @@ export function renderChrome(active) {
       <div class="container">
         <div class="grid">
           <div>
-            <img src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293">
+            <img class="site-logo" src="${LOGO[getTheme()]}" alt="5DWN" width="1220" height="293">
             <p class="payoff">${esc(SITO.payoff)}</p>
             <p>${esc(SITO.descrizione)}</p>
           </div>
@@ -86,6 +131,8 @@ export function renderChrome(active) {
   }
 
   // Loghi: se la variante "dark" non esiste, ripiega sulla versione standard.
+  applyTheme(getTheme());
+
   document.addEventListener(
     "error",
     (e) => {
@@ -110,10 +157,14 @@ export function espnImg(href, w, h = w) {
   return `https://a.espncdn.com/combiner/i?img=${m[1]}&w=${w}&h=${h}&transparent=true`;
 }
 
+/** Logo squadra: variante "dark" (ESPN 500-dark) nel tema scuro, standard nel tema chiaro. */
 export function teamLogo(team, size = 28, cls = "logo", eager = false) {
   if (!team) return "";
   const px = Math.round(size * 2);
-  return `<img class="${cls}" src="${espnImg(team.logo, px)}" data-fallback="${esc(team.logoLight || team.logo)}" width="${size}" height="${size}" alt="${esc(team.short || team.abbr)}" loading="${eager ? "eager" : "lazy"}">`;
+  const dark = espnImg(team.logo || team.logoLight, px);
+  const light = espnImg(team.logoLight || team.logo, px);
+  const src = getTheme() === "light" ? light : dark;
+  return `<img class="${cls} team-logo" src="${src}" data-logo-dark="${esc(dark)}" data-logo-light="${esc(light)}" data-fallback="${esc(team.logoLight || team.logo)}" width="${size}" height="${size}" alt="${esc(team.short || team.abbr)}" loading="${eager ? "eager" : "lazy"}">`;
 }
 
 export const teamHref = (team) => `squadra.html?team=${encodeURIComponent((team.abbr || team.id).toLowerCase())}`;

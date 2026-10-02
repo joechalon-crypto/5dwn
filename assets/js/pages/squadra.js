@@ -89,7 +89,10 @@ async function init() {
 
     <section class="section">
       <div class="section-head"><h2>Roster</h2><span id="roster-count" class="count"></span></div>
-      <div class="tabs segmented" id="roster-tabs" role="tablist"></div>
+      <label class="select-field roster-select">
+        <span class="select-label">Reparto</span>
+        <span class="select-wrap"><select id="roster-tabs" class="select" aria-label="Reparto del roster"></select></span>
+      </label>
       <div class="table-card"><div class="table-scroll" id="roster"></div></div>
     </section>
 
@@ -262,7 +265,7 @@ async function loadRoster(base) {
 
     const show = (key) => {
       const g = groups.find((x) => x.key === key) || groups[0];
-      tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.key === g.key)));
+      tabs.value = g.key;
       box.innerHTML = `${staleNotice(res)}<table class="roster">
         <thead><tr><th>#</th><th>Giocatore</th><th>Ruolo</th><th>Età</th><th>Altezza</th><th>Peso</th><th>Esp.</th><th>College</th></tr></thead>
         <tbody>${g.players
@@ -281,13 +284,8 @@ async function loadRoster(base) {
           .join("")}</tbody></table>`;
     };
 
-    tabs.innerHTML = groups
-      .map((g) => `<button type="button" role="tab" data-key="${g.key}">${esc(g.label)} <small>${g.players.length}</small></button>`)
-      .join("");
-    tabs.addEventListener("click", (e) => {
-      const b = e.target.closest("button[data-key]");
-      if (b) show(b.dataset.key);
-    });
+    tabs.innerHTML = groups.map((g) => `<option value="${g.key}">${esc(g.label)} (${g.players.length})</option>`).join("");
+    tabs.addEventListener("change", () => show(tabs.value));
     show(groups[0].key);
   } catch (err) {
     console.error(err);

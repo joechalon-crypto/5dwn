@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
+  <script>try{var t=localStorage.getItem("5dwn-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Calendario e Risultati NFL · 5DWN</title>
   <meta name="description" content="Calendario NFL settimana per settimana: partite in programma con orari italiani e risultati.">
@@ -22,7 +23,7 @@
 </head>
 <body>
   <header id="site-header" class="site-header">
-    <div class="container bar"><a class="brand" href="index.html"><img src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293"></a></div>
+    <div class="container bar"><a class="brand" href="index.html"><img class="site-logo" src="assets/img/logo-5dwn.png" alt="5DWN" width="1220" height="293"></a></div>
   </header>
 
   <main>
@@ -33,7 +34,10 @@
         <p>Scegli la settimana: partite in programma e risultati, Week 1-18 e playoff. Tocca una partita per il profilo completo.</p>
       </header>
 
-      <nav class="week-scroller" id="week-scroller" aria-label="Settimane della stagione"></nav>
+      <label class="select-field">
+        <span class="select-label">Settimana</span>
+        <span class="select-wrap"><select id="week-select" class="select" aria-label="Settimana della stagione"></select></span>
+      </label>
 
       <section class="section" style="margin-top:24px">
         <div class="section-head"><div><span class="eyebrow" id="week-dates"></span><h2 id="week-title">Settimana</h2></div><span class="count" id="week-count"></span></div>

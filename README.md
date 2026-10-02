@@ -9,7 +9,7 @@ in diretta l'API pubblica di ESPN dal browser.
 | Home | `index.html` | banner settimana (scoreboard), classifica lampo (standings), ultimo reel |
 | Classifiche | `classifiche.html` | standings (conference + `?level=3` per le division) |
 | Calendario e Risultati | `calendario.html?w=2-4` | scoreboard per settimana (Week 1-18 + playoff) |
-| Statistiche | `statistiche.html` | leader NFL di stagione (top 10 per statistica) |
+| Statistiche | `statistiche.html?tipo=squadra&stat=ppg` | classifiche complete individuali (byathlete) e di squadra (byteam) |
 | Squadre | `squadre.html` | groups + standings |
 | Scheda squadra | `squadra.html?team=min` | team, roster, schedule (log partite), standings + `content/squadre.js` |
 | Profilo partita | `partita.html?id=401872964` | summary (+ calendari squadra per gli head-to-head) |
@@ -182,6 +182,15 @@ restano in cache 30 giorni. Il numero di stagioni si cambia in
 ufficiale NFL (`youtube.com/@NFL`) con squadre, anno e settimana. Senza chiave
 YouTube non si può conoscere in anticipo l'ID esatto del video.
 
+**Statistiche:** le classifiche individuali usano
+`site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/byathlete`
+con `isqualified=false` (tutti i giocatori con dati, non solo i "qualificati")
+e vengono scaricate solo per la statistica scelta. Quelle di squadra usano
+`…/statistics/byteam`, che contiene sia i numeri propri sia quelli concessi agli
+avversari (punti subiti, sack fatti). La red zone % non è in quell'endpoint e
+arriva da `…/nfl/teams/{ID}/statistics` (32 chiamate, solo quando la scegli).
+Le liste lunghe mostrano i primi 50 con il pulsante «Mostra tutti».
+
 **Nota su `/teams`:** l'elenco `…/nfl/teams` funziona da terminale ma **ESPN non
 invia l'header CORS**, quindi i browser lo bloccano. Il sito usa `/groups`
 (stesse squadre, stessi loghi ufficiali, CORS abilitato) e i colori ufficiali
@@ -204,6 +213,7 @@ alleggerita, viene salvata in memoria e nel `localStorage` del visitatore.
 | Profilo partita in corso / da giocare / finita | 30 s / 10 min / 24 ore |
 | Profilo giocatore · statistiche · game log | 12 ore · 6 ore · 1 ora |
 | Calendari delle stagioni passate (head-to-head) | 30 giorni |
+| Classifiche statistiche · red zone | 30 min · 1 ora |
 
 Le pagine si ricontrollano da sole (ogni 30 secondi il profilo di una partita in
 corso, ogni minuto Home e Calendario, ogni 5 minuti
@@ -215,15 +225,27 @@ Tutti gli orari sono convertiti nel fuso **Europe/Rome** (ora legale inclusa).
 
 ## 8. Personalizzare la grafica
 
-Colori in cima a `assets/css/style.css`:
+Colori in cima a `assets/css/style.css`: blocco `:root` per il tema scuro
+(predefinito) e `:root[data-theme="light"]` per il tema chiaro.
 
 ```css
---orange: #f7b263;   /* il "5" del logo */
---navy-900: #0a1730; /* sfondo */
+--orange: #f7b263;   /* il "5" del logo (fondi e pulsanti) */
+--accent: #f7b263;   /* arancio di testi e bordi; nel tema chiaro è più scuro */
+--navy: #0a1730;     /* sfondo pagina */
 ```
 
-Il logo è `assets/img/logo-5dwn.png` (versione arancio + bianco su trasparente):
-per cambiarlo basta sostituire il file mantenendo lo stesso nome.
+**Tema chiaro/scuro:** il pulsante sole/luna nell'header cambia tema; la scelta
+è salvata nel browser (`localStorage`, chiave `5dwn-theme`) e applicata prima
+che la pagina venga disegnata, quindi niente lampi. I loghi delle squadre
+passano da soli dalla versione per fondo scuro a quella standard.
+
+Loghi 5DWN: `assets/img/logo-5dwn.png` (arancio + bianco, tema scuro) e
+`assets/img/logo-5dwn-nero.png` (nero, tema chiaro). Per cambiarli basta
+sostituire i file mantenendo gli stessi nomi.
+
+**Selettori:** tutti i selettori del sito sono tendine (`<select class="select">`),
+mai liste a scorrimento orizzontale; i due interruttori a due voci
+(Conference/Division, Individuali/Squadra) restano pulsanti affiancati.
 
 ---
 

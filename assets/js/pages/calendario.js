@@ -3,7 +3,7 @@ import { getScoreboard, getWeek, currentWeekIndex, TTL } from "../api.js";
 
 renderChrome("calendario");
 
-const scroller = document.getElementById("week-scroller");
+const weekSelect = document.getElementById("week-select");
 const box = document.getElementById("games");
 const titleEl = document.getElementById("week-title");
 const datesEl = document.getElementById("week-dates");
@@ -16,30 +16,29 @@ let selectedKey = ""; // settimana mostrata
 
 const keyOf = (e) => `${e.seasonType}-${e.week}`;
 
-// ----------------------------------------------------------------- scroller settimane
-function renderScroller() {
-  scroller.innerHTML = weeks
-    .map((e) => {
-      const k = keyOf(e);
-      const cls = [k === currentKey ? "current" : "", k === selectedKey ? "selected" : ""].join(" ").trim();
-      return `<button type="button" class="wk ${cls}" data-key="${k}" ${k === selectedKey ? 'aria-current="true"' : ""}>
-          <span class="wk-name">${esc(weekShort(e))}</span>
-          <span class="wk-dates">${esc(weekRange(e))}</span>
-        </button>`;
-    })
-    .join("");
-  const sel = scroller.querySelector(".selected");
-  if (sel) scroller.scrollLeft = sel.offsetLeft - scroller.clientWidth / 2 + sel.clientWidth / 2;
+// ----------------------------------------------------------------- tendina settimane
+function renderSelect() {
+  const group = (type, label) => {
+    const list = weeks.filter((e) => e.seasonType === type);
+    return list.length
+      ? `<optgroup label="${label}">${list
+          .map((e) => {
+            const k = keyOf(e);
+            return `<option value="${k}"${k === selectedKey ? " selected" : ""}>${esc(weekShort(e))} · ${esc(weekRange(e))}${k === currentKey ? " — in corso" : ""}</option>`;
+          })
+          .join("")}</optgroup>`
+      : "";
+  };
+  weekSelect.innerHTML = group(2, "Regular season") + group(3, "Playoff");
+  weekSelect.classList.toggle("is-current", selectedKey === currentKey);
 }
 
-scroller.addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-key]");
-  if (!b || b.dataset.key === selectedKey) return;
-  selectedKey = b.dataset.key;
+weekSelect.addEventListener("change", () => {
+  selectedKey = weekSelect.value;
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
   history.replaceState(null, "", url);
-  renderScroller();
+  renderSelect();
   loadWeek();
 });
 
@@ -100,7 +99,7 @@ async function init() {
 
   const fromUrl = new URLSearchParams(location.search).get("w");
   selectedKey = weeks.some((e) => keyOf(e) === fromUrl) ? fromUrl : currentKey;
-  renderScroller();
+  renderSelect();
   loadWeek();
 }
 
