@@ -243,6 +243,12 @@ Loghi 5DWN: `assets/img/logo-5dwn.png` (arancio + bianco, tema scuro) e
 `assets/img/logo-5dwn-nero.png` (nero, tema chiaro). Per cambiarli basta
 sostituire i file mantenendo gli stessi nomi.
 
+**Versioni dei file (cache):** gli indirizzi di CSS e script hanno un suffisso
+`?v=AAAAMMGGhhmm` che viene aggiornato a ogni pubblicazione, così i browser
+scaricano subito i file nuovi invece di usare quelli vecchi in cache. Se modifichi
+un file direttamente da GitHub senza cambiare il suffisso, i visitatori vedono la
+novità entro circa 10 minuti.
+
 **Selettori:** tutti i selettori del sito sono tendine (`<select class="select">`),
 mai liste a scorrimento orizzontale; i due interruttori a due voci
 (Conference/Division, Individuali/Squadra) restano pulsanti affiancati.
