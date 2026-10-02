@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021937";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, currentWeekIndex } from "../api.js?v=202610021937";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021944";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, currentWeekIndex } from "../api.js?v=202610021944";
 
 renderChrome("");
 
@@ -199,6 +199,51 @@ let fmt = new URLSearchParams(location.search).get("f") === "storie" ? "tall" : 
 
 /** Mostra solo le anteprime del tipo e del formato scelti, poi le riadatta alla larghezza. */
 const isGameLike = () => tpl === "game" || tpl === "player";
+
+// ---------------------------------------------------------------------------- testi personalizzati
+// Campi opzionali (titolo, sottotitolo, footer) per template: vuoto = testo automatico, compilato = sostituisce
+// il testo nel render e quindi anche nell'export PNG.
+const OV_KEYS = ["title", "sub", "foot"];
+const OV_FIELDS = {
+  calendar: { title: true, sub: true, foot: true },
+  results: { title: true, sub: true, foot: true },
+  standings: { title: true, sub: true, foot: true },
+  team: { title: true, sub: true, foot: true },
+  player: { title: true, sub: true },
+  game: {},
+};
+const overrides = {}; // { [tpl]: { title, sub, foot } }
+const lastAuto = {}; // testi automatici dell'ultimo render, mostrati come segnaposto
+const ovInputs = Object.fromEntries(OV_KEYS.map((k) => [k, document.getElementById(`ov-${k}`)]));
+/** Testo da usare nella grafica: quello digitato se presente, altrimenti l'automatico. */
+function ovr(key, auto, label) {
+  (lastAuto[tpl] ||= {})[key] = label ?? auto;
+  const v = overrides[tpl]?.[key];
+  return v && v.trim() ? v : auto;
+}
+function syncOverrideFields() {
+  const fields = OV_FIELDS[tpl] || {};
+  for (const k of OV_KEYS) {
+    const el = ovInputs[k];
+    el.disabled = !fields[k];
+    el.value = fields[k] ? overrides[tpl]?.[k] || "" : "";
+    el.placeholder = fields[k] ? `Automatico: ${lastAuto[tpl]?.[k] ?? "…"}` : "Non presente in questa grafica";
+  }
+  document.getElementById("ov-note").textContent = Object.keys(fields).length
+    ? "Lascia vuoto per usare il testo automatico."
+    : "Questa grafica non ha titolo, sottotitolo né footer da sostituire.";
+}
+for (const k of OV_KEYS) {
+  ovInputs[k].addEventListener("input", () => {
+    (overrides[tpl] ||= {})[k] = ovInputs[k].value;
+    renderAll();
+  });
+}
+document.getElementById("ov-reset").addEventListener("click", () => {
+  overrides[tpl] = {};
+  renderAll();
+  syncOverrideFields();
+});
 function applyVisibility() {
   document.querySelectorAll(".studio-block[data-fmt]").forEach((el) => {
     let ok;
@@ -214,6 +259,7 @@ function applyVisibility() {
   document.getElementById("fmt-toggle").hidden = tpl === "player" || tpl === "team";
   document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
   weekSelect.closest(".select-field").hidden = tpl === "team";
+  syncOverrideFields();
   document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
   Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
 }
@@ -457,10 +503,10 @@ function chrome(W, H, title, year, tz) {
     <div class="g-bar" style="left:${right - 21.6}px;top:${48.3 + sd}px;width:25.5px;height:2.2px"></div>
     ${T("year", String(year), right, 66.4 + sd, "right")}
     <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${cx - 64}px;top:${22.4 + t}px;width:128px;height:30.74px">
-    ${T("week", title, cx, 66.4 + t, "center", { maxW: W - 2 * 200 })}
-    ${T("sub", tpl === "results" ? "RISULTATI" : "ORARI ITALIA", cx, 182.4 + t, "center")}
+    ${T("week", ovr("title", title), cx, 66.4 + t, "center", { maxW: W - 2 * 200 })}
+    ${T("sub", ovr("sub", tpl === "results" ? "RISULTATI" : "ORARI ITALIA"), cx, 182.4 + t, "center", { maxW: W - 2 * 120 })}
     <div class="g-bar" style="left:44px;top:${1025.1 + f}px;width:25.4px;height:2.2px"></div>
-    ${T("foot", tpl === "results" ? "RISULTATI FINALI" : `TUTTI GLI ORARI IN ORA ITALIANA (${tz})`, 78.5, 1041.5 + f)}
+    ${T("foot", ovr("foot", tpl === "results" ? "RISULTATI FINALI" : `TUTTI GLI ORARI IN ORA ITALIANA (${tz})`), 78.5, 1041.5 + f, "left", { maxW: W - 78.5 - 260 })}
     ${T("year", "QUINTO DOWN", right, 1008.3 + f, "right")}
     ${T("year", String(year), right, 1032.0 + f, "right")}
     <div class="g-bar" style="left:${right - 21.6}px;top:${1060.9 + f}px;width:25.5px;height:2.6px"></div>`;
@@ -500,6 +546,14 @@ function fitPreview(stage) {
 }
 
 function renderAll() {
+  renderAllInner();
+  syncOverridePlaceholders();
+}
+function syncOverridePlaceholders() {
+  const fields = OV_FIELDS[tpl] || {};
+  for (const k of OV_KEYS) if (fields[k]) ovInputs[k].placeholder = `Automatico: ${lastAuto[tpl]?.[k] ?? "…"}`;
+}
+function renderAllInner() {
   if (tpl === "team") {
     if (teamSched) renderTeamStage(stages.team);
     return;
@@ -832,7 +886,8 @@ function renderStandingsStage(stage, conf) {
   const visW = (lg.x1 - lg.x0) * scale;
   // "AFC"/"NFC" con lo stesso stile di "WEEK" (lettere spaziate), alla dimensione del riferimento.
   const titleScale = 110.9 / STYLES.week.ref[1];
-  const tW = inkWidth("week", conf) * titleScale;
+  const ttl = ovr("title", conf, "AFC / NFC");
+  const tW = inkWidth("week", ttl) * titleScale;
   const tLeft = 952 - (tW + 40 + visW) / 2;
   const logoLeft = tLeft + tW + 40 - lg.x0 * scale;
   const right = 1859.8;
@@ -846,13 +901,13 @@ function renderStandingsStage(stage, conf) {
       <div class="g-bar" style="left:1835.7px;top:59.7px;width:27.8px;height:2.1px;background:#b5b8bd"></div>
       ${T("stInk", String(year), right, 79.4, "right")}
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:892.1px;top:17px;width:135px;height:32.42px">
-      ${T("week", conf, tLeft, 66.7, "left", { scale: titleScale })}
+      ${T("week", ttl, tLeft, 66.7, "left", { scale: titleScale })}
       <img class="g-logo" crossorigin="anonymous" src="${lg.src}" alt="${conf}" style="left:${logoLeft.toFixed(1)}px;top:41px;width:${box}px;height:${box}px">
-      ${T("stSub", "CLASSIFICA", 960.25, 201.7, "center")}
+      ${T("stSub", ovr("sub", "CLASSIFICA"), 960.25, 201.7, "center", { maxW: 1500 })}
       ${divs.map((d, i) => stdBlock(d, SG.blocks[i][0], SG.blocks[i][1])).join("")}
       <div class="g-sep" style="left:959.9px;top:254.1px;width:1px;height:701.4px;background:#b9bcc2"></div>
       <div class="g-bar" style="left:55.2px;top:984.1px;width:27.5px;height:1.3px"></div>
-      ${T("stFoot", CONF_NAME[conf], 55.2, 1004.2)}
+      ${T("stFoot", ovr("foot", CONF_NAME[conf], "AMERICAN / NATIONAL FOOTBALL CONFERENCE"), 55.2, 1004.2, "left", { maxW: 1500 })}
       <div class="g-bar" style="left:55.2px;top:1036.1px;width:27.5px;height:1.3px"></div>
       ${T("stInk", "QUINTO", 1860.3, 960.0, "right")}${T("stInk", "DOWN", 1860.3, 982.1, "right")}${T("stInk", String(year), 1860.3, 1004.2, "right")}
       <div class="g-bar" style="left:1835.7px;top:1035.7px;width:27.8px;height:2px;background:#b5b8bd"></div>
@@ -890,7 +945,8 @@ function renderStandingsTall(stage, conf) {
   const lg = CONF_LOGO[conf], scale = 0.328, box = 500 * scale;
   const visW = (lg.x1 - lg.x0) * scale;
   const titleScale = 110.9 / STYLES.week.ref[1];
-  const tW = inkWidth("week", conf) * titleScale;
+  const ttl = ovr("title", conf, "AFC / NFC");
+  const tW = inkWidth("week", ttl) * titleScale;
   const tLeft = W / 2 - (tW + 40 + visW) / 2;
   const logoLeft = tLeft + tW + 40 - lg.x0 * scale;
   const right = W - 48.3;
@@ -908,12 +964,12 @@ function renderStandingsTall(stage, conf) {
       <div class="g-bar" style="left:${right - 21.6}px;top:${48.3 + sd}px;width:25.5px;height:2.2px"></div>
       ${T("year", String(year), right, 66.4 + sd, "right")}
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${W / 2 - 64}px;top:${22.4 + t}px;width:128px;height:30.74px">
-      ${T("week", conf, tLeft, 66.7 + t, "left", { scale: titleScale })}
+      ${T("week", ttl, tLeft, 66.7 + t, "left", { scale: titleScale })}
       <img class="g-logo" crossorigin="anonymous" src="${lg.src}" alt="${conf}" style="left:${logoLeft.toFixed(1)}px;top:${41 + t}px;width:${box}px;height:${box}px">
-      ${T("sub", "CLASSIFICA", W / 2, 201.7 + t, "center")}
+      ${T("sub", ovr("sub", "CLASSIFICA"), W / 2, 201.7 + t, "center", { maxW: W - 2 * 60 })}
       ${blocks}
       <div class="g-bar" style="left:44px;top:${1025.1 + f}px;width:25.4px;height:2.2px"></div>
-      ${T("foot", CONF_NAME[conf], 78.5, 1041.5 + f)}
+      ${T("foot", ovr("foot", CONF_NAME[conf], "AMERICAN / NATIONAL FOOTBALL CONFERENCE"), 78.5, 1041.5 + f, "left", { maxW: W - 78.5 - 260 })}
       ${T("year", "QUINTO DOWN", right, 1008.3 + f, "right")}
       ${T("year", String(year), right, 1032.0 + f, "right")}
       <div class="g-bar" style="left:${right - 21.6}px;top:${1060.9 + f}px;width:25.5px;height:2.6px"></div>
@@ -1498,8 +1554,8 @@ function renderPlayerStage(stage) {
       ${rectBar([1832, 56.1, 39.7, 1.6], "#222222")}
       ${T("stInk", String(sb.season.year), 1867.6, 75.3, "right")}
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${PW.brand[0]}px;top:${PW.brand[1]}px;width:${PW.brand[2]}px;height:${PW.brand[3]}px">
-      ${T("pName", p.name.toUpperCase(), W / 2, PW.name.cap, "center", { maxW: PW.name.maxW })}
-      ${T("pVs", `contro ${articleFor(opp.nickname || opp.short)} ${opp.nickname || opp.short}`, W / 2, PW.vs.cap, "center", { color: NAVY })}
+      ${T("pName", ovr("title", p.name.toUpperCase()), W / 2, PW.name.cap, "center", { maxW: PW.name.maxW })}
+      ${T("pVs", ovr("sub", `contro ${articleFor(opp.nickname || opp.short)} ${opp.nickname || opp.short}`), W / 2, PW.vs.cap, "center", { color: NAVY, maxW: 1100 })}
       ${rectBar(PW.lineL, col)}${rectBar(PW.lineR, col2)}
       <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`, 200)}" alt="" style="left:${lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
       <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}" ${adjData()}
@@ -1586,7 +1642,7 @@ function tsRow(ev, wk, x, y) {
 /** "CALENDARIO 2026" + box RECORD (blu) e valore (bianco), centrati come gruppo. */
 function recordGroup(record, year) {
   const c = TS.cal, r = TS.rec;
-  const calText = `CALENDARIO ${year}`;
+  const calText = ovr("sub", `CALENDARIO ${year}`);
   const calW = inkWidth("tsCal", calText), valW = inkWidth("tsRecV", record);
   const whiteW = valW + 2 * r.pad;
   const left = c.groupCx - (calW + c.gap + r.labelW + whiteW) / 2;
@@ -1614,7 +1670,7 @@ function renderTeamStage(stage) {
   const wins = done.filter((e) => e.result === "W").length, losses = done.filter((e) => e.result === "L").length, ties = done.length - wins - losses;
   const record = `${wins}-${losses}${ties ? `-${ties}` : ""}`;
   // nome + logo centrati come gruppo; il nome si riduce solo se non ci sta
-  const nm = TS.name, name = (team.name || "").toUpperCase();
+  const nm = TS.name, name = ovr("title", (team.name || "").toUpperCase());
   const k = Math.min(1, nm.maxW / inkWidth("tsName", name));
   const nameW = inkWidth("tsName", name) * k;
   const left = nm.groupCx - (nameW + nm.gap + nm.logoBox) / 2;
@@ -1631,7 +1687,7 @@ function renderTeamStage(stage) {
       <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${team.abbr.toLowerCase()}.png`, 300)}" alt="" style="left:${left + nameW + nm.gap}px;top:${nm.logoCy - nm.logoBox / 2}px;width:${nm.logoBox}px;height:${nm.logoBox}px">
       ${recordGroup(record, year)}
       ${rows}
-      ${T("tsFoot", "TUTTI GLI ORARI IN ORA ITALIANA", 45, 1026, "left", { color: TS_BLUE })}
+      ${T("tsFoot", ovr("foot", "TUTTI GLI ORARI IN ORA ITALIANA"), 45, 1026, "left", { color: TS_BLUE, maxW: 1500 })}
       ${rectBar([45, 1055, 25, 2.5], TS_BLUE)}
       ${T("tsQd", `QUINTO DOWN ${year}`, 1872, 1026, "right")}
       ${rectBar([1850, 1054, 25, 3], TS_BLUE)}

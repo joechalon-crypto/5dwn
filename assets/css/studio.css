@@ -8,6 +8,12 @@
 .studio-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 24px; }
 .studio-hint { font-size: 0.85rem; color: var(--text-muted); margin: 6px 0 0; }
 .studio-block { margin-top: 28px; }
+.studio-texts { margin: -8px 0 24px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); padding: 12px 16px; }
+.studio-texts summary { cursor: pointer; font-family: "Barlow Condensed", sans-serif; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.studio-texts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; align-items: end; margin-top: 12px; }
+.text-field { display: grid; gap: 4px; }
+.text-input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface, transparent); color: var(--text); font: 500 1rem "Barlow", sans-serif; }
+.text-input:disabled { opacity: 0.5; }
 .studio-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; margin: -8px 0 24px; }
 .studio-slots .select { width: 100%; }
 .studio-block .section-head { margin-bottom: 12px; }

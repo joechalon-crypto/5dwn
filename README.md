@@ -160,6 +160,13 @@ Sotto i controlli ci sono i link di ricerca su Google Immagini, Getty Images e C
 **Orizzontale** e **Verticale** oppure trascinandola nell'anteprima; "Centra foto" la
 riporta al centro. L'export PNG usa esattamente lo stesso ritaglio.
 
+**Testi personalizzati**: il riquadro "Testi personalizzati" sotto i controlli ha tre
+campi opzionali (Titolo, Sottotitolo, Footer) per il template attivo. Vuoto = testo
+automatico (mostrato come segnaposto); compilato = il testo digitato sostituisce quello
+automatico in anteprima e nel PNG. Ogni template ricorda i propri testi finché la pagina
+resta aperta; "Testi automatici" li azzera. Nelle Classifiche il testo vale per AFC e NFC;
+Giocatore non ha footer; Partita non ha testi sostituibili (campi disattivati).
+
 Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
 `STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,
 quindi vanno cambiati solo se cambia il template.
