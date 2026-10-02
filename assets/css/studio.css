@@ -1,0 +1,62 @@
+/* ==========================================================================
+   5DWN Studio — grafiche esportabili (template "NFL Calendar").
+   Valori misurati sul file di riferimento a 1920×1080: non modificare a occhio.
+   La grafica ha colori propri, indipendenti dal tema chiaro/scuro del sito.
+   ========================================================================== */
+
+.studio-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 24px; }
+.studio-hint { font-size: 0.85rem; color: var(--text-muted); margin: 6px 0 0; }
+.studio-block { margin-top: 28px; }
+.studio-block .section-head { margin-bottom: 12px; }
+.studio-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.studio-status { font-size: 0.85rem; color: var(--text-muted); }
+
+/* Anteprima: la grafica è a grandezza reale e viene solo rimpicciolita a schermo. */
+.gfx-preview { position: relative; overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--navy-2); }
+.gfx-preview.portrait { max-width: 520px; }
+.gfx-scaler { transform-origin: top left; }
+
+/* --------------------------------------------------------------- grafica */
+.gfx {
+  --g-dark: #111111;
+  --g-ink: #222222;
+  --g-side: #5e6574;
+  --g-blue: #1e3fae;
+  --g-sep: #a1aed7;
+  --g-band: #eed8aa;
+  --g-band-ink: #1a1a1a;
+  position: relative; overflow: hidden; background: #e7e9ed;
+  color: var(--g-dark); font-family: "Archivo", sans-serif; font-stretch: 100%;
+  -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+}
+.gfx * { box-sizing: border-box; }
+.gfx-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gfx-layer { position: absolute; left: 0; top: 0; }
+.gfx-body { position: absolute; transform-origin: top left; }
+
+/* Testi posizionati per altezza delle maiuscole (vedi studio.js) */
+.gt { position: absolute; white-space: nowrap; line-height: 1; }
+.gt-brand { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 125%; }
+.gt-week { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 125%; }
+.gt-sub { font-family: "Archivo", sans-serif; font-weight: 500; font-stretch: 125%; }
+.gt-day { font-family: "Archivo", sans-serif; font-weight: 700; font-stretch: 125%; color: var(--g-dark); }
+.gt-side { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-side); }
+.gt-year { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-ink); }
+.gt-foot { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-blue); }
+.gt-team { font-family: "Barlow Condensed", sans-serif; font-weight: 600; text-transform: uppercase; }
+.gt-time { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-dark); }
+.gt-at { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-blue); }
+.gt-vs { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: var(--g-blue); }
+.gt-band { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: var(--g-band-ink); }
+.gt-gp { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-blue); }
+.gt-dazn { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: var(--g-dark); }
+
+.g-bar { position: absolute; background: var(--g-blue); }
+.g-sep { position: absolute; height: 1.5px; background: var(--g-sep); }
+.g-cell { position: absolute; overflow: hidden; }
+.g-white { background: #ffffff; }
+.g-band { position: absolute; background: var(--g-band); }
+.g-logo { position: absolute; object-fit: contain; }
+.g-dazn { position: absolute; border: 3.9px solid var(--g-dark); }
+.g-tv { cursor: pointer; }
+.g-tv:hover { outline: 3px solid var(--orange); outline-offset: -3px; }

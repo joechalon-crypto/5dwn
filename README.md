@@ -82,6 +82,30 @@ head coach, calendario e statistiche della stagione si aggiornano da soli.
 > Attenzione alle virgolette: se un testo contiene `"`, usa le virgolette
 > italiane «…» o l'apostrofo tipografico ’.
 
+## 3b. Studio grafiche (pagina nascosta)
+
+`studio.html` non è nel menu ed è esclusa dai motori di ricerca (`noindex`):
+si apre solo digitando l'indirizzo, es. `https://…/5dwn/studio.html`.
+
+**Template 1 — Calendario settimanale** (ricostruito sul file di riferimento
+"NFL Calendar"), in due formati: **16:9 · 1920×1080** e **9:16 · 1080×1920**.
+
+- Scegli la settimana dalla tendina (Week 1-18 + playoff, la corrente è
+  preselezionata): titolo, anno e partite arrivano dallo scoreboard ESPN.
+- Orari in ora italiana, giorni italiani (es. il TNF diventa «venerdì»).
+- Partita internazionale per prima con la fascetta «INTERNATIONAL GAME — città, paese».
+- Domenica su due colonne bilanciate e allineate in basso (16:9); nel 9:16 tutto
+  in una colonna. Se le partite sono tante, il blocco si riduce per stare nel formato.
+- **TV:** di default «NFL Game Pass»; diventa «DAZN» se la partita è in
+  `content/tv-italia.js`. In anteprima basta **cliccare la cella TV** per
+  alternare DAZN / Game Pass (la scelta resta salvata nel browser).
+- **Scarica PNG:** la grafica viene ridisegnata su canvas a grandezza reale con gli
+  stessi font e loghi ufficiali ESPN dell'anteprima.
+
+Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
+`STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,
+quindi vanno cambiati solo se cambia il template.
+
 ## 4. Provarlo sul tuo computer
 
 Serve un piccolo server locale (aprendo i file con doppio clic gli script non partono):

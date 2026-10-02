@@ -2,3 +2,6 @@
 *.icloud
 .claude/
 node_modules/
+# materiali di riferimento (non pubblicati)
+NFL Calendar*
+riferimento*

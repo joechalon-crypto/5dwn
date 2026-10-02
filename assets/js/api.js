@@ -8,7 +8,7 @@
 
 const SITE = "https://site.api.espn.com/apis/site/v2/sports/football/nfl";
 const STANDINGS = "https://site.web.api.espn.com/apis/v2/sports/football/nfl/standings";
-const CACHE_PREFIX = "5dwn:v2:";
+const CACHE_PREFIX = "5dwn:v3:";
 const ATHLETE = "https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/athletes";
 const TIMEOUT_MS = 12000;
 
@@ -245,7 +245,7 @@ function normGame(ev) {
     clock: status.displayClock || "",
     period: status.period || 0,
     neutral: !!comp.neutralSite,
-    venue: comp.venue ? { name: comp.venue.fullName, city: comp.venue.address?.city || "" } : null,
+    venue: comp.venue ? { name: comp.venue.fullName, city: comp.venue.address?.city || "", country: comp.venue.address?.country || "" } : null,
     tv: (comp.broadcasts || []).flatMap((b) => b.names || []).join(", "),
     note: comp.notes?.[0]?.headline || "",
     week: ev.week?.number ?? null,
@@ -450,14 +450,16 @@ async function loadSchedule(id, { season, seasonType } = {}) {
     }),
   };
 }
-/** Calendario squadra: stagione corrente (default) o una stagione/fase specifica. */
+/**
+ * Calendario squadra: stagione corrente (default) o una stagione/fase specifica.
+ * `params.past = true` (stagione già conclusa secondo ESPN) allunga la cache a 30 giorni.
+ */
 export function getSchedule(id, opts = {}, params = {}) {
-  const { season, seasonType } = params;
-  const past = season && season < new Date().getFullYear() - (new Date().getMonth() < 2 ? 1 : 0);
+  const { season, seasonType, past } = params;
   return cached(
     `schedule:${id}:${season || "now"}:${seasonType || ""}`,
     past ? TTL.history : TTL.schedule,
-    () => loadSchedule(id, params),
+    () => loadSchedule(id, { season, seasonType }),
     opts
   );
 }
@@ -470,12 +472,16 @@ export function getSchedule(id, opts = {}, params = {}) {
 export function currentWeekIndex(sb) {
   const cal = sb.calendar || [];
   const type = Number(sb.season?.type);
+  // 1) la settimana che ESPN indica come corrente
   let i = cal.findIndex((e) => e.seasonType === type && e.week === Number(sb.week));
-  if (i === -1) {
-    const now = Date.now();
-    i = cal.findIndex((e) => new Date(e.start) <= now && now <= new Date(e.end));
-  }
-  return i;
+  if (i > -1) return i;
+  // 2) la settimana del calendario ESPN che contiene oggi
+  const now = Date.now();
+  i = cal.findIndex((e) => new Date(e.start) <= now && now <= new Date(e.end));
+  if (i > -1) return i;
+  // 3) pausa tra una settimana e l'altra / off-season: la prossima in calendario, altrimenti l'ultima
+  i = cal.findIndex((e) => new Date(e.start) > now);
+  return i > -1 ? i : cal.length - 1;
 }
 
 /** Scoreboard di una voce del calendario (con TTL lungo se la settimana è conclusa). */
@@ -637,7 +643,8 @@ export const getSummary = (id, opts) =>
  */
 export async function getHeadToHead(teamA, teamB, currentYear, seasons = 6) {
   const years = Array.from({ length: seasons }, (_, i) => currentYear - i);
-  const jobs = years.flatMap((y) => [2, 3].map((t) => getSchedule(teamA, {}, { season: y, seasonType: t }).catch(() => null)));
+  // currentYear arriva dal summary ESPN della partita: le stagioni precedenti sono concluse.
+  const jobs = years.flatMap((y) => [2, 3].map((t) => getSchedule(teamA, {}, { season: y, seasonType: t, past: y < currentYear }).catch(() => null)));
   const all = (await Promise.all(jobs)).filter(Boolean);
   const seen = new Set();
   const games = [];
