@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021852";
-import { getScoreboard, getWeek, getStandings, getSummary, currentWeekIndex } from "../api.js?v=202610021852";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021909";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, currentWeekIndex } from "../api.js?v=202610021909";
 
 renderChrome("");
 
@@ -21,6 +21,7 @@ const stages = {
   nfcTall: { root: document.getElementById("gfx-nfc-tall"), wrap: document.getElementById("preview-nfc-tall"), W: 1080, H: 1920 },
   game: { root: document.getElementById("gfx-game"), wrap: document.getElementById("preview-game"), W: 1920, H: 1080 },
   gameTall: { root: document.getElementById("gfx-game-tall"), wrap: document.getElementById("preview-game-tall"), W: 1080, H: 1920 },
+  player: { root: document.getElementById("gfx-player"), wrap: document.getElementById("preview-player"), W: 1920, H: 1080 },
 };
 
 // ---------------------------------------------------------------------------- palette del riferimento
@@ -75,6 +76,12 @@ const STYLES = {
   stInk: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO", 13.5, 78.2] },
   stFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["AMERICAN FOOTBALL CONFERENCE", 13.5, 414.6] },
   // Template "Partita della settimana" (misurato su "NFL Game of the Week-selection (1).png")
+  // Template Giocatore ("NFL Player Performance-selection.png", 11064×6224 → 1920×1080)
+  pName: { cls: "gt-p-name", family: "Archivo", weight: 900, stretch: "condensed", ref: ["JA'MARR CHASE", 111, 1113] },
+  pVs: { cls: "gt-p-vs", family: "Archivo", weight: 400, stretch: "normal", ref: ["contro i Texans", 27, 262] },
+  pVal: { cls: "gt-p-val", family: "Archivo", weight: 800, stretch: "semi-condensed", ref: ["75", 93, 139], ink: true },
+  pLabel: { cls: "gt-p-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["TD su ricezione", 25, 208] },
+  pRes: { cls: "gt-p-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["Vittoria Bengals 20-6", 28, 314] },
   gCity: { cls: "gt-g-city", family: "Archivo", weight: 600, stretch: "expanded", ref: ["NEW ORLEANS", 13.5, 229.6] },
   gScore: { cls: "gt-g-score", family: "Archivo", weight: 800, stretch: "condensed", ref: ["24", 157.5, 207.4] },
   gVal: { cls: "gt-g-val", family: "Archivo", weight: 700, stretch: "normal", ref: ["298", 18.4, 43.8] },
@@ -168,22 +175,26 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
 let fmt = new URLSearchParams(location.search).get("f") === "storie" ? "tall" : "wide";
 
 /** Mostra solo le anteprime del tipo e del formato scelti, poi le riadatta alla larghezza. */
+const isGameLike = () => tpl === "game" || tpl === "player";
 function applyVisibility() {
   document.querySelectorAll(".studio-block[data-fmt]").forEach((el) => {
     let ok;
     if (el.classList.contains("tpl-std")) ok = tpl === "standings" && el.dataset.fmt === fmt;
     else if (el.classList.contains("tpl-game")) ok = tpl === "game" && el.dataset.fmt === fmt;
+    else if (el.classList.contains("tpl-player")) ok = tpl === "player"; // per ora solo 16:9
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
     el.hidden = !ok;
   });
-  document.querySelectorAll(".game-only").forEach((el) => (el.hidden = tpl !== "game"));
+  document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
+  document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
+  document.getElementById("fmt-toggle").hidden = tpl === "player";
   document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
   Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
 }
@@ -470,6 +481,10 @@ function fitPreview(stage) {
 }
 
 function renderAll() {
+  if (tpl === "player") {
+    if (gameData && playerSel) renderPlayerStage(stages.player);
+    return;
+  }
   if (tpl === "game") {
     if (gameData) {
       renderGameStage(stages.game, GW);
@@ -553,7 +568,9 @@ async function drawStage(stage) {
       if (!el.naturalWidth) continue;
       const k = Math.min(b.w / el.naturalWidth, b.h / el.naturalHeight); // object-fit: contain
       const w = el.naturalWidth * k, h = el.naturalHeight * k;
+      c.globalAlpha = parseFloat(cs.opacity) || 1; // es. logo in filigrana
       c.drawImage(el, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
+      c.globalAlpha = 1;
     } else if (el.classList.contains("gt")) {
       const eff = b.h / el.offsetHeight; // scala effettiva (es. corpo partite ridotto)
       const size = parseFloat(cs.fontSize) * eff;
@@ -568,6 +585,8 @@ async function drawStage(stage) {
       const A = m.fontBoundingBoxAscent, D = m.fontBoundingBoxDescent;
       const baseline = b.y + (size - (A + D)) / 2 + A;
       const text = el.textContent;
+      const sh = cs.textShadow && cs.textShadow !== "none" ? cs.textShadow.match(/^(rgba?\([^)]*\)|#\w+)\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+([\d.]+)px/) : null;
+      if (sh) { c.shadowColor = sh[1]; c.shadowOffsetX = +sh[2] * eff; c.shadowOffsetY = +sh[3] * eff; c.shadowBlur = +sh[4] * eff; }
       if ("letterSpacing" in c) {
         c.letterSpacing = `${ls}px`;
         c.fillText(text, b.x, baseline);
@@ -576,6 +595,7 @@ async function drawStage(stage) {
         let x = b.x;
         for (const ch of text) { c.fillText(ch, x, baseline); x += c.measureText(ch).width + ls; }
       }
+      if (sh) { c.shadowColor = "transparent"; c.shadowBlur = 0; c.shadowOffsetX = 0; c.shadowOffsetY = 0; }
     } else {
       if (!isTransparent(cs.backgroundColor)) {
         c.fillStyle = cs.backgroundColor;
@@ -660,6 +680,12 @@ const gameFile = (f) => {
   return `5dwn-partita-${gameData.away.team.abbr.toLowerCase()}-${gameData.home.team.abbr.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}-${f}.png`;
 };
 document.getElementById("dl-game").addEventListener("click", () => gameData && exportPng(stages.game, gameFile("16x9")));
+document.getElementById("dl-player").addEventListener("click", () => {
+  if (!gameData || !playerSel) return;
+  const e = weeks.find((x) => keyOf(x) === selectedKey);
+  const slug = playerSel.name.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  exportPng(stages.player, `5dwn-giocatore-${slug}-week-${e ? e.week : ""}-${sb.season.year}.png`);
+});
 document.getElementById("dl-game-tall").addEventListener("click", () => gameData && exportPng(stages.gameTall, gameFile("9x16")));
 document.getElementById("dl-afc").addEventListener("click", () => exportPng(stages.afc, stdFile("AFC", "16x9")));
 document.getElementById("dl-nfc").addEventListener("click", () => exportPng(stages.nfc, stdFile("NFC", "16x9")));
@@ -935,8 +961,9 @@ function pickPhoto(photos, win, lose) {
   return best;
 }
 
+const currentPhotos = () => (tpl === "player" ? playerPhotos : gameData?.photos || []);
 function renderPhotoSelect() {
-  const photos = gameData?.photos || [];
+  const photos = currentPhotos();
   const opts = photos.map((p, i) => `<option value="${i}">${esc((p.title || `Foto ${i + 1}`).slice(0, 70))}</option>`);
   if (uploadedPhoto) opts.unshift(`<option value="upload">Foto caricata da te</option>`);
   if (!opts.length) opts.push(`<option value="">Nessuna foto ESPN: caricane una</option>`);
@@ -950,6 +977,7 @@ async function loadGame() {
   if (!res.data.photos) res = await getSummary(selectedGame, { force: true }); // cache precedente senza foto
   gameData = res.data;
   if (uploadedPhoto) { URL.revokeObjectURL(uploadedPhoto); uploadedPhoto = null; }
+  if (tpl === "player") return setupPlayers();
   const [win, lose] = (gameData.home.score ?? 0) >= (gameData.away.score ?? 0) ? [gameData.home.team, gameData.away.team] : [gameData.away.team, gameData.home.team];
   photoIndex = pickPhoto(gameData.photos || [], win, lose);
   renderPhotoSelect();
@@ -1063,11 +1091,306 @@ function renderGameStage(stage, GW) {
   fitPreview(stage);
 }
 
+// ---------------------------------------------------------------------------- template Giocatore (Player Performance)
+// Misurato su "NFL Player Performance-selection.png" (11064×6224 → 1920×1080). Solo 16:9.
+const PW = {
+  name: { cap: 94, maxW: 1500 }, brand: [892, 37.3, 135, 32.42],
+  vs: { cap: 232 }, logo: { cx: 961, cy: 308.5, box: 66 },
+  lineL: [748, 306, 122, 5], lineR: [1050, 306, 122, 5],
+  cols: [276, 1644], valCap: [311.5, 533, 754], labelCap: [433, 655, 876.5], resCap: [873, 873, 873],
+  bar: { w: 260, h: 7.6, y: [478, 700, 922] },
+  mark: { cx: 978, cy: 560, box: 1100, opacity: 0.08 },
+  frame: { cx: 959.75, cy: 695.85, w: 820.4, h: 648.9, rot: -2.42, inset: 16 },
+  tape: { cx: 940, cy: 389, w: 256, h: 70, rot: -2.4 },
+};
+const NAVY = "#0f1e3f";
+const decIt = (v) => String(v).replace(".", ",");
+const firstNum = (v) => String(v).split("-")[0];
+const dash = (v) => String(v).replace("/", "-");
+// Statistiche disponibili per giocatore (boxscore ESPN): categoria, etichetta ESPN, testo italiano.
+const PSTATS = [
+  { id: "pass-catt", cat: "passing", col: "C/ATT", label: "passaggi completati/tentati", f: dash },
+  { id: "pass-yds", cat: "passing", col: "YDS", label: "yard su passaggio" },
+  { id: "pass-td", cat: "passing", col: "TD", label: "TD su passaggio" },
+  { id: "pass-int", cat: "passing", col: "INT", label: "intercetti subiti" },
+  { id: "pass-avg", cat: "passing", col: "AVG", label: "yard per tentativo", f: decIt },
+  { id: "pass-rtg", cat: "passing", col: "RTG", label: "passer rating", f: decIt },
+  { id: "pass-qbr", cat: "passing", col: "QBR", label: "QBR", f: decIt },
+  { id: "pass-sacks", cat: "passing", col: "SACKS", label: "sack subiti", f: firstNum },
+  { id: "rush-car", cat: "rushing", col: "CAR", label: "corse" },
+  { id: "rush-yds", cat: "rushing", col: "YDS", label: "yard su corsa" },
+  { id: "rush-avg", cat: "rushing", col: "AVG", label: "yard per corsa", f: decIt },
+  { id: "rush-td", cat: "rushing", col: "TD", label: "TD su corsa" },
+  { id: "rush-long", cat: "rushing", col: "LONG", label: "corsa più lunga" },
+  { id: "rec-rt", cat: "receiving", label: "ricezioni/target", get: (g) => g("REC") != null && g("TGTS") != null ? `${g("REC")}-${g("TGTS")}` : null },
+  { id: "rec-rec", cat: "receiving", col: "REC", label: "ricezioni" },
+  { id: "rec-tgt", cat: "receiving", col: "TGTS", label: "target" },
+  { id: "rec-yds", cat: "receiving", col: "YDS", label: "yard su ricezione" },
+  { id: "rec-td", cat: "receiving", col: "TD", label: "TD su ricezione" },
+  { id: "rec-long", cat: "receiving", col: "LONG", label: "ricezione più lunga" },
+  { id: "rec-avg", cat: "receiving", col: "AVG", label: "yard per ricezione", f: decIt },
+  { id: "scrim", cat: "rushing+receiving", label: "yard totali (corsa + ricezione)", get: (g, all) => {
+      const r = all.rushing ? Number(all.rushing("YDS")) || 0 : 0, c = all.receiving ? Number(all.receiving("YDS")) || 0 : 0;
+      return all.rushing && all.receiving ? String(r + c) : null; } },
+  { id: "def-tot", cat: "defensive", col: "TOT", label: "placcaggi totali" },
+  { id: "def-solo", cat: "defensive", col: "SOLO", label: "placcaggi solitari" },
+  { id: "def-sacks", cat: "defensive", col: "SACKS", label: "sack", f: decIt },
+  { id: "def-tfl", cat: "defensive", col: "TFL", label: "placcaggi con perdita di yard" },
+  { id: "def-pd", cat: "defensive", col: "PD", label: "passaggi deviati" },
+  { id: "def-qbh", cat: "defensive", col: "QB HTS", label: "colpi sul quarterback" },
+  { id: "def-td", cat: "defensive", col: "TD", label: "TD difensivi" },
+  { id: "int-int", cat: "interceptions", col: "INT", label: "intercetti" },
+  { id: "int-yds", cat: "interceptions", col: "YDS", label: "yard su intercetto" },
+  { id: "int-td", cat: "interceptions", col: "TD", label: "TD su intercetto" },
+  { id: "fum-fum", cat: "fumbles", col: "FUM", label: "fumble" },
+  { id: "fum-lost", cat: "fumbles", col: "LOST", label: "fumble persi" },
+  { id: "fum-rec", cat: "fumbles", col: "REC", label: "fumble recuperati" },
+  { id: "kr-no", cat: "kickReturns", col: "NO", label: "ritorni di kickoff" },
+  { id: "kr-yds", cat: "kickReturns", col: "YDS", label: "yard su ritorno di kickoff" },
+  { id: "kr-avg", cat: "kickReturns", col: "AVG", label: "media per ritorno di kickoff", f: decIt },
+  { id: "kr-long", cat: "kickReturns", col: "LONG", label: "ritorno di kickoff più lungo" },
+  { id: "kr-td", cat: "kickReturns", col: "TD", label: "TD su ritorno di kickoff" },
+  { id: "pr-no", cat: "puntReturns", col: "NO", label: "ritorni di punt" },
+  { id: "pr-yds", cat: "puntReturns", col: "YDS", label: "yard su ritorno di punt" },
+  { id: "pr-avg", cat: "puntReturns", col: "AVG", label: "media per ritorno di punt", f: decIt },
+  { id: "pr-long", cat: "puntReturns", col: "LONG", label: "ritorno di punt più lungo" },
+  { id: "pr-td", cat: "puntReturns", col: "TD", label: "TD su ritorno di punt" },
+  { id: "k-fg", cat: "kicking", col: "FG", label: "field goal segnati/tentati", f: dash },
+  { id: "k-pct", cat: "kicking", col: "PCT", label: "% field goal", f: decIt },
+  { id: "k-long", cat: "kicking", col: "LONG", label: "field goal più lungo" },
+  { id: "k-xp", cat: "kicking", col: "XP", label: "extra point segnati/tentati", f: dash },
+  { id: "k-pts", cat: "kicking", col: "PTS", label: "punti segnati" },
+  { id: "p-no", cat: "punting", col: "NO", label: "punt" },
+  { id: "p-yds", cat: "punting", col: "YDS", label: "yard su punt" },
+  { id: "p-avg", cat: "punting", col: "AVG", label: "media per punt", f: decIt },
+  { id: "p-tb", cat: "punting", col: "TB", label: "touchback" },
+  { id: "p-in20", cat: "punting", col: "In 20", label: "punt dentro le 20 yard" },
+  { id: "p-long", cat: "punting", col: "LONG", label: "punt più lungo" },
+];
+const CAT_ORDER = ["passing", "rushing", "receiving", "defensive", "interceptions", "kicking", "punting", "kickReturns", "puntReturns", "fumbles"];
+// Slot: sinistra 1-3, destra 1-3 (come nel riferimento: il risultato in basso a sinistra).
+const SLOT_DEFAULTS = {
+  qb: ["pass-catt", "pass-td", "result", "pass-yds", "pass-int", "pass-rtg"],
+  rb: ["rush-car", "rush-long", "result", "rush-yds", "rush-td", "rush-avg"],
+  wr: ["rec-rt", "rec-long", "result", "rec-yds", "rec-td", "rec-avg"],
+  def: ["def-tot", "def-tfl", "result", "def-sacks", "int-int", "def-qbh"],
+  k: ["k-fg", "k-long", "result", "k-pts", "k-xp", "k-pct"],
+  p: ["p-no", "p-long", "result", "p-yds", "p-in20", "p-avg"],
+  ret: ["kr-no", "kr-long", "result", "kr-yds", "kr-td", "kr-avg"],
+};
+
+const playerSelect = document.getElementById("player-select");
+const slotSelects = [...document.querySelectorAll(".slot-select")];
+let gamePlayers = []; // giocatori della partita con statistiche
+let playerSel = null;
+let playerPhotos = [];
+let slots = [];
+
+function buildPlayers(m) {
+  const map = new Map();
+  for (const side of [m.away, m.home]) {
+    const cats = m.players?.[side.team.id] || {};
+    for (const cat of CAT_ORDER) {
+      const c = cats[cat];
+      if (!c) continue;
+      for (const a of c.athletes) {
+        if (!a.id) continue;
+        if (!map.has(a.id)) map.set(a.id, { id: a.id, name: a.name, headshot: a.headshot, side, opp: side === m.away ? m.home : m.away, cats: {} });
+        const p = map.get(a.id);
+        p.cats[cat] = (col) => { const i = c.labels.indexOf(col); return i >= 0 && a.stats[i] != null && a.stats[i] !== "" ? a.stats[i] : null; };
+      }
+    }
+  }
+  return [...map.values()];
+}
+function statValue(p, st) {
+  if (st.get) {
+    const g = p.cats[st.cat] || (() => null);
+    return st.get(g, p.cats);
+  }
+  const g = p.cats[st.cat];
+  if (!g) return null;
+  const v = g(st.col);
+  return v == null ? null : (st.f || String)(v);
+}
+const availableStats = (p) => PSTATS.filter((st) => statValue(p, st) != null);
+function roleOf(p) {
+  const n = (cat, col) => Number(p.cats[cat]?.(col)) || 0;
+  if (p.cats.passing && Number(String(p.cats.passing("C/ATT") || "0/0").split("/")[1]) >= 5) return "qb";
+  const ry = n("rushing", "YDS"), cy = n("receiving", "YDS");
+  if (p.cats.rushing || p.cats.receiving) return p.cats.receiving && (cy >= ry || !p.cats.rushing) ? "wr" : "rb";
+  if (p.cats.defensive || p.cats.interceptions) return "def";
+  if (p.cats.kicking) return "k";
+  if (p.cats.punting) return "p";
+  if (p.cats.kickReturns || p.cats.puntReturns) return "ret";
+  return "def";
+}
+function playerSummary(p) {
+  const c = p.cats;
+  if (c.passing) return `${c.passing("C/ATT")}, ${c.passing("YDS")} yd`;
+  if (c.rushing && (!c.receiving || Number(c.rushing("YDS")) >= Number(c.receiving("YDS")))) return `${c.rushing("CAR")} corse, ${c.rushing("YDS")} yd`;
+  if (c.receiving) return `${c.receiving("REC")} ric., ${c.receiving("YDS")} yd`;
+  if (c.defensive) return `${c.defensive("TOT")} placcaggi`;
+  if (c.interceptions) return `${c.interceptions("INT")} int.`;
+  if (c.kicking) return `FG ${c.kicking("FG")}`;
+  if (c.punting) return `${c.punting("NO")} punt`;
+  if (c.kickReturns) return `${c.kickReturns("NO")} ritorni`;
+  if (c.puntReturns) return `${c.puntReturns("NO")} ritorni`;
+  return "";
+}
+function defaultSlots(p) {
+  const avail = new Set(availableStats(p).map((s) => s.id));
+  const wanted = SLOT_DEFAULTS[roleOf(p)];
+  const used = new Set();
+  const out = wanted.map((id) => (id === "result" || avail.has(id) ? id : null));
+  if (out[4] === null && wanted === SLOT_DEFAULTS.def && avail.has("def-pd")) out[4] = "def-pd";
+  out.forEach((id) => id && used.add(id));
+  const spare = [...avail].filter((id) => !used.has(id));
+  return out.map((id) => id ?? spare.shift() ?? "");
+}
+
+function renderPlayerSelect() {
+  const m = gameData;
+  const grp = (side) => {
+    const list = gamePlayers.filter((p) => p.side === side);
+    return list.length ? `<optgroup label="${esc(side.team.short)}">${list.map((p) => `<option value="${p.id}">${esc(p.name)} · ${esc(playerSummary(p))}</option>`).join("")}</optgroup>` : "";
+  };
+  playerSelect.innerHTML = grp(m.away) + grp(m.home) || `<option value="">Nessun giocatore con statistiche</option>`;
+  if (playerSel) playerSelect.value = playerSel.id;
+}
+function renderSlotSelects() {
+  const avail = playerSel ? availableStats(playerSel) : [];
+  const opts = `<option value="">— vuoto —</option><option value="result">Risultato della partita</option>` +
+    avail.map((st) => `<option value="${st.id}">${esc(st.label)} (${esc(statValue(playerSel, st))})</option>`).join("");
+  slotSelects.forEach((sel, i) => { sel.innerHTML = opts; sel.value = slots[i] || ""; });
+}
+
+/** Foto del giocatore in quella partita: foto ESPN con il suo nome in didascalia, pubblicate nei giorni della partita. */
+async function playerPhotosFor(p) {
+  const last = p.name.split(" ").filter((w) => !/^(jr\.?|sr\.?|ii|iii|iv)$/i.test(w)).pop()?.toLowerCase() || "";
+  const t0 = new Date(gameData.date).getTime();
+  const teamWords = [p.side.team, p.opp.team].flatMap((t) => [t.nickname, t.location]).filter(Boolean).map((w) => w.toLowerCase());
+  const inWindow = (d) => { const t = new Date(d).getTime(); return t >= t0 - 12 * 3600e3 && t <= t0 + 5 * 86400e3; };
+  const cands = [];
+  try {
+    const media = (await getPlayerMedia(p.id)).data || [];
+    for (const im of media) {
+      if (!inWindow(im.published)) continue;
+      const cap = im.caption.toLowerCase(), head = im.headline.toLowerCase();
+      // con il suo nome in didascalia/titolo prima; poi le altre foto dei servizi su quella partita
+      const named = cap.includes(last) ? 6 : head.includes(last) ? 3 : teamWords.some((w) => cap.includes(w) || head.includes(w)) ? 1 : 0;
+      if (!named) continue;
+      cands.push({ url: im.url, title: im.caption || im.headline, score: named + (named > 1 && im.width >= 1000 ? 1 : 0) });
+    }
+  } catch (err) { console.warn("foto giocatore", err); }
+  for (const ph of gameData.photos || []) {
+    const t = (ph.title || "").toLowerCase();
+    cands.push({ url: ph.url, title: ph.title, score: t.includes(last) ? 5 : 0 });
+  }
+  if (p.headshot) cands.push({ url: p.headshot, title: "Foto profilo ESPN (non della partita)", score: -1 });
+  const seen = new Set();
+  return cands
+    .sort((a, b) => b.score - a.score)
+    .filter((c) => { const k = c.url.split("?")[0].split("/").pop(); if (seen.has(k)) return false; seen.add(k); return true; })
+    .map((c) => ({ url: c.url, title: `${c.score >= 3 ? "" : "Partita · "}${c.title}` }));
+}
+
+async function setupPlayers() {
+  gamePlayers = buildPlayers(gameData);
+  const wanted = playerSel?.id || new URLSearchParams(location.search).get("p");
+  const m = gameData;
+  const winSide = (m.home.score ?? 0) >= (m.away.score ?? 0) ? m.home : m.away;
+  playerSel = gamePlayers.find((p) => p.id === wanted) || gamePlayers.find((p) => p.side === winSide) || gamePlayers[0] || null;
+  renderPlayerSelect();
+  await selectPlayer();
+}
+async function selectPlayer() {
+  if (!playerSel) { stages.player.root.innerHTML = ""; status.textContent = "Nessun giocatore con statistiche in questa partita."; return; }
+  slots = defaultSlots(playerSel);
+  renderSlotSelects();
+  status.textContent = `Cerco le foto di ${playerSel.name} in questa partita…`;
+  if (uploadedPhoto) { URL.revokeObjectURL(uploadedPhoto); uploadedPhoto = null; }
+  playerPhotos = await playerPhotosFor(playerSel);
+  photoIndex = 0;
+  renderPhotoSelect();
+  syncUrl();
+  renderAll();
+  const own = playerPhotos.filter((ph) => !ph.title.startsWith("Partita · ") && !ph.title.startsWith("Foto profilo")).length;
+  status.textContent = `${playerSel.name} · ${own ? `${own} foto ESPN di questa partita con il suo nome` : "nessuna foto ESPN con il suo nome: proposte le foto della partita, oppure caricane una"}`;
+}
+playerSelect.addEventListener("change", () => {
+  playerSel = gamePlayers.find((p) => p.id === playerSelect.value) || null;
+  selectPlayer().catch((err) => { console.error(err); status.textContent = "Non riesco a caricare il giocatore: riprova."; });
+});
+slotSelects.forEach((sel, i) => sel.addEventListener("change", () => { slots[i] = sel.value; renderAll(); }));
+
+/** Articolo italiano davanti al nome della squadra avversaria: "i Texans", "gli Eagles", "gli Steelers". */
+function articleFor(nick) {
+  const n = nick.toLowerCase();
+  return /^([aeiou]|s[^aeiou]|z|gn|ps|x|y)/.test(n) ? "gli" : "i";
+}
+function resultText(p) {
+  const my = p.side.score ?? 0, op = p.opp.score ?? 0;
+  const nick = p.side.team.nickname || p.side.team.short;
+  return my === op ? `Pareggio ${my}-${op}` : `${my > op ? "Vittoria" : "Sconfitta"} ${nick} ${my}-${op}`;
+}
+
+function renderPlayerStage(stage) {
+  const { W, H, root } = stage;
+  const p = playerSel, team = p.side.team, opp = p.opp.team;
+  const abbr = team.abbr.toLowerCase();
+  const col = ST_CELL[team.abbr] || team.color || "#333";
+  const col2 = team.alt && team.alt.toLowerCase() !== (team.color || "").toLowerCase() ? team.alt : "#111111";
+  const f = PW.frame, tp = PW.tape, mk = PW.mark, lg = PW.logo;
+  const photos = playerPhotos;
+  const src = uploadedPhoto || photos[photoIndex]?.url || "";
+  const photo = src
+    ? `<img class="g-photo-img" ${uploadedPhoto ? "" : 'crossorigin="anonymous"'} src="${esc(src)}" alt="" style="left:${f.inset}px;top:${f.inset}px;width:${f.w - 2 * f.inset}px;height:${f.h - 2 * f.inset}px">`
+    : `<div class="g-photo-empty" style="left:${f.inset}px;top:${f.inset}px;right:${f.inset}px;bottom:${f.inset}px">Foto del giocatore</div>`;
+  let cells = "";
+  slots.forEach((id, i) => {
+    if (!id) return;
+    const side = i < 3 ? 0 : 1, row = i % 3, cx = PW.cols[side];
+    if (id === "result") {
+      cells += T("pRes", resultText(p), cx, PW.resCap[row], "center", { color: NAVY, maxW: 330 });
+    } else {
+      const st = PSTATS.find((x) => x.id === id);
+      if (!st) return;
+      const v = statValue(p, st);
+      if (v == null) return;
+      cells += `${T("pVal", v, cx, PW.valCap[row], "center", { color: NAVY, maxW: 330 })}
+        ${T("pLabel", st.label, cx, PW.labelCap[row], "center", { color: NAVY, maxW: 330 })}`;
+    }
+    cells += `<div class="g-bar" style="left:${cx - PW.bar.w / 2}px;top:${PW.bar.y[row]}px;width:${PW.bar.w}px;height:${PW.bar.h}px;background:${col}"></div>`;
+  });
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, true)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`, 500)}" alt="" style="left:${mk.cx - mk.box / 2}px;top:${mk.cy - mk.box / 2}px;width:${mk.box}px;height:${mk.box}px;opacity:${mk.opacity}">
+      ${T("stSide", "FOOTBALL", 48.3, 58.1)}${T("stSide", "MORE", 48.3, 83.5)}${T("stSide", "THAN", 48.3, 108.9)}${T("stSide", "A GAME", 48.3, 134.2)}
+      ${rectBar([47.9, 167.8, 25.8, 2], "#5e6574")}
+      ${rectBar([1832, 56.1, 39.7, 1.6], "#222222")}
+      ${T("stInk", String(sb.season.year), 1867.6, 75.3, "right")}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${PW.brand[0]}px;top:${PW.brand[1]}px;width:${PW.brand[2]}px;height:${PW.brand[3]}px">
+      ${T("pName", p.name.toUpperCase(), W / 2, PW.name.cap, "center", { maxW: PW.name.maxW })}
+      ${T("pVs", `contro ${articleFor(opp.nickname || opp.short)} ${opp.nickname || opp.short}`, W / 2, PW.vs.cap, "center", { color: NAVY })}
+      ${rectBar(PW.lineL, col)}${rectBar(PW.lineR, col2)}
+      <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`, 200)}" alt="" style="left:${lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
+      <div class="g-photo" data-cx="${f.cx}" data-cy="${f.cy}" data-w="${f.w}" data-h="${f.h}" data-rot="${f.rot}" data-inset="${f.inset}"
+        style="left:${f.cx - f.w / 2}px;top:${f.cy - f.h / 2}px;width:${f.w}px;height:${f.h}px;transform:rotate(${f.rot}deg)">${photo}</div>
+      <div class="g-tape" data-cx="${tp.cx}" data-cy="${tp.cy}" data-w="${tp.w}" data-h="${tp.h}" data-rot="${tp.rot}"
+        style="left:${tp.cx - tp.w / 2}px;top:${tp.cy - tp.h / 2}px;width:${tp.w}px;height:${tp.h}px;transform:rotate(${tp.rot}deg)"></div>
+      ${cells}
+    </div>`;
+  fitPreview(stage);
+}
+
 // ---------------------------------------------------------------------------- tendina e caricamento
 let lastPlayedKey = ""; // ultima settimana completa (risultati)
 let standingsKey = ""; // settimana proposta per le classifiche
 let gameKey = ""; // settimana proposta per la partita (ultima con partite concluse)
-const defaultKey = () => (tpl === "results" ? lastPlayedKey : tpl === "standings" ? standingsKey : tpl === "game" ? gameKey : currentKey);
+const defaultKey = () => (tpl === "results" ? lastPlayedKey : tpl === "standings" ? standingsKey : isGameLike() ? gameKey : currentKey);
 
 /** Calendario: tutte le settimane. Risultati: solo quelle già iniziate (con partite giocate). */
 const visibleWeeks = () =>
@@ -1075,7 +1398,7 @@ const visibleWeeks = () =>
     ? weeks.filter((e) => new Date(e.start).getTime() <= Date.now())
     : tpl === "standings"
       ? weeks.filter((e) => e.seasonType === 2 && new Date(e.start).getTime() <= Date.now()) // classifica: solo regular season giocata
-      : tpl === "game"
+      : isGameLike()
         ? weeks.filter((e) => new Date(e.start).getTime() <= Date.now()) // partita: settimane già iniziate
         : weeks;
 
@@ -1101,9 +1424,11 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita" }[tpl] || "calendario");
-  if (tpl === "game" && selectedGame) url.searchParams.set("g", selectedGame);
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore" }[tpl] || "calendario");
+  if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
+  if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
+  else url.searchParams.delete("p");
   url.searchParams.set("f", fmt === "tall" ? "storie" : "16-9");
   history.replaceState(null, "", url);
 }
@@ -1138,7 +1463,7 @@ async function loadWeek() {
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
   status.textContent = "Carico le partite…";
-  if (tpl === "game") {
+  if (isGameLike()) {
     try {
       const res = await getWeek(entry, sb.season.year);
       weekGames = res.data.games.filter((g) => g.state === "post");
@@ -1149,6 +1474,8 @@ async function loadWeek() {
         gameData = null;
         stages.game.root.innerHTML = "";
         stages.gameTall.root.innerHTML = "";
+        stages.player.root.innerHTML = "";
+        playerSel = null;
         status.textContent = `Nessuna partita conclusa in ${weekLabel(entry)}.`;
         return;
       }

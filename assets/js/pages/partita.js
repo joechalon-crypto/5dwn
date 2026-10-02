@@ -1,8 +1,8 @@
 import {
   renderChrome, loading, showError, staleNotice, updatedLine, teamLogo, teamHref, gameHref, playerHref, espnImg,
   statusText, tvItalia, TV_PLACEHOLDER, fmtDay, fmtShort, fmtTime, every, esc,
-} from "../ui.js?v=202610021852";
-import { getSummary, getScoreboard, getHeadToHead } from "../api.js?v=202610021852";
+} from "../ui.js?v=202610021909";
+import { getSummary, getScoreboard, getHeadToHead } from "../api.js?v=202610021909";
 
 renderChrome("calendario");
 

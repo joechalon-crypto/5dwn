@@ -711,6 +711,24 @@ async function loadAthleteStats(id) {
 }
 export const getAthleteStats = (id, opts) => cached(`athstats:${id}`, TTL.athleteStats, () => loadAthleteStats(id), opts);
 
+// Foto ESPN legate al giocatore: notizie del profilo + notizie fantasy (immagini con didascalia e data).
+async function loadPlayerMedia(id) {
+  const [ov, fan] = await Promise.allSettled([
+    fetchJSON(`${ATHLETE}/${id}/overview`),
+    fetchJSON(`https://site.api.espn.com/apis/fantasy/v2/games/ffl/news/players?playerId=${id}&limit=50`),
+  ]);
+  const items = [...(ov.status === "fulfilled" ? ov.value.news || [] : []), ...(fan.status === "fulfilled" ? fan.value.feed || [] : [])];
+  const out = [];
+  for (const a of items) {
+    for (const im of a.images || []) {
+      if (!im.url) continue;
+      out.push({ url: im.url, caption: im.caption || im.alt || "", headline: a.headline || "", published: a.published || a.lastModified || "", width: im.width || 0 });
+    }
+  }
+  return out;
+}
+export const getPlayerMedia = (id, opts) => cached(`pmedia:${id}`, TTL.gamelog, () => loadPlayerMedia(id), opts);
+
 async function loadGamelog(id) {
   const json = await fetchJSON(`${ATHLETE}/${id}/gamelog`);
   const events = {};

@@ -133,6 +133,18 @@ per chi ha fatto meglio. La foto viene proposta tra quelle ESPN della partita
 squadra vincente; dalla tendina **Foto** si può cambiare, oppure si può caricare
 una foto propria con **Carica foto** (resta nel browser, non viene pubblicata).
 
+**Template 5 — Giocatore** (riferimento "NFL Player Performance", solo 16:9): voce
+**Giocatore** nello Studio. Si sceglie settimana → partita conclusa → **giocatore**
+(tutti quelli con statistiche nel boxscore ESPN, divisi per squadra). Le 6 caselle
+(3 a sinistra, 3 a destra) hanno ognuna una tendina con le statistiche disponibili
+per quel giocatore in quella partita (passaggi, corse, ricezioni, difesa, intercetti,
+kicking, punt, ritorni, fumble) più "Risultato della partita" e "vuoto"; i default
+dipendono dal ruolo (QB, RB, WR/TE, difesa, K, P, returner). Logo, filigrana, linee e
+barre usano i colori della squadra del giocatore. La foto centrale viene cercata tra
+le immagini ESPN dei giorni della partita: prima quelle con il suo nome in didascalia
+(notizie del profilo, notizie fantasy, highlights), poi le foto dei servizi sulla
+partita, per ultima la foto profilo; si può sempre caricare una foto propria.
+
 Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
 `STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,
 quindi vanno cambiati solo se cambia il template.

@@ -4,10 +4,12 @@
    La grafica ha colori propri, indipendenti dal tema chiaro/scuro del sito.
    ========================================================================== */
 
-.studio-controls [hidden], .studio-block[hidden] { display: none !important; }
+.studio-controls [hidden], .studio-block[hidden], .studio-slots[hidden] { display: none !important; }
 .studio-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 24px; }
 .studio-hint { font-size: 0.85rem; color: var(--text-muted); margin: 6px 0 0; }
 .studio-block { margin-top: 28px; }
+.studio-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; margin: -8px 0 24px; }
+.studio-slots .select { width: 100%; }
 .studio-block .section-head { margin-bottom: 12px; }
 .studio-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .studio-status { font-size: 0.85rem; color: var(--text-muted); }
@@ -65,6 +67,11 @@
 .g-photo-img { position: absolute; object-fit: cover; }
 .g-photo-empty { position: absolute; background: #f5f5f5; border: 1px dashed #b5b8bd; display: flex; align-items: center; justify-content: center; font: 600 16px "Archivo", sans-serif; color: #5e6574; }
 .g-tape { position: absolute; background: rgba(206, 206, 206, 0.75); transform-origin: center; }
+/* Template Giocatore */
+.gt-p-name { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 75%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
+.gt-p-vs { font-family: "Archivo", sans-serif; font-weight: 400; font-stretch: 100%; }
+.gt-p-val { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 87.5%; }
+.gt-p-label { font-family: "Barlow Condensed", sans-serif; font-weight: 500; }
 .gt-gp { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-blue); }
 
 .g-bar { position: absolute; background: var(--g-blue); }
