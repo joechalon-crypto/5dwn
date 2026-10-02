@@ -8,7 +8,7 @@ renderChrome("home");
 const s = SITO.social;
 document.getElementById("cta").innerHTML = `
   <a class="btn btn-primary" href="${s.instagram.url}" target="_blank" rel="noopener">${ICONS.instagram} ${esc(s.instagram.handle)}</a>
-  <a class="btn" href="${s.youtube.url}" target="_blank" rel="noopener">${ICONS.youtube} ${esc(s.youtube.handle)}</a>`;
+  <a class="btn" href="${s.youtube.url}" target="_blank" rel="noopener">${ICONS.youtube} YouTube ${esc(s.youtube.handle)}</a>`;
 
 // ---------------------------------------------------------------- 1. Banner settimana
 const track = document.getElementById("ticker-track");

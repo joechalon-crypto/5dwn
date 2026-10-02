@@ -44,9 +44,8 @@ vecchi link continuano a funzionare.
 
 ## 2. Cose da completare prima di pubblicare
 
-1. **Link YouTube e podcast**: apri `content/sito.js` e sostituisci i due URL
-   segnati con `TODO` (adesso puntano a una ricerca) con il link del canale
-   5DWN e quello del podcast «Play Action» (Spotify, Apple Podcasts…).
+1. **Link social**: Instagram e YouTube (`@quintodwn`) sono già impostati in
+   `content/sito.js`; se cambiano, si aggiornano lì.
 2. **Ultimo reel** (home): in `content/sito.js`, blocco `ultimoReel`, incolla il
    link del reel più recente (facoltativi titolo e copertina). Se lo lasci vuoto
    la card porta alla pagina dei reel di @quintodwn.

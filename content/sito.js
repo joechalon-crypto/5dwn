@@ -15,15 +15,8 @@ export const SITO = {
     },
     youtube: {
       label: "YouTube",
-      handle: "Canale 5DWN",
-      // TODO: sostituisci con l'URL esatto del canale (es. https://www.youtube.com/@NOMECANALE)
-      url: "https://www.youtube.com/results?search_query=5DWN",
-    },
-    podcast: {
-      label: "Podcast",
-      handle: "Play Action",
-      // TODO: sostituisci con il link del podcast (Spotify / Apple Podcasts)
-      url: "https://open.spotify.com/search/Play%20Action%205DWN",
+      handle: "@quintodwn",
+      url: "https://www.youtube.com/@quintodwn",
     },
   },
 
