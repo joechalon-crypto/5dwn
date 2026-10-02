@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021733";
-import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021733";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021739";
+import { getScoreboard, getWeek, currentWeekIndex } from "../api.js?v=202610021739";
 
 renderChrome("");
 
@@ -109,7 +109,7 @@ function T(style, text, x, capTop, align = "left", { color, maxW, scale = 1 } = 
 }
 
 // ---------------------------------------------------------------------------- geometrie (riferimento 16:9)
-const G = {
+const G_WIDE = {
   colW: 856.0, colGap: 40.2,
   rowH: 59.7, pitch: 64.15,
   cells: { a: [0, 282.9], at: [286.8, 46.1], b: [337.2, 283.0], time: [624.0, 104.0], tv: [731.9, 124.2] },
@@ -119,6 +119,19 @@ const G = {
   headerToRow: 32.3, rowToSep: 19.3, sepToHeader: 24.7,
   bodyCapTop: 223.9,
 };
+
+// 9:16 (storie): stesse celle, più respiro tra righe, giorni e titolo.
+const G_TALL = {
+  ...G_WIDE,
+  pitch: G_WIDE.rowH + 10,
+  headerToRow: 40,
+  rowToSep: 28,
+  sepToHeader: 40,
+  bodyCapTop: 280,
+  bottomMargin: 150, // spazio libero sopra il piè di pagina
+};
+
+let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // ---------------------------------------------------------------------------- dati della settimana
 let sb = null;
@@ -353,12 +366,15 @@ function renderStage(stage, wide) {
   const title = titleFor(entry);
   const mainDay = days.reduce((b, d) => (d.games.length > (b?.games.length || 0) ? d : b), null);
   const tz = mainDay ? tzName(mainDay.date) : "CET";
+  G = wide ? G_WIDE : G_TALL;
   const L = wide ? layoutWide(days) : layoutTall(days);
   // area utile per le partite: dal cap top della prima intestazione al piè di pagina
-  const top = G.bodyCapTop;
-  const maxBottom = wide ? 985 : H - 120;
-  const maxW = wide ? L.width : W - 2 * 48;
-  const k = Math.min(wide ? 1 : maxW / L.width, (maxBottom - top) / Math.max(L.height, 1), wide ? 1 : 1.15);
+  const maxBottom = wide ? 985 : H - G.bottomMargin;
+  const maxW = wide ? L.width : W - 2 * 64;
+  const avail = maxBottom - G.bodyCapTop;
+  const k = Math.min(wide ? 1 : maxW / L.width, avail / Math.max(L.height, 1), wide ? 1 : 1.12);
+  // nel 9:16, se avanza spazio, il blocco partite viene centrato verticalmente
+  const top = wide ? G.bodyCapTop : G.bodyCapTop + Math.max(0, (avail - L.height * k) / 2);
   const left = (W - L.width * k) / 2;
   root.style.width = `${W}px`;
   root.style.height = `${H}px`;

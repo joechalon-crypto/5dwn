@@ -1,6 +1,6 @@
-import { renderChrome, loading, showError, staleNotice, updatedLine, weekLabel, teamLogo, teamHref, gameHref, statusText, tvLabel, fmtShort, fmtTime, every, ICONS, esc } from "../ui.js?v=202610021733";
-import { getScoreboard, getWeek, getStandings, currentWeekIndex, TTL } from "../api.js?v=202610021733";
-import { SITO } from "../../../content/sito.js?v=202610021733";
+import { renderChrome, loading, showError, staleNotice, updatedLine, weekLabel, teamLogo, teamHref, gameHref, statusText, tvLabel, fmtShort, fmtTime, every, ICONS, esc } from "../ui.js?v=202610021739";
+import { getScoreboard, getWeek, getStandings, currentWeekIndex, TTL } from "../api.js?v=202610021739";
+import { SITO } from "../../../content/sito.js?v=202610021739";
 
 renderChrome("home");
 
