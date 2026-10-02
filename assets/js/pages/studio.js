@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021821";
-import { getScoreboard, getWeek, getStandings, currentWeekIndex } from "../api.js?v=202610021821";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610021824";
+import { getScoreboard, getWeek, getStandings, currentWeekIndex } from "../api.js?v=202610021824";
 
 renderChrome("");
 
@@ -61,7 +61,6 @@ const STYLES = {
   band: { cls: "gt-band", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INTERNATIONAL GAME — LONDRA, REGNO UNITO", 15.6, 375.6] },
   score: { cls: "gt-score", family: "Archivo", weight: 900, stretch: "normal", ref: ["28", 23.9, 44.9] }, // misurato su "Risultati"
   // Template "Classifiche" (misurato su "NFL Standings-selection")
-  stTitle: { cls: "gt-st-title", family: "Archivo", weight: 900, stretch: "expanded", ref: ["AFC", 110.9, 347.4] },
   stSub: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["CLASSIFICA", 21.3, 359.7] },
   stDiv: { cls: "gt-day", family: "Archivo", weight: 700, stretch: "expanded", ref: ["AFC EAST", 21.2, 248.0] },
   stCol: { cls: "gt-st-col", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["PCT", 15.9, 32.0] },
@@ -513,17 +512,6 @@ async function drawStage(stage) {
       const k = Math.min(b.w / el.naturalWidth, b.h / el.naturalHeight); // object-fit: contain
       const w = el.naturalWidth * k, h = el.naturalHeight * k;
       c.drawImage(el, b.x + (b.w - w) / 2, b.y + (b.h - h) / 2, w, h);
-    } else if (el.classList.contains("gt-wm")) {
-      // filigrana ruotata: disegnata attorno al suo punto di ancoraggio (cima delle maiuscole, a sinistra)
-      const cs2 = getComputedStyle(el);
-      c.save();
-      c.translate(parseFloat(el.dataset.x), parseFloat(el.dataset.y));
-      c.rotate((parseFloat(el.dataset.rot) * Math.PI) / 180);
-      c.font = `semi-expanded ${cs2.fontWeight} ${el.dataset.size}px "Archivo"`;
-      c.fillStyle = cs2.color;
-      c.textBaseline = "alphabetic";
-      c.fillText(el.textContent, 0, parseFloat(el.dataset.cap));
-      c.restore();
     } else if (el.classList.contains("gt")) {
       const eff = b.h / el.offsetHeight; // scala effettiva (es. corpo partite ridotto)
       const size = parseFloat(cs.fontSize) * eff;
@@ -668,38 +656,6 @@ async function standingsAfter(entry) {
   };
 }
 
-function bgStandings(W, H) {
-  // Strisce: bande chiare 70,8 px ogni 224,1 px, inclinazione -0,61 (misurate sul riferimento).
-  return `<svg class="gfx-bg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <pattern id="sst-${W}" patternUnits="userSpaceOnUse" width="224.1" height="${H}" patternTransform="skewX(-31.38)">
-          <rect x="208.2" y="0" width="70.8" height="${H}" fill="#f7f7f7"/>
-        </pattern>
-        <radialGradient id="sglow-${W}" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
-      </defs>
-      <rect width="${W}" height="${H}" fill="#ececec"/>
-      <rect width="${W * 2}" height="${H}" x="${-W / 2}" fill="url(#sst-${W})"/>
-      <g fill="none" stroke="#ffffff" opacity="0.6">
-        <ellipse cx="1567" cy="156" rx="430" ry="200" transform="rotate(-14 1567 156)" stroke-width="10"/>
-        <g stroke-width="18" stroke-linecap="round">
-          <line x1="1525" y1="121" x2="1540" y2="217"/><line x1="1566" y1="106" x2="1582" y2="201"/>
-          <line x1="1611" y1="86" x2="1627" y2="182"/><line x1="1657" y1="72" x2="1672" y2="168"/>
-          <line x1="1698" y1="60" x2="1714" y2="156"/></g></g>
-      <ellipse cx="960" cy="120" rx="470" ry="150" fill="url(#sglow-${W})"/>
-    </svg>`;
-}
-
-/** Grande "5DWN" in filigrana, ruotato, in basso a destra (come nel riferimento). */
-function watermark() {
-  const st = STYLES.brand; // Archivo 900 semi-espanso
-  const capH = 125, x0 = 1199, y0 = 1047, rot = -9.3;
-  const size = (st.size * capH) / st.cap;
-  const k = size / st.size, A = st.A * k, D = st.D * k;
-  const top = y0 - ((size - (A + D)) / 2 + A - capH);
-  return `<span class="gt gt-wm" data-x="${x0}" data-y="${y0}" data-cap="${capH}" data-rot="${rot}" data-size="${size.toFixed(3)}"
-    style="left:${x0}px;top:${top.toFixed(2)}px;font-size:${size.toFixed(3)}px;transform-origin:0 ${(y0 - top).toFixed(2)}px;transform:rotate(${rot}deg)">5DWN</span>`;
-}
-
 function stdBlock(div, x, capTop) {
   const rowTop = capTop + SG.hdrToRow;
   const c = SG.cells;
@@ -732,21 +688,23 @@ function renderStandingsStage(stage, conf) {
   // Titolo: sigla + logo conference, gruppo centrato come nel riferimento (centro a x 952, spazio 40 px).
   const lg = CONF_LOGO[conf], scale = 0.328, box = 500 * scale;
   const visW = (lg.x1 - lg.x0) * scale;
-  const tW = inkWidth("stTitle", conf);
+  // "AFC"/"NFC" con lo stesso stile di "WEEK" (lettere spaziate), alla dimensione del riferimento.
+  const titleScale = 110.9 / STYLES.week.ref[1];
+  const tW = inkWidth("week", conf) * titleScale;
   const tLeft = 952 - (tW + 40 + visW) / 2;
   const logoLeft = tLeft + tW + 40 - lg.x0 * scale;
   const right = 1859.8;
   root.style.width = `${W}px`;
   root.style.height = `${H}px`;
-  root.innerHTML = `${bgStandings(W, H)}
+  // Stesso sfondo di calendari e risultati.
+  root.innerHTML = `${background(W, H, true)}
     <div class="gfx-layer" style="width:${W}px;height:${H}px">
-      ${watermark()}
       ${T("stSide", "FOOTBALL", 56.5, 54.4)}${T("stSide", "MORE", 56.5, 81.4)}${T("stSide", "THAN", 56.5, 108.8)}${T("stSide", "A GAME", 56.5, 135.4)}
       <div class="g-bar" style="left:54.8px;top:169.8px;width:27.9px;height:1.7px;background:#b5b8bd"></div>
       <div class="g-bar" style="left:1835.7px;top:59.7px;width:27.8px;height:2.1px;background:#b5b8bd"></div>
       ${T("stInk", String(year), right, 79.4, "right")}
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:892.1px;top:17px;width:135px;height:32.42px">
-      ${T("stTitle", conf, tLeft, 66.7, "left")}
+      ${T("week", conf, tLeft, 66.7, "left", { scale: titleScale })}
       <img class="g-logo" crossorigin="anonymous" src="${lg.src}" alt="${conf}" style="left:${logoLeft.toFixed(1)}px;top:41px;width:${box}px;height:${box}px">
       ${T("stSub", "CLASSIFICA", 960.25, 201.7, "center")}
       ${divs.map((d, i) => stdBlock(d, SG.blocks[i][0], SG.blocks[i][1])).join("")}

@@ -50,13 +50,11 @@
 .gt-band { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: var(--g-band-ink); }
 .gt-score { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 100%; }
 /* Template Classifiche */
-.gt-st-title { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 125%; color: var(--g-dark); }
 .gt-st-col { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-dark); }
 .gt-st-num { font-family: "Barlow Condensed", sans-serif; font-weight: 500; color: var(--g-dark); }
 .gt-st-t1 { font-family: "Barlow Condensed", sans-serif; font-weight: 500; }
 .gt-st-t2 { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
 .gt-st-side { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: #8a8f98; }
-.gt-wm { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 112.5%; color: #e2e2e2; }
 .gt-gp { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-blue); }
 
 .g-bar { position: absolute; background: var(--g-blue); }
