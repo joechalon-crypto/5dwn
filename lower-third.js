@@ -228,6 +228,7 @@ function viewModel() {
   return { g, box, col, tab, s1: slotVm(0), s2: slotVm(1), head: headBox(), hasSub: !!(data.subtitle || "").trim() };
 }
 
+let lastBannerHtml = "";
 function render() {
   const { g, box, col, tab, s1, s2, head, hasSub } = viewModel();
   const banner = $("banner");
@@ -237,7 +238,7 @@ function render() {
       ${s.isPhoto ? `<div data-host="${key}" style="position:absolute;inset:0"></div>` : ""}
       ${s.isLogo ? `<img class="lt-logo" src="${s.logo}" alt="" crossorigin="anonymous">` : ""}
     </div>`;
-  banner.innerHTML = `
+  const html = `
     <svg width="1920" height="${g.Hr}" viewBox="0 0 1920 ${g.Hr}">
       <defs>
         <clipPath id="lts-cp-panel"><rect x="0" y="0" width="1920" height="152"></rect></clipPath>
@@ -276,12 +277,19 @@ function render() {
         </div>
       </div>
     </div>` : ""}
-    <div class="lt-head" style="left:${head.left}px;width:${head.width}px">
-      <div class="lt-title" id="ltTitle" style="color:${col.title}">${esc(data.title)}</div>
-      ${hasSub ? `<div class="lt-sub" id="ltSub" style="color:${col.sub}">${esc(data.subtitle)}</div>` : ""}
-    </div>`;
-  // i riquadri immagine sono persistenti: si spostano nei rispettivi contenitori
-  banner.querySelectorAll("[data-host]").forEach((h) => h.appendChild(slots[h.dataset.host].el));
+    <div class="lt-head" id="ltHead"></div>`;
+  // si ricostruisce solo se la grafica è cambiata (scrivere il titolo non ridisegna loghi e curve)
+  if (html !== lastBannerHtml) {
+    lastBannerHtml = html;
+    banner.innerHTML = html;
+    // i riquadri immagine sono persistenti: si spostano nei rispettivi contenitori
+    banner.querySelectorAll("[data-host]").forEach((h) => h.appendChild(slots[h.dataset.host].el));
+  }
+  const headEl = $("ltHead");
+  headEl.style.left = `${head.left}px`;
+  headEl.style.width = `${head.width}px`;
+  headEl.innerHTML = `<div class="lt-title" id="ltTitle" style="color:${col.title}">${esc(data.title)}</div>
+      ${hasSub ? `<div class="lt-sub" id="ltSub" style="color:${col.sub}">${esc(data.subtitle)}</div>` : ""}`;
   slots.player1.apply(); slots.player2.apply(); slots.boxPhoto.apply();
   // anteprima: scacchiera / scuro / fotogramma (non esportata)
   const bgMap = { checker: "repeating-conic-gradient(#C8CCD3 0 25%, #E4E7EB 0 50%)", dark: "#1B1F26", photo: "#1B1F26" };
@@ -311,15 +319,21 @@ function fitText() {
 }
 
 // ---------------------------------------------------------------------------- scala dello stage (ResizeObserver)
+let lastFitW = 0;
 function fit() {
   const col = $("stagecol");
   if (!col.clientWidth) { requestAnimationFrame(fit); return; }
-  scale = col.clientWidth / 1920;
+  // solo variazioni reali (≥ 2 px): niente ricalcoli a catena per arrotondamenti
+  if (lastFitW && Math.abs(col.clientWidth - lastFitW) < 2) return;
+  lastFitW = col.clientWidth;
+  scale = Math.round((col.clientWidth / 1920) * 10000) / 10000;
   $("stage").style.width = `${Math.round(1920 * scale)}px`;
   $("stage").style.height = `${Math.round(1080 * scale)}px`;
   $("world").style.transform = `scale(${scale})`;
 }
-new ResizeObserver(fit).observe($("stagecol"));
+// si osserva solo la larghezza (un cambio di altezza non deve ricalcolare la scala)
+let fitRaf = 0;
+new ResizeObserver(() => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fit); }).observe($("stagecol"));
 
 // ---------------------------------------------------------------------------- editor (solo menu a tendina, regola del sito)
 const teamOpts = Object.keys(T).map((k) => ({ code: k, label: k === "NFL" ? "NFL (generico)" : T[k][1] }))

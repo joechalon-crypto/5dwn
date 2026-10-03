@@ -14,6 +14,9 @@
     /* Generatore di lower third per i video 5DWN. Misure, colori e geometrie dal prototipo
        "NFL Lower Third Show.dc.html" (fonte di verità), portato in HTML/CSS/JS senza framework. */
     * { box-sizing: border-box; }
+    /* spazio della barra di scorrimento sempre riservato: senza, la barra che compare/sparisce
+       cambia la larghezza, quindi la scala dello stage, e la pagina traballa all'infinito */
+    html { overflow-y: scroll; scrollbar-gutter: stable; }
     body { margin: 0; background: #D5D9E0; font-family: "Archivo", sans-serif; color: #111; }
     a { color: #2A50BC; } a:hover { color: #1A3486; }
     .lt-app { display: flex; gap: 20px; padding: 20px; align-items: flex-start; }
@@ -63,7 +66,7 @@
     .img-slot.drag-over { outline: 4px solid #E09F58; outline-offset: -4px; }
 
     /* Pannello editor */
-    .lt-editor { flex: 0 0 360px; position: sticky; top: 20px; background: #fff; border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px;
+    .lt-editor { flex: 0 0 360px; position: sticky; top: 20px; overscroll-behavior: contain; background: #fff; border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px;
       max-height: calc(100vh - 40px); overflow: auto; font-size: 14px; box-shadow: 0 6px 24px rgba(20, 30, 60, .12); }
     .ed-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
     .ed-title { font-weight: 800; font-stretch: 112%; font-size: 16px; letter-spacing: .06em; }
@@ -169,6 +172,6 @@
       <div class="ed-note">Trascina i PNG scontornati sui riquadri tratteggiati del box (oppure clicca per sceglierli). Rotella: zoom · trascina: sposta · doppio clic: rimuovi. Export PNG trasparente.</div>
     </aside>
   </div>
-  <script type="module" src="lower-third.js?v=202610031441"></script>
+  <script type="module" src="lower-third.js?v=202610031534"></script>
 </body>
 </html>
