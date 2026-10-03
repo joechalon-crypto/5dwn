@@ -14,9 +14,10 @@
     /* Generatore di lower third per i video 5DWN. Misure, colori e geometrie dal prototipo
        "NFL Lower Third Show.dc.html" (fonte di verità), portato in HTML/CSS/JS senza framework. */
     * { box-sizing: border-box; }
-    /* spazio della barra di scorrimento sempre riservato: senza, la barra che compare/sparisce
-       cambia la larghezza, quindi la scala dello stage, e la pagina traballa all'infinito */
-    html { overflow-y: scroll; scrollbar-gutter: stable; }
+    /* La pagina non deve mai muoversi: niente rimbalzo elastico di Chrome/macOS e, su schermi larghi,
+       nessuno scorrimento della pagina (scorre solo l'editor). Prima la pagina era alta quanto la finestra
+       più una frazione di pixel: ogni scroll faceva rimbalzare stage e banner. */
+    html, body { overscroll-behavior: none; scrollbar-gutter: stable; }
     body { margin: 0; background: #D5D9E0; font-family: "Archivo", sans-serif; color: #111; }
     a { color: #2A50BC; } a:hover { color: #1A3486; }
     .lt-app { display: flex; gap: 20px; padding: 20px; align-items: flex-start; }
@@ -92,6 +93,12 @@
     .ed-note { font-size: 12px; color: #5E6574; line-height: 1.4; }
     .ed-status { font-size: 12px; color: #2A50BC; min-height: 1em; }
     [hidden] { display: none !important; }
+    @media (min-width: 901px) {
+      html, body { height: 100%; overflow: hidden; }
+      .lt-app { height: 100vh; }
+      .lt-stagecol { max-height: 100%; overflow: auto; overscroll-behavior: contain; }
+      .lt-editor { max-height: 100%; }
+    }
     @media (max-width: 900px) { .lt-app { flex-direction: column; } .lt-editor { position: static; flex-basis: auto; width: 100%; max-height: none; } .lt-stagecol { width: 100%; } }
   </style>
 </head>
@@ -172,6 +179,6 @@
       <div class="ed-note">Trascina i PNG scontornati sui riquadri tratteggiati del box (oppure clicca per sceglierli). Rotella: zoom · trascina: sposta · doppio clic: rimuovi. Export PNG trasparente.</div>
     </aside>
   </div>
-  <script type="module" src="lower-third.js?v=202610031534"></script>
+  <script type="module" src="lower-third.js?v=202610031538"></script>
 </body>
 </html>

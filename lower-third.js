@@ -319,14 +319,18 @@ function fitText() {
 }
 
 // ---------------------------------------------------------------------------- scala dello stage (ResizeObserver)
-let lastFitW = 0;
+let lastFitW = "";
+const wide = window.matchMedia("(min-width: 901px)");
 function fit() {
   const col = $("stagecol");
   if (!col.clientWidth) { requestAnimationFrame(fit); return; }
   // solo variazioni reali (≥ 2 px): niente ricalcoli a catena per arrotondamenti
-  if (lastFitW && Math.abs(col.clientWidth - lastFitW) < 2) return;
-  lastFitW = col.clientWidth;
-  scale = Math.round((col.clientWidth / 1920) * 10000) / 10000;
+  // schermi larghi: lo stage sta sempre intero nella finestra (larghezza e altezza), così la pagina non scorre mai
+  const availH = wide.matches ? window.innerHeight - 40 : Infinity;
+  const key = `${col.clientWidth}x${availH}`;
+  if (lastFitW && lastFitW.split("x").every((v, i) => Math.abs(Number(v) - Number(key.split("x")[i])) < 2 || v === key.split("x")[i])) return;
+  lastFitW = key;
+  scale = Math.round(Math.min(col.clientWidth / 1920, availH / 1080) * 10000) / 10000;
   $("stage").style.width = `${Math.round(1920 * scale)}px`;
   $("stage").style.height = `${Math.round(1080 * scale)}px`;
   $("world").style.transform = `scale(${scale})`;
@@ -334,6 +338,7 @@ function fit() {
 // si osserva solo la larghezza (un cambio di altezza non deve ricalcolare la scala)
 let fitRaf = 0;
 new ResizeObserver(() => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fit); }).observe($("stagecol"));
+window.addEventListener("resize", () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fit); });
 
 // ---------------------------------------------------------------------------- editor (solo menu a tendina, regola del sito)
 const teamOpts = Object.keys(T).map((k) => ({ code: k, label: k === "NFL" ? "NFL (generico)" : T[k][1] }))
