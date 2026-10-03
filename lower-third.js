@@ -355,8 +355,10 @@ function viewModel() {
     // ogni strato è più lungo della sua sfumatura (niente bordi netti) ed è già trasparente prima del titolo (x 453)
     box.fadeLayers = !both || a === b
       ? [{ color: a, left: 0, width: 500, mask: "linear-gradient(100deg, #000 0%, #000 46%, transparent 86%)" }]
-      : [{ color: a, left: 0, width: 330, mask: "linear-gradient(100deg, #000 0%, #000 52%, transparent 96%)" },
-         { color: b, left: 150, width: 340, mask: "linear-gradient(100deg, transparent 2%, #000 34%, #000 58%, transparent 86%)" }];
+      // due squadre: il passaggio di colore sta nello spazio tra i due loghi (x 175 → 250); il colore di sinistra
+      // resta pieno sotto quello di destra che sfuma, così nel passaggio non si vede la fascia chiara
+      : [{ color: a, left: 0, width: 330, mask: "linear-gradient(100deg, #000 0%, #000 79%, transparent 100%)" },
+         { color: b, left: 150, width: 340, mask: "linear-gradient(100deg, transparent 7%, #000 29%, #000 58%, transparent 86%)" }];
   }
   const pal = PALETTES[data.palette] || PALETTES.classic;
   const col = Object.assign({}, pal.colors, data.colors || {});
