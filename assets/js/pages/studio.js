@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030319";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, currentWeekIndex } from "../api.js?v=202610030319";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030324";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, currentWeekIndex } from "../api.js?v=202610030324";
 
 renderChrome("");
 
@@ -1668,8 +1668,8 @@ const fracDisp = (m, a) => (d) => (d.own[a] != null ? `${d.own[m] ?? 0}/${d.own[
 // count: convertibile a partita · better: direzione del rank (null = nessun rank) · fmt: int | dec | pct | time
 const TC_STATS = [
   ["ATTACCO", [
-    { key: "pts", label: "PUNTI FATTI", labelG: "PUNTI A PARTITA", v: O("scoring.totalPoints"), count: true, better: "high" },
-    { key: "yds", label: "YARD TOTALI", labelG: "YARD A PARTITA", v: O("rushing.totalYards"), count: true, better: "high" },
+    { key: "pts", label: "PUNTI SEGNATI", v: O("scoring.totalPoints"), count: true, better: "high" },
+    { key: "yds", label: "YARD TOTALI", v: O("rushing.totalYards"), count: true, better: "high" },
     { key: "passYds", label: "YARD SU PASSAGGIO", v: O("passing.netPassingYards"), count: true, better: "high" },
     { key: "rushYds", label: "YARD SU CORSA", v: O("rushing.rushingYards"), count: true, better: "high" },
     // efficienze (medie per giocata: stesso valore in "per partita" e "totale")
@@ -1686,7 +1686,7 @@ const TC_STATS = [
     { key: "td", label: "TD TOTALI", v: O("scoring.totalTouchdowns"), count: true, better: "high" },
     { key: "tdPass", label: "TD SU PASSAGGIO", v: O("passing.passingTouchdowns"), count: true, better: "high" },
     { key: "tdRush", label: "TD SU CORSA", v: O("rushing.rushingTouchdowns"), count: true, better: "high" },
-    { key: "top", label: "POSSESSO A PARTITA", v: (d) => (g0(d) ? d.own["miscellaneous.possessionTimeSeconds"] / g0(d) : null), fmt: "time", better: "high" },
+    { key: "top", label: "POSSESSO/PARTITA", v: (d) => (g0(d) ? d.own["miscellaneous.possessionTimeSeconds"] / g0(d) : null), fmt: "time", better: "high" },
     { key: "cmpAtt", label: "COMPLETATI/TENTATI", v: O("passing.completionPct"), disp: fracDisp("passing.completions", "passing.passingAttempts"), better: "high" },
     { key: "cmpPct", label: "COMPLETAMENTI %", v: O("passing.completionPct"), fmt: "pct", better: "high" },
     { key: "rtg", label: "PASSER RATING", v: O("passing.QBRating"), fmt: "dec", better: "high" },
@@ -1702,8 +1702,8 @@ const TC_STATS = [
     { key: "penYds", label: "YARD DI PENALITÀ", v: O("miscellaneous.totalPenaltyYards"), count: true, better: "low" },
   ]],
   ["DIFESA", [
-    { key: "ptsA", label: "PUNTI CONCESSI", labelG: "PUNTI CONCESSI A PARTITA", v: OP("scoring.totalPoints"), count: true, better: "low" },
-    { key: "ydsA", label: "YARD CONCESSE", labelG: "YARD CONCESSE A PARTITA", v: OP("rushing.totalYards"), count: true, better: "low" },
+    { key: "ptsA", label: "PUNTI CONCESSI", v: OP("scoring.totalPoints"), count: true, better: "low" },
+    { key: "ydsA", label: "YARD CONCESSE", v: OP("rushing.totalYards"), count: true, better: "low" },
     { key: "passA", label: "YARD SU PASSAGGIO CONCESSE", v: OP("passing.netPassingYards"), count: true, better: "low" },
     { key: "rushA", label: "YARD SU CORSA CONCESSE", v: OP("rushing.rushingYards"), count: true, better: "low" },
     { key: "yppA", label: "YARD/GIOCATA CONCESSA", v: ratioOpp("rushing.totalYards", "rushing.totalOffensivePlays"), fmt: "dec", better: "low" },
@@ -1761,19 +1761,23 @@ const TC_STATS = [
     { key: "prFc", label: "FAIR CATCH", v: O("returning.puntReturnFairCatches"), count: true, better: null },
   ]],
 ];
-const TC_ALL = TC_STATS.flatMap(([, list]) => list);
-const tc = { n: 2, nStats: 6, mode: "game", show: "both", teams: [], stats: ["pts", "yds", "passYds", "rushYds", "third", "give", "td"], data: {}, records: {}, loaded: false };
+// Ogni conteggio compare due volte nella lista: totale ("PUNTI SEGNATI") e a partita ("PUNTI SEGNATI/PARTITA").
+const TC_LISTS = TC_STATS.map(([g, list]) => [g, list.flatMap((st) => (st.count
+  ? [{ ...st, perGame: false }, { ...st, key: `${st.key}G`, label: `${st.label}/PARTITA`, perGame: true }]
+  : [st]))]);
+const TC_ALL = TC_LISTS.flatMap(([, list]) => list);
+const tc = { n: 2, nStats: 6, show: "both", teams: [], stats: ["ptsG", "ydsG", "passYdsG", "rushYdsG", "third", "give", "tdG"], data: {}, records: {}, loaded: false };
 const tcEls = {
-  n: document.getElementById("tc-n"), nStats: document.getElementById("tc-nstats"), mode: document.getElementById("tc-mode"), show: document.getElementById("tc-show"),
+  n: document.getElementById("tc-n"), nStats: document.getElementById("tc-nstats"), show: document.getElementById("tc-show"),
   teams: [0, 1, 2].map((i) => document.getElementById(`tc-team${i}`)), stats: [...document.querySelectorAll(".tc-stat")],
 };
 
-/** Valore numerico (per il rank) nella modalità scelta: i conteggi diventano "a partita". */
+/** Valore numerico (per il rank): le voci "/PARTITA" dividono il totale per le partite giocate. */
 function tcNum(st, d) {
   if (!d) return null;
   const v = st.v(d);
   if (v == null || Number.isNaN(v)) return null;
-  return st.count && tc.mode === "game" ? (g0(d) ? v / g0(d) : null) : v;
+  return st.perGame ? (g0(d) ? v / g0(d) : null) : v;
 }
 function tcDisp(st, d) {
   if (st.disp) return st.disp(d);
@@ -1782,7 +1786,7 @@ function tcDisp(st, d) {
   const sign = st.signed && v > 0 ? "+" : "";
   if (st.fmt === "time") return `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}`;
   if (st.fmt === "pct") return `${v.toFixed(1)}%`;
-  if (st.fmt === "dec" || (st.count && tc.mode === "game")) return sign + v.toFixed(1);
+  if (st.fmt === "dec" || st.perGame) return sign + v.toFixed(1);
   return sign + String(Math.round(v));
 }
 /** Rank NFL fra le 32 squadre (pari merito = stesso rank). */
@@ -1794,7 +1798,7 @@ function tcRank(st, id) {
   const better = vals.filter((v) => (st.better === "high" ? v > mine + 1e-9 : v < mine - 1e-9)).length;
   return better + 1;
 }
-const tcLabel = (st) => (tc.mode === "game" && st.labelG ? st.labelG : st.label);
+const tcLabel = (st) => st.label;
 
 async function loadTCompare() {
   try {
@@ -1827,7 +1831,7 @@ async function loadTCompare() {
 }
 function tcRenderControls() {
   tcEls.teams.forEach((el, i) => { el.closest(".select-field").hidden = i >= tc.n; el.value = tc.teams[i] || ""; });
-  const opts = TC_STATS.map(([g, list]) => `<optgroup label="${g}">${list.map((st) => `<option value="${st.key}">${esc(st.label)}${st.labelG ? ` (${esc(st.labelG)})` : ""}</option>`).join("")}</optgroup>`).join("");
+  const opts = TC_LISTS.map(([g, list]) => `<optgroup label="${g}">${list.map((st) => `<option value="${st.key}">${esc(st.label)}</option>`).join("")}</optgroup>`).join("");
   tcEls.stats.forEach((el, i) => {
     el.closest(".select-field").hidden = i >= tc.nStats;
     if (!el.options.length) el.innerHTML = opts;
@@ -1837,7 +1841,7 @@ function tcRenderControls() {
 function tcStatus() {
   const o = overrides.tcompare || {};
   const n = Object.keys(tc.data).length;
-  status.textContent = `Statistiche stagionali ESPN · rank calcolato su ${n} squadre · valori ${tc.mode === "game" ? "a partita" : "totali"}${!o.title?.trim() || !o.sub?.trim() ? " · scrivi titolo e sottotitolo in \"Testi personalizzati\"" : ""}`;
+  status.textContent = `Statistiche stagionali ESPN · rank calcolato su ${n} squadre${!o.title?.trim() || !o.sub?.trim() ? " · scrivi titolo e sottotitolo in \"Testi personalizzati\"" : ""}`;
 }
 tcEls.n.addEventListener("change", async () => {
   tc.n = Number(tcEls.n.value);
@@ -1845,7 +1849,6 @@ tcEls.n.addEventListener("change", async () => {
   await loadTCompare();
 });
 tcEls.nStats.addEventListener("change", () => { tc.nStats = Number(tcEls.nStats.value); tcRenderControls(); renderAll(); });
-tcEls.mode.addEventListener("change", () => { tc.mode = tcEls.mode.value; renderAll(); tcStatus(); });
 tcEls.show.addEventListener("change", () => { tc.show = tcEls.show.value; renderAll(); });
 tcEls.stats.forEach((el, i) => el.addEventListener("change", () => { tc.stats[i] = el.value; renderAll(); }));
 tcEls.teams.forEach((el, i) => el.addEventListener("change", () => { tc.teams[i] = el.value; loadTCompare(); }));
@@ -1879,7 +1882,7 @@ function tcCard(id, x, w, stats) {
   });
   const hdr = `<div class="g-bar" style="left:${x}px;top:${TC.hdrTop}px;width:${w}px;height:${TC.hdrH}px;background:#0f1e3f"></div>
     ${T("tcHdr", "STATISTICA", x + 41, TC.hdrCap, "left", { color: "#ffffff" })}
-    ${showV ? T("tcHdr", tc.mode === "game" ? "A PARTITA" : "TOTALE", x + valCx, TC.hdrCap, "center", { color: "#ffffff" }) : ""}
+    ${showV ? T("tcHdr", "VALORE", x + valCx, TC.hdrCap, "center", { color: "#ffffff" }) : ""}
     ${showR ? T("tcHdr", "RANK NFL", x + rCx, TC.hdrCap, "center", { color: "#ffffff" }) : ""}`;
   return `<div class="g-cell" style="left:${x}px;top:${TC.panelTop}px;width:${w}px;height:${TC.hdrTop - TC.panelTop}px;background:${col}"></div>
     <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${t.abbr.toLowerCase()}.png`, 400)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">

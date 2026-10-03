@@ -178,8 +178,9 @@ neutro (le statistiche restano).
 **Confronto squadre**. 2 o 3 squadre, 5-7 statistiche scelte da tendine divise in
 ATTACCO / DIFESA / SPECIAL TEAMS (incluse le efficienze yard/giocata, yard/tentativo,
 yard/portata e le versioni concesse, e il PASSER RATING AGAINST calcolato con la formula
-NFL sui totali concessi). **Valori**: per partita o totali (i conteggi si convertono, le
-medie restano uguali). **Mostra**: dato + rank, solo dato, solo rank. Il **rank NFL** è
+NFL sui totali concessi). Ogni conteggio è nella lista due volte, totale e "/PARTITA"
+(es. PUNTI SEGNATI e PUNTI SEGNATI/PARTITA), così ogni riga si sceglie a sé; medie e
+percentuali sono una voce sola. **Mostra**: dato + rank, solo dato, solo rank. Il **rank NFL** è
 calcolato confrontando le statistiche stagionali ESPN di tutte le 32 squadre (ESPN non lo
 espone), nella direzione giusta per ogni statistica (es. punti concessi: meno = meglio);
 colori: top 10 verde, 11-22 grigio, bottom 10 rosso. Titolo e sottotitolo obbligatori.
