@@ -423,6 +423,9 @@ function render() {
   headEl.innerHTML = `<div class="lt-title" id="ltTitle" style="color:${col.title}">${esc(data.title)}</div>
       ${hasSub ? `<div class="lt-sub" id="ltSub" style="color:${col.sub}">${esc(data.subtitle)}</div>` : ""}`;
   syncPlayerPhotos();
+  // due giocatori: quello di destra ha la spalla sinistra tagliata da una curva netta, così quello di
+  // sinistra sembra davanti (niente trasparenze sovrapposte); con un solo giocatore nessuna maschera
+  slots.player2.el.classList.toggle("lt-mask-front", s1.show && s2.show && s1.isPhoto && s2.isPhoto);
   slots.player1.fitHeadshot(); slots.player2.fitHeadshot(); // il riquadro cambia misura con 1 o 2 giocatori
   slots.player1.apply(); slots.player2.apply(); slots.boxPhoto.apply();
   // anteprima: scacchiera / scuro / fotogramma (non esportata)
