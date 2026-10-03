@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Lower third · 5DWN Studio</title>
+  <link rel="icon" href="assets/img/favicon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <style>
+    /* Generatore di lower third per i video 5DWN. Misure, colori e geometrie dal prototipo
+       "NFL Lower Third Show.dc.html" (fonte di verità), portato in HTML/CSS/JS senza framework. */
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #D5D9E0; font-family: "Archivo", sans-serif; color: #111; }
+    a { color: #2A50BC; } a:hover { color: #1A3486; }
+    .lt-app { display: flex; gap: 20px; padding: 20px; align-items: flex-start; }
+    .lt-stagecol { flex: 1 1 0; min-width: 0; }
+    .lt-stage { max-width: 100%; margin: 0 auto; overflow: hidden; position: relative; box-shadow: 0 10px 40px rgba(20, 30, 60, .18); }
+    .lt-world { width: 1920px; height: 1080px; transform-origin: 0 0; position: absolute; left: 0; top: 0; }
+    .lt-preview-bg { position: absolute; inset: 0; background-size: 48px 48px; }
+    .lt-preview-photo { position: absolute; inset: 0; }
+    .lt-canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }
+    .lt-banner { position: absolute; left: 0; width: 1920px; pointer-events: auto; }
+    .lt-banner > svg { position: absolute; left: 0; top: 0; display: block; overflow: visible; }
+
+    .lt-tab { position: absolute; top: -46px; transform: translateX(-50%); height: 46px; padding: 0 30px; display: flex; align-items: center; gap: 16px;
+      white-space: nowrap; font-weight: 700; font-stretch: 92%; font-size: 31px; letter-spacing: .01em; text-transform: uppercase; }
+    .lt-tab img { height: 38px; width: 38px; object-fit: contain; display: block; }
+
+    .lt-box { position: absolute; left: 0; top: 0; width: 417px; height: 152px; }
+    .lt-box-clip { position: absolute; inset: 0; clip-path: path('M0,0 L417,0 C414,60 400,152 384,152 L0,152 Z'); }
+    .lt-box-clip > svg { position: absolute; left: 0; top: 0; display: block; }
+    .lt-box-split { position: absolute; inset: 0; clip-path: path('M236,0 L420,0 L420,152 L172,152 C210,152 232,61 236,0 Z'); }
+    .lt-slot-pos { position: absolute; }
+    .lt-slot-pos > img.lt-logo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center center; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .3)); }
+    .lt-player-mask {
+      -webkit-mask-image: linear-gradient(to right, transparent 0, #000 7%, #000 93%, transparent 100%), linear-gradient(to bottom, transparent 0, #000 9%);
+      -webkit-mask-composite: source-in;
+      mask-image: linear-gradient(to right, transparent 0, #000 7%, #000 93%, transparent 100%), linear-gradient(to bottom, transparent 0, #000 9%);
+      mask-composite: intersect;
+    }
+    .lt-box-text { position: absolute; left: 0; top: 0; width: 400px; height: 152px; display: flex; align-items: center; justify-content: center; gap: 16px; pointer-events: none; }
+    .lt-box-text img { height: 78px; width: auto; display: block; filter: drop-shadow(0 3px 0 #000) drop-shadow(0 0 10px rgba(0, 0, 0, .45)); }
+    .lt-box-lines { display: flex; flex-direction: column; align-items: center; font-weight: 900; font-stretch: 78%; text-transform: uppercase; line-height: .84;
+      letter-spacing: -.01em; text-shadow: 0 4px 0 #000, 0 0 16px rgba(0, 0, 0, .5); }
+    .lt-box-lines > div { white-space: nowrap; }
+
+    .lt-head { position: absolute; top: 0; height: 152px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+    .lt-title { font-weight: 800; font-stretch: 90%; line-height: 1; letter-spacing: -.01em; white-space: nowrap; width: max-content; }
+    .lt-sub { font-weight: 600; font-stretch: 90%; line-height: 1; white-space: nowrap; width: max-content; }
+
+    /* Riquadri immagine: trascina un file o clicca per caricarlo; rotella = zoom, trascinamento = sposta */
+    .img-slot { position: absolute; inset: 0; overflow: hidden; cursor: pointer; }
+    .img-slot img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: center center; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+    .img-slot[data-filled] { cursor: grab; }
+    .img-slot[data-filled]:active { cursor: grabbing; }
+    .img-slot:not([data-filled]) { border: 3px dashed rgba(255, 255, 255, .75); background: rgba(0, 0, 0, .18); display: flex; align-items: center; justify-content: center; text-align: center; }
+    .img-slot .slot-ph { font: 600 18px/1.25 "Archivo", sans-serif; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); padding: 8px; pointer-events: none; }
+    .img-slot[data-filled] .slot-ph { display: none; }
+    .img-slot.drag-over { outline: 4px solid #E09F58; outline-offset: -4px; }
+
+    /* Pannello editor */
+    .lt-editor { flex: 0 0 360px; position: sticky; top: 20px; background: #fff; border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px;
+      max-height: calc(100vh - 40px); overflow: auto; font-size: 14px; box-shadow: 0 6px 24px rgba(20, 30, 60, .12); }
+    .ed-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .ed-title { font-weight: 800; font-stretch: 112%; font-size: 16px; letter-spacing: .06em; }
+    .ed-btns { display: flex; gap: 6px; }
+    .ed-btn { font: inherit; font-weight: 700; font-size: 13px; padding: 7px 12px; border-radius: 6px; cursor: pointer; border: 1px solid #C9CED8; background: #fff; color: #111; }
+    .ed-btn:hover { background: #F1F3F6; }
+    .ed-btn.primary { border: 0; background: #2A50BC; color: #fff; }
+    .ed-btn.primary:hover { background: #1A3486; }
+    .ed-btn.outline { border: 1px solid #2A50BC; color: #2A50BC; }
+    .ed-btn.outline:hover { background: #EEF2FB; }
+    .ed-sec { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #E6E9EE; }
+    .ed-lbl { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: #5E6574; text-transform: uppercase; }
+    .ed-field { display: flex; flex-direction: column; gap: 5px; }
+    .ed-in, .ed-sel { font: inherit; font-size: 13px; padding: 7px 8px; border: 1px solid #C9CED8; border-radius: 6px; min-width: 0; background: #fff; color: #111; width: 100%; }
+    .ed-in.big { font-size: 14px; font-weight: 700; padding: 8px 10px; }
+    .ed-row { display: grid; grid-template-columns: 118px minmax(0, 1fr); align-items: center; gap: 8px; }
+    .ed-row > span { font-size: 12px; color: #3A404C; }
+    .ed-color { display: flex; align-items: center; gap: 6px; }
+    .ed-chip { flex: 0 0 22px; height: 22px; border-radius: 50%; border: 1px solid #C9CED8; }
+    .ed-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .ed-3 { display: grid; grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr); gap: 6px; }
+    .ed-check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .ed-note { font-size: 12px; color: #5E6574; line-height: 1.4; }
+    .ed-status { font-size: 12px; color: #2A50BC; min-height: 1em; }
+    [hidden] { display: none !important; }
+    @media (max-width: 900px) { .lt-app { flex-direction: column; } .lt-editor { position: static; flex-basis: auto; width: 100%; max-height: none; } .lt-stagecol { width: 100%; } }
+  </style>
+</head>
+<body>
+  <div class="lt-app">
+    <div class="lt-stagecol" id="stagecol">
+      <div class="lt-stage" id="stage">
+        <div class="lt-world" id="world">
+          <div class="lt-preview-bg" id="previewBg"></div>
+          <div class="lt-preview-photo" id="previewPhotoHost" hidden></div>
+          <!-- Solo questo layer trasparente 1920×1080 viene esportato -->
+          <div class="lt-canvas" id="canvas">
+            <div class="lt-banner" id="banner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="lt-editor" aria-label="Editor lower third">
+      <div class="ed-head">
+        <div class="ed-title">LOWER THIRD SHOW</div>
+        <div class="ed-btns">
+          <button type="button" class="ed-btn primary" id="btnBanner" title="Solo il banner, ritagliato">PNG banner</button>
+          <button type="button" class="ed-btn outline" id="btnFull" title="Frame intero 1920×1080 trasparente">1920×1080</button>
+          <button type="button" class="ed-btn" id="btnReset">Reset</button>
+        </div>
+      </div>
+      <div class="ed-status" id="status" role="status"></div>
+      <a href="studio.html" style="font-size:12px">← Torna allo Studio</a>
+
+      <label class="ed-field"><span class="ed-lbl">Titolo</span><input class="ed-in big" id="inTitle" autocomplete="off"></label>
+      <label class="ed-field"><span class="ed-lbl">Seconda riga (vuota = solo titolo)</span><input class="ed-in" id="inSub" autocomplete="off"></label>
+
+      <div class="ed-sec">
+        <span class="ed-lbl">Palette e colori</span>
+        <label class="ed-field"><span class="ed-lbl" style="font-size:11px">Preset (azzera i colori personalizzati)</span><select class="ed-sel" id="selPalette"></select></label>
+        <div id="colorRows" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+
+      <div class="ed-sec">
+        <span class="ed-lbl">Box segmento</span>
+        <select class="ed-sel" id="selBox" aria-label="Sfondo del box">
+          <option value="stripes">Strisce</option><option value="photo">Foto</option><option value="none">Nessuno</option>
+        </select>
+        <label class="ed-field" id="themeField"><span class="ed-lbl" style="font-size:11px">Strisce</span><select class="ed-sel" id="selTheme"></select></label>
+        <div id="boxControls" style="display:flex;flex-direction:column;gap:8px">
+          <div class="ed-2">
+            <input class="ed-in" id="inLine1" placeholder="Riga 1" autocomplete="off" style="font-weight:700">
+            <input class="ed-in" id="inLine2" placeholder="Riga 2" autocomplete="off" style="font-weight:700">
+          </div>
+          <div id="slotControls" style="display:flex;flex-direction:column;gap:8px"></div>
+          <label class="ed-check"><input type="checkbox" id="chkLogo"> Logo 5DWN nel box</label>
+        </div>
+      </div>
+
+      <div class="ed-sec">
+        <span class="ed-lbl">Linguetta superiore</span>
+        <select class="ed-sel" id="selTab" aria-label="Linguetta">
+          <option value="off">Nascosta</option><option value="match">Partita</option><option value="text">Testo</option>
+        </select>
+        <div id="tabMatch" style="display:flex;flex-direction:column;gap:6px">
+          <div class="ed-3">
+            <select class="ed-sel" id="selTeamA" aria-label="Squadra A"></select>
+            <input class="ed-in" id="inConn" autocomplete="off" style="font-weight:700;text-align:center" aria-label="Collegamento">
+            <select class="ed-sel" id="selTeamB" aria-label="Squadra B"></select>
+          </div>
+          <input class="ed-in" id="inInfo" placeholder="(-2.5) | DOMENICA, 19:00" autocomplete="off">
+        </div>
+        <input class="ed-in" id="inTabText" autocomplete="off" aria-label="Testo linguetta">
+      </div>
+
+      <div class="ed-sec">
+        <label class="ed-check"><input type="checkbox" id="chkBase"> Fascia blu di base</label>
+        <label class="ed-field"><span class="ed-lbl">Sfondo anteprima</span>
+          <select class="ed-sel" id="selBg"><option value="checker">Trasparente</option><option value="dark">Scuro</option><option value="photo">Fotogramma</option></select>
+        </label>
+      </div>
+      <div class="ed-note">Trascina i PNG scontornati sui riquadri tratteggiati del box (oppure clicca per sceglierli). Rotella: zoom · trascina: sposta · doppio clic: rimuovi. Export PNG trasparente.</div>
+    </aside>
+  </div>
+  <script type="module" src="lower-third.js"></script>
+</body>
+</html>

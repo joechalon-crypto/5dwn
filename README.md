@@ -234,6 +234,18 @@ passati). Le **Classifiche** riportano la settimana e la data nel sottotitolo
 ("CLASSIFICA · WEEK 4 · 4 OTT"). Tutti i selettori dello Studio sono menu a tendina (anche
 Grafica e Formato).
 
+**Lower third (video)** — pagina a parte `lower-third.html` (+ `lower-third.js`), raggiungibile
+dal menu Grafica dello Studio. Porta in HTML/CSS/JS il prototipo "NFL Lower Third Show"
+(riferimento in `reference/`, non pubblicato): stage 1920×1080 scalato, banner in basso con curve
+Bézier, box segmento (strisce / foto / nessuno, giocatori o loghi con colore squadra e divisione
+curva), titolo e seconda riga ad adattamento automatico, linguetta (partita / testo), 4 palette
+con colori sovrascrivibili riga per riga, fascia base, anteprima su scacchiera / scuro /
+fotogramma. Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
+doppio clic = rimuovi (immagini in IndexedDB, stato in localStorage `nfllowershow.v1`, Reset).
+Export con html-to-image (pixelRatio 2): "PNG banner" ritagliato sul banner reale e "1920×1080"
+frame intero, entrambi trasparenti; font Archivo incorporato nell'export. Selettori a tendina
+come nel resto dello Studio. Loghi 5DWN in `assets/5dwn-logo-{light,black,blue,orange}.png`.
+
 **Testi personalizzati**: il riquadro "Testi personalizzati" sotto i controlli ha tre
 campi opzionali (Titolo, Sottotitolo, Footer) per il template attivo. Vuoto = testo
 automatico (mostrato come segnaposto); compilato = il testo digitato sostituisce quello

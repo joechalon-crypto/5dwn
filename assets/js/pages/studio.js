@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610031159";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610031159";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610031440";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610031440";
 
 renderChrome("");
 
@@ -3083,6 +3083,7 @@ document.getElementById("fmt-select").addEventListener("change", (e) => {
 
 const tplToggle = document.getElementById("tpl-select");
 tplToggle.addEventListener("change", () => {
+  if (tplToggle.value === "lowerthird") { tplToggle.value = tpl; location.href = "lower-third.html"; return; } // pagina a parte
   if (tplToggle.value === tpl) return;
   tpl = tplToggle.value;
   weeks = tpl === "player" && plWeeks ? plWeeks : curWeeks; // Giocatore: settimane della stagione scelta

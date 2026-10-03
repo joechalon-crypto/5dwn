@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&amp;display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#D5D9E0;font-family:'Archivo',sans-serif;color:#111}
+a{color:#2A50BC}a:hover{color:#1A3486}
+</style>
+</helmet>
+<div style="display:flex;gap:20px;padding:20px;align-items:flex-start">
+  <div data-stage="1" style="flex:1 1 0;min-width:0">
+    <div style="width:{{ stageW }}px;max-width:100%;margin:0 auto;height:{{ stageH }}px;overflow:hidden;position:relative;box-shadow:0 10px 40px rgba(20,30,60,.18)">
+      <div style="width:1920px;height:1080px;transform:scale({{ scale }});transform-origin:0 0;position:absolute;left:0;top:0">
+        <div style="position:absolute;inset:0;background:{{ previewBg }};background-size:48px 48px"></div>
+        <sc-if value="{{ bgIsPhoto }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0">
+            <image-slot id="lts-preview-frame" shape="rect" placeholder="Fotogramma del video (solo anteprima)"></image-slot>
+          </div>
+        </sc-if>
+        <div ref="{{ canvasRef }}" data-screen-label="Lower third show" style="position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none">
+          <div style="position:absolute;left:0;width:1920px;bottom:{{ g.bottom }}px;height:{{ g.Hr }}px;pointer-events:auto">
+
+            <svg width="1920" height="{{ g.Hr }}" viewBox="{{ g.viewBox }}" style="position:absolute;left:0;top:0;display:block;overflow:visible">
+              <defs>
+                <clipPath id="lts-cp-panel"><rect x="0" y="0" width="1920" height="152"></rect></clipPath>
+                <clipPath id="lts-cp-top"><rect x="0" y="0" width="1920" height="161"></rect></clipPath>
+                <clipPath id="lts-cp-base"><rect x="0" y="161" width="1920" height="80"></rect></clipPath>
+                <linearGradient id="lts-panel-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#FFFFFF" stop-opacity=".3"></stop>
+                  <stop offset="1" stop-color="#000000" stop-opacity=".1"></stop>
+                </linearGradient>
+              </defs>
+              <path d="{{ g.bgPath }}" fill="{{ col.base }}"></path>
+              <g clip-path="url(#lts-cp-base)">
+                <sc-for list="{{ g.baseBands }}" as="bb" hint-placeholder-count="4"><path d="{{ bb.d }}" fill="{{ col.baseStripe }}"></path></sc-for>
+              </g>
+              <path d="{{ g.underline }}" fill="{{ col.curve1 }}" clip-path="url(#lts-cp-top)"></path>
+              <path d="{{ g.band1 }}" fill="{{ col.curve1 }}"></path>
+              <path d="{{ g.band2 }}" fill="{{ col.curve2 }}"></path>
+              <path d="{{ g.panel }}" fill="{{ col.panel }}" clip-path="url(#lts-cp-panel)"></path>
+              <path d="{{ g.panel }}" fill="url(#lts-panel-grad)" clip-path="url(#lts-cp-panel)"></path>
+            </svg>
+
+            <sc-if value="{{ tab.show }}" hint-placeholder-val="{{ true }}">
+              <div style="position:absolute;top:-46px;left:{{ head.center }}px;transform:translateX(-50%);height:46px;padding:0 30px;background:{{ col.tabBg }};display:flex;align-items:center;gap:16px;white-space:nowrap;font-weight:700;font-stretch:92%;font-size:31px;letter-spacing:.01em;text-transform:uppercase;color:{{ col.tabText }}">
+                <sc-if value="{{ tab.isMatch }}" hint-placeholder-val="{{ true }}">
+                  <img src="{{ tab.logoA }}" alt="" crossorigin="anonymous" style="height:38px;width:38px;object-fit:contain;display:block">
+                  <span>{{ tab.textA }}</span>
+                  <img src="{{ tab.logoB }}" alt="" crossorigin="anonymous" style="height:38px;width:38px;object-fit:contain;display:block">
+                  <span>{{ tab.textB }}</span>
+                </sc-if>
+                <sc-if value="{{ tab.isText }}" hint-placeholder-val="{{ false }}">
+                  <span>{{ tab.text }}</span>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ box.show }}" hint-placeholder-val="{{ true }}">
+              <div style="position:absolute;left:0;top:0;width:417px;height:152px">
+                <div style="position:absolute;inset:0;clip-path:path('M0,0 L417,0 C414,60 400,152 384,152 L0,152 Z');background:{{ box.bg }}">
+                  <sc-if value="{{ box.drawStripes }}" hint-placeholder-val="{{ true }}">
+                    <svg width="417" height="152" viewBox="0 0 417 152" style="position:absolute;left:0;top:0;display:block">
+                      <sc-for list="{{ box.bands }}" as="b" hint-placeholder-count="3"><path d="{{ b.d }}" fill="{{ box.stripe }}"></path></sc-for>
+                    </svg>
+                  </sc-if>
+                  <sc-if value="{{ box.drawPhoto }}" hint-placeholder-val="{{ false }}">
+                    <image-slot id="lts-box-photo" shape="rect" placeholder="Sfondo segmento (stadio, campo…)"></image-slot>
+                  </sc-if>
+                  <sc-if value="{{ box.split }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;inset:0;background:{{ box.bg2 }};clip-path:path('M236,0 L420,0 L420,152 L172,152 C210,152 232,61 236,0 Z')"></div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ s1.show }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:absolute;left:{{ s1.x }}px;bottom:{{ s1.bottom }}px;width:{{ s1.w }}px;height:{{ s1.h }}px">
+                    <sc-if value="{{ s1.isPhoto }}" hint-placeholder-val="{{ true }}">
+                      <image-slot id="lts-player-1" shape="rect" fit="contain" placeholder="Giocatore 1 (PNG scontornato)" style="-webkit-mask-image:linear-gradient(to right,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(to bottom,transparent 0,#000 9%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(to bottom,transparent 0,#000 9%);mask-composite:intersect"></image-slot>
+                    </sc-if>
+                    <sc-if value="{{ s1.isLogo }}" hint-placeholder-val="{{ false }}">
+                      <img src="{{ s1.logo }}" alt="" crossorigin="anonymous" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center;filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))">
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ s2.show }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:absolute;left:{{ s2.x }}px;bottom:{{ s2.bottom }}px;width:{{ s2.w }}px;height:{{ s2.h }}px">
+                    <sc-if value="{{ s2.isPhoto }}" hint-placeholder-val="{{ true }}">
+                      <image-slot id="lts-player-2" shape="rect" fit="contain" placeholder="Giocatore 2 (PNG scontornato)" style="-webkit-mask-image:linear-gradient(to right,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(to bottom,transparent 0,#000 9%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0,#000 7%,#000 93%,transparent 100%),linear-gradient(to bottom,transparent 0,#000 9%);mask-composite:intersect"></image-slot>
+                    </sc-if>
+                    <sc-if value="{{ s2.isLogo }}" hint-placeholder-val="{{ false }}">
+                      <img src="{{ s2.logo }}" alt="" crossorigin="anonymous" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center center;filter:drop-shadow(0 4px 8px rgba(0,0,0,.3))">
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <div style="position:absolute;left:0;top:0;width:400px;height:152px;display:flex;align-items:center;justify-content:center;gap:16px;pointer-events:none">
+                  <sc-if value="{{ box.showLogo }}" hint-placeholder-val="{{ true }}">
+                    <img src="./assets/5dwn-logo-light.png" alt="5DWN" style="height:78px;width:auto;display:block;filter:drop-shadow(0 3px 0 #000) drop-shadow(0 0 10px rgba(0,0,0,.45))">
+                  </sc-if>
+                  <div style="display:flex;flex-direction:column;align-items:center;font-weight:900;font-stretch:78%;text-transform:uppercase;line-height:.84;letter-spacing:-.01em;text-shadow:0 4px 0 #000,0 0 16px rgba(0,0,0,.5)">
+                    <div style="font-size:{{ box.fs1 }}px;color:{{ col.l1 }};white-space:nowrap">{{ box.line1 }}</div>
+                    <div style="font-size:{{ box.fs2 }}px;color:{{ col.l2 }};white-space:nowrap">{{ box.line2 }}</div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <div style="position:absolute;left:{{ head.left }}px;width:{{ head.width }}px;top:0;height:152px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+              <div ref="{{ titleRef }}" style="font-weight:800;font-stretch:90%;font-size:{{ titleFs }}px;line-height:1;letter-spacing:-.01em;white-space:nowrap;color:{{ col.title }};width:max-content">{{ title }}</div>
+              <sc-if value="{{ hasSub }}" hint-placeholder-val="{{ true }}">
+                <div ref="{{ subRef }}" style="font-weight:600;font-stretch:90%;font-size:{{ subFs }}px;line-height:1;white-space:nowrap;color:{{ col.sub }};width:max-content">{{ subtitle }}</div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ showEditor }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:0 0 360px;position:sticky;top:20px;background:#fff;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 40px);overflow:auto;font-size:14px;box-shadow:0 6px 24px rgba(20,30,60,.12)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font-weight:800;font-stretch:112%;font-size:16px;letter-spacing:.06em">LOWER THIRD SHOW</div>
+        <div style="display:flex;gap:6px">
+          <button onClick="{{ exportBanner }}" title="Solo il banner, ritagliato" style="font:inherit;font-weight:700;font-size:13px;padding:7px 12px;border:0;border-radius:6px;background:#2A50BC;color:#fff;cursor:pointer" style-hover="background:#1A3486">PNG banner</button>
+          <button onClick="{{ exportPng }}" title="Frame intero 1920×1080 trasparente" style="font:inherit;font-weight:700;font-size:13px;padding:7px 12px;border:1px solid #2A50BC;border-radius:6px;background:#fff;color:#2A50BC;cursor:pointer" style-hover="background:#EEF2FB">1920×1080</button>
+          <button onClick="{{ reset }}" style="font:inherit;font-size:13px;padding:7px 12px;border:1px solid #C9CED8;border-radius:6px;background:#fff;cursor:pointer" style-hover="background:#F1F3F6">Reset</button>
+        </div>
+      </div>
+
+      <label style="display:flex;flex-direction:column;gap:5px">
+        <span style="font-size:12px;font-weight:600;letter-spacing:.06em;color:#5E6574">TITOLO</span>
+        <input value="{{ title }}" onChange="{{ setTitle }}" style="font:inherit;font-weight:700;padding:8px 10px;border:1px solid #C9CED8;border-radius:6px">
+      </label>
+      <label style="display:flex;flex-direction:column;gap:5px">
+        <span style="font-size:12px;font-weight:600;letter-spacing:.06em;color:#5E6574">SECONDA RIGA (vuota = solo titolo)</span>
+        <input value="{{ subtitle }}" onChange="{{ setSubtitle }}" style="font:inherit;padding:8px 10px;border:1px solid #C9CED8;border-radius:6px">
+      </label>
+
+      <div style="display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid #E6E9EE">
+        <span style="font-size:12px;font-weight:600;letter-spacing:.06em;color:#5E6574">PALETTE E COLORI</span>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+          <sc-for list="{{ paletteOpts }}" as="p" hint-placeholder-count="4">
+            <button onClick="{{ p.pick }}" title="{{ p.label }}" style="height:34px;border-radius:6px;cursor:pointer;padding:0;overflow:hidden;display:grid;grid-template-columns:2fr 1fr 1fr;border:{{ p.border }}">
+              <span style="background:{{ p.c1 }}"></span><span style="background:{{ p.c2 }}"></span><span style="background:{{ p.c3 }}"></span>
+            </button>
+          </sc-for>
+        </div>
+        <sc-for list="{{ colorRows }}" as="row" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:118px minmax(0,1fr);align-items:center;gap:8px">
+            <span style="font-size:12px;color:#3A404C">{{ row.label }}</span>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ row.sw }}" as="sw" hint-placeholder-count="5">
+                <button onClick="{{ sw.pick }}" title="{{ sw.c }}" style="width:26px;height:26px;border-radius:50%;cursor:pointer;padding:0;background:{{ sw.c }};border:1px solid #C9CED8;box-shadow:{{ sw.ring }}"></button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid #E6E9EE">
+        <span style="font-size:12px;font-weight:600;letter-spacing:.06em;color:#5E6574">BOX SEGMENTO</span>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          <sc-for list="{{ boxOpts }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.pick }}" style="font:inherit;font-size:12px;font-weight:600;padding:7px 4px;border-radius:6px;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};border:1px solid {{ o.bd }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ box.isStripes }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+            <sc-for list="{{ themeOpts }}" as="t" hint-placeholder-count="4">
+              <button onClick="{{ t.pick }}" title="{{ t.label }}" style="height:34px;border-radius:6px;cursor:pointer;padding:0;overflow:hidden;display:grid;grid-template-columns:2fr 1fr;border:{{ t.border }}">
+                <span style="background:{{ t.bg }}"></span><span style="background:{{ t.stripe }}"></span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ box.show }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <input value="{{ box.line1 }}" onChange="{{ setLine1 }}" placeholder="Riga 1" style="font:inherit;font-size:13px;font-weight:700;padding:7px;border:1px solid #C9CED8;border-radius:6px;min-width:0">
+            <input value="{{ box.line2 }}" onChange="{{ setLine2 }}" placeholder="Riga 2" style="font:inherit;font-size:13px;font-weight:700;padding:7px;border:1px solid #C9CED8;border-radius:6px;min-width:0">
+          </div>
+          <sc-for list="{{ edSlots }}" as="es" hint-placeholder-count="2">
+            <span style="font-size:12px;font-weight:600;letter-spacing:.06em;color:#5E6574">{{ es.label }}</span>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+              <sc-for list="{{ es.kinds }}" as="o" hint-placeholder-count="3">
+                <button onClick="{{ o.pick }}" style="font:inherit;font-size:12px;font-weight:600;padding:7px 4px;border-radius:6px;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};border:1px solid {{ o.bd }}">{{ o.label }}</button>
+              </sc-for>
+            </div>
+            <sc-if value="{{ es.hasTeam }}" hint-placeholder-val="{{ false }}">
+              <select data-v="{{ es.team }}" value="{{ es.team }}" onChange="{{ es.setTeam }}" style="font:inherit;font-size:13px;padding:7px;border:1px solid #C9CED8;border-radius:6px">
+                <sc-for list="{{ teamOpts }}" as="t" hint-placeholder-count="4"><option value="{{ t.code }}">{{ t.label }}</option></sc-for>
+              </select>
+            </sc-if>
+          </sc-for>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+            <input type="checkbox" checked="{{ box.showLogo }}" onChange="{{ toggleLogo }}"> Logo 5DWN nel box
+          </label>
+        </sc-if>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid #E6E9EE">
+        <span style="font-size:12px;font-weight:600;letter-spacing:.06em;color:#5E6574">LINGUETTA SUPERIORE</span>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          <sc-for list="{{ tabOpts }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.pick }}" style="font:inherit;font-size:12px;font-weight:600;padding:7px 4px;border-radius:6px;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};border:1px solid {{ o.bd }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ tab.isMatch }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);gap:6px">
+            <select data-v="{{ tab.a }}" value="{{ tab.a }}" onChange="{{ setTeamA }}" style="font:inherit;font-size:13px;padding:7px;border:1px solid #C9CED8;border-radius:6px;min-width:0">
+              <sc-for list="{{ teamOpts }}" as="t" hint-placeholder-count="4"><option value="{{ t.code }}">{{ t.label }}</option></sc-for>
+            </select>
+            <input value="{{ tab.conn }}" onChange="{{ setConn }}" style="font:inherit;font-size:13px;font-weight:700;padding:7px;border:1px solid #C9CED8;border-radius:6px;min-width:0;text-align:center">
+            <select data-v="{{ tab.b }}" value="{{ tab.b }}" onChange="{{ setTeamB }}" style="font:inherit;font-size:13px;padding:7px;border:1px solid #C9CED8;border-radius:6px;min-width:0">
+              <sc-for list="{{ teamOpts }}" as="t" hint-placeholder-count="4"><option value="{{ t.code }}">{{ t.label }}</option></sc-for>
+            </select>
+          </div>
+          <input value="{{ tab.info }}" onChange="{{ setInfo }}" placeholder="(-2.5) | DOMENICA, 19:00" style="font:inherit;font-size:13px;padding:7px;border:1px solid #C9CED8;border-radius:6px">
+        </sc-if>
+        <sc-if value="{{ tab.isText }}" hint-placeholder-val="{{ false }}">
+          <input value="{{ tab.text }}" onChange="{{ setTabText }}" style="font:inherit;font-size:13px;padding:7px;border:1px solid #C9CED8;border-radius:6px">
+        </sc-if>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid #E6E9EE">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <input type="checkbox" checked="{{ base }}" onChange="{{ toggleBase }}"> Fascia blu di base
+        </label>
+        <span style="font-size:12px;font-weight:600;letter-spacing:.06em;color:#5E6574">SFONDO ANTEPRIMA</span>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          <sc-for list="{{ bgOpts }}" as="o" hint-placeholder-count="3">
+            <button onClick="{{ o.pick }}" style="font:inherit;font-size:12px;font-weight:600;padding:7px 4px;border-radius:6px;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};border:1px solid {{ o.bd }}">{{ o.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#5E6574;line-height:1.4">Trascina i PNG scontornati sui riquadri tratteggiati del box. Export PNG 1920×1080 trasparente.</div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showEditor&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const T = {
+  NFL:['NFL','NFL','nfl'],
+  ARI:['Arizona','Cardinals','ari'], ATL:['Atlanta','Falcons','atl'], BAL:['Baltimore','Ravens','bal'], BUF:['Buffalo','Bills','buf'],
+  CAR:['Carolina','Panthers','car'], CHI:['Chicago','Bears','chi'], CIN:['Cincinnati','Bengals','cin'], CLE:['Cleveland','Browns','cle'],
+  DAL:['Dallas','Cowboys','dal'], DEN:['Denver','Broncos','den'], DET:['Detroit','Lions','det'], GB:['Green Bay','Packers','gb'],
+  HOU:['Houston','Texans','hou'], IND:['Indianapolis','Colts','ind'], JAX:['Jacksonville','Jaguars','jax'], KC:['Kansas City','Chiefs','kc'],
+  LV:['Las Vegas','Raiders','lv'], LAC:['Los Angeles','Chargers','lac'], LAR:['Los Angeles','Rams','lar'], MIA:['Miami','Dolphins','mia'],
+  MIN:['Minnesota','Vikings','min'], NE:['New England','Patriots','ne'], NO:['New Orleans','Saints','no'], NYG:['New York','Giants','nyg'],
+  NYJ:['New York','Jets','nyj'], PHI:['Philadelphia','Eagles','phi'], PIT:['Pittsburgh','Steelers','pit'], SF:['San Francisco','49ers','sf'],
+  SEA:['Seattle','Seahawks','sea'], TB:['Tampa Bay','Buccaneers','tb'], TEN:['Tennessee','Titans','ten'], WSH:['Washington','Commanders','wsh']
+};
+const TC = {
+  NFL:['#013369','#fff'],
+  ARI:['#C8143C','#fff'], ATL:['#D21F3C','#fff'], BAL:['#2B1A72','#fff'], BUF:['#0B4FC7','#fff'], CAR:['#0A85D1','#fff'], CHI:['#0B1F44','#fff'],
+  CIN:['#FB4F14','#fff'], CLE:['#FF4A0D','#fff'], DAL:['#0E2A55','#fff'], DEN:['#FB4F14','#fff'], DET:['#0076B6','#fff'], GB:['#1F4A3A','#fff'],
+  HOU:['#0B2554','#fff'], IND:['#0A44C2','#fff'], JAX:['#0F8FA8','#fff'], KC:['#E31837','#fff'], LV:['#B5BABD','#111'], LAC:['#0A7FE0','#fff'],
+  LAR:['#0054D6','#fff'], MIA:['#139FB0','#fff'], MIN:['#4F2683','#fff'], NE:['#0B2552','#fff'], NO:['#D3BC8D','#111'], NYG:['#1C3FC6','#fff'],
+  NYJ:['#125740','#fff'], PHI:['#035E63','#fff'], PIT:['#FFB612','#111'], SF:['#AA0000','#fff'], SEA:['#0E2550','#fff'], TB:['#D50A0A','#fff'],
+  TEN:['#102A5E','#fff'], WSH:['#5A1414','#fff']
+};
+const THEMES = {
+  orange: { label:'Arancio / Blu', bg:'#E09F58', stripe:'#2A50BC' },
+  light:  { label:'Chiaro / Nero', bg:'#F2F2F2', stripe:'#000000' },
+  blue:   { label:'Blu / Chiaro', bg:'#2A50BC', stripe:'#F2F2F2' },
+  black:  { label:'Nero / Arancio', bg:'#000000', stripe:'#E09F58' }
+};
+const DEFAULTS = {
+  title: 'Meglio Lawrence o Burrow domenica?', subtitle: "Passer rating '26: Trevor Lawrence 8° (107.8), Joe Burrow 11° (106.6)",
+  box: 'stripes', theme: 'black', line1: 'Duello', line2: 'in regia', showLogo: true,
+  slots: [{ kind: 'photo', team: 'JAX' }, { kind: 'photo', team: 'CIN' }],
+  palette: 'classic', colors: null,
+  tab: 'match', teamA: 'JAX', teamB: 'CIN', conn: 'at', info: '(-2.5) | Domenica, 19:00', tabText: 'Week 5 · Anteprima',
+  base: true, bg: 'checker'
+};
+const KEY = 'nfllowershow.v1';
+const PALETTES = {
+  classic: { label:'Classico', colors:{ panel:'#F2F2F2', curve1:'#E09F58', curve2:'#E09F58', base:'#2A50BC', baseStripe:'#1A3486',
+    l1:'#F2F2F2', l2:'#E09F58', title:'#0F1E4A', sub:'#0F1E4A', tabText:'#F2F2F2', tabBg:'#2A50BC' } },
+  night: { label:'Notte', colors:{ panel:'#000000', curve1:'#E09F58', curve2:'#E09F58', base:'#2A50BC', baseStripe:'#1A3486',
+    l1:'#F2F2F2', l2:'#E09F58', title:'#F2F2F2', sub:'#E09F58', tabText:'#000000', tabBg:'#E09F58' } },
+  blue: { label:'Blu', colors:{ panel:'#2A50BC', curve1:'#F2F2F2', curve2:'#F2F2F2', base:'#000000', baseStripe:'#0F1E4A',
+    l1:'#F2F2F2', l2:'#E09F58', title:'#F2F2F2', sub:'#F2F2F2', tabText:'#F2F2F2', tabBg:'#000000' } },
+  orange: { label:'Arancio', colors:{ panel:'#E09F58', curve1:'#2A50BC', curve2:'#2A50BC', base:'#000000', baseStripe:'#0F1E4A',
+    l1:'#F2F2F2', l2:'#E09F58', title:'#000000', sub:'#000000', tabText:'#F2F2F2', tabBg:'#2A50BC' } }
+};
+const SWATCHES = ['#F2F2F2', '#E09F58', '#2A50BC', '#1A3486', '#0F1E4A', '#000000'];
+const ROWS = [['panel','Pannello'], ['curve1','Linea + curva 1'], ['curve2','Curva 2'], ['base','Fascia base'], ['baseStripe','Strisce fascia'],
+  ['title','Titolo'], ['sub','Seconda riga'], ['l1','Box riga 1'], ['l2','Box riga 2'], ['tabText','Linguetta testo'], ['tabBg','Linguetta sfondo']];
+const W = 1920, P = 1830, OW = 40, BOXW = 417;
+const T_BASE = 80, S_BASE = 50, T_SOLO = 92;
+const clone = o => JSON.parse(JSON.stringify(o));
+const r1 = n => Math.round(n * 10) / 10;
+function curves(Hr) {
+  const D = 1.1 * Hr;
+  const down = x0 => `C${r1(x0 - .06 * D)},${r1(.4 * Hr)} ${r1(x0 - .4 * D)},${Hr} ${r1(x0 - D)},${Hr}`;
+  const up = x0 => `C${r1(x0 - .4 * D)},${Hr} ${r1(x0 - .06 * D)},${r1(.4 * Hr)} ${x0},0`;
+  const leftOf = x0 => `M0,0 L${x0},0 ${down(x0)} L0,${Hr} Z`;
+  const between = (a, b) => `M${a},0 L${b},0 ${down(b)} L${r1(a - D)},${Hr} ${up(a)} Z`;
+  return { leftOf, between };
+}
+function boxBand(rt) {
+  const H = 152, k = H / 125, TW = 82 * k, DR = 138 * k, DL = 115 * k;
+  const lt = rt - TW, rb = rt - DR, lb = lt - DL, P2 = (x, y) => `${r1(x)},${r1(y)}`;
+  return `M${P2(lb,H)} C${P2(lb + .6*DL,H)} ${P2(lt - .06*DL,.4*H)} ${P2(lt,0)} L${P2(rt,0)} C${P2(rt - .06*DR,.4*H)} ${P2(rb + .6*DR,H)} ${P2(rb,H)} Z`;
+}
+
+class Component extends DCLogic {
+  state = { data: this.load(), scale: 0.4, titleFs: T_BASE, subFs: S_BASE };
+  canvasRef = React.createRef();
+  titleRef = React.createRef();
+  subRef = React.createRef();
+  load() {
+    try { const s = localStorage.getItem(KEY); if (s) return Object.assign(clone(DEFAULTS), JSON.parse(s)); } catch (e) {}
+    return clone(DEFAULTS);
+  }
+  componentDidMount() {
+    this.attach(); setTimeout(() => { this.fit(); this.fitText(); }, 300); this.syncSel();
+    this.onWin = () => this.fit(); window.addEventListener('resize', this.onWin);
+    document.fonts && document.fonts.ready.then(() => this.fitText());
+  }
+  componentDidUpdate() { this.attach(); this.fit(); this.syncSel(); this.fitText(); }
+  componentWillUnmount() { this.ro && this.ro.disconnect(); window.removeEventListener('resize', this.onWin); }
+  headBox() {
+    const left = this.state.data.box === 'none' ? 60 : BOXW + 36;
+    const right = P - 190;
+    return { left, width: right - left, center: Math.round((left + right) / 2) };
+  }
+  fitOne(ref, cur, base, key) {
+    const el = ref.current; if (!el || !el.scrollWidth) return null;
+    const natural = el.scrollWidth * base / cur;
+    const fs = Math.min(base, Math.floor(base * this.headBox().width / natural));
+    return Math.abs(fs - cur) > 1 ? { [key]: fs } : null;
+  }
+  fitText() {
+    const hasSub = !!(this.state.data.subtitle || '').trim();
+    const tb = hasSub ? T_BASE : T_SOLO;
+    const upd = Object.assign({}, this.fitOne(this.titleRef, this.state.titleFs, tb, 'titleFs'),
+      hasSub ? this.fitOne(this.subRef, this.state.subFs, S_BASE, 'subFs') : null);
+    if (Object.keys(upd).length) this.setState(upd);
+  }
+  syncSel() { clearTimeout(this.selT); this.selT = setTimeout(() => this.syncSel1(), 120); this.syncSel1(); }
+  syncSel1() { requestAnimationFrame(() => document.querySelectorAll('select[data-v]').forEach(s => { if (s.value !== s.dataset.v) s.value = s.dataset.v; })); }
+  attach() {
+    const el = document.querySelector('[data-stage]');
+    if (!el) { if (!this.raf) this.raf = requestAnimationFrame(() => { this.raf = null; this.attach(); }); return; }
+    if (this.roEl === el) return;
+    this.ro && this.ro.disconnect(); this.roEl = el;
+    this.ro = new ResizeObserver(() => this.fit()); this.ro.observe(el); this.fit();
+  }
+  fit() {
+    const el = this.roEl; if (!el) return;
+    if (!el.clientWidth) { requestAnimationFrame(() => this.fit()); return; }
+    const s = el.clientWidth / 1920;
+    if (Math.abs(s - this.state.scale) > 0.0005) this.setState({ scale: s });
+  }
+  mut(fn) {
+    const data = clone(this.state.data); fn(data);
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
+    const hasSub = !!(data.subtitle || '').trim();
+    this.setState({ data, titleFs: hasSub ? Math.min(this.state.titleFs, T_BASE) : this.state.titleFs });
+  }
+  cropBox(node) {
+    const base = node.getBoundingClientRect(), s = this.state.scale;
+    let x0 = 1920, y0 = 1080, x1 = 0, y1 = 0;
+    node.querySelectorAll('*').forEach(el => {
+      if (el.closest('image-slot:not([data-filled])')) return;
+      const r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
+      x0 = Math.min(x0, (r.left - base.left) / s); y0 = Math.min(y0, (r.top - base.top) / s);
+      x1 = Math.max(x1, (r.right - base.left) / s); y1 = Math.max(y1, (r.bottom - base.top) / s);
+    });
+    x0 = Math.max(0, Math.floor(x0)); y0 = Math.max(0, Math.floor(y0));
+    return { x: x0, y: y0, w: Math.min(1920, Math.ceil(x1)) - x0, h: Math.min(1080, Math.ceil(y1)) - y0 };
+  }
+  async exportPng(crop) {
+    const node = this.canvasRef.current;
+    if (!window.htmlToImage) return alert('Export non disponibile.');
+    try {
+      const full = await window.htmlToImage.toCanvas(node, { width: 1920, height: 1080, pixelRatio: 2, cacheBust: true,
+        filter: n => !(n.tagName === 'IMAGE-SLOT' && !n.hasAttribute('data-filled')) });
+      let out = full;
+      if (crop) {
+        const b = this.cropBox(node);
+        out = document.createElement('canvas'); out.width = b.w * 2; out.height = b.h * 2;
+        out.getContext('2d').drawImage(full, b.x * 2, b.y * 2, b.w * 2, b.h * 2, 0, 0, b.w * 2, b.h * 2);
+      }
+      const url = out.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url; a.download = (crop ? 'banner-' : 'lower-third-show-') + (this.state.data.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40) + '.png'; a.click();
+    } catch (e) { alert('Export non riuscito (loghi esterni bloccati). Usa uno screenshot del canvas.'); }
+  }
+  renderVals() {
+    const { data, scale, titleFs, subFs } = this.state;
+    const Hr = data.base ? 241 : 161;
+    const c = curves(Hr);
+    const baseBands = [];
+    if (data.base) for (let x = 360; x < P - 100; x += 380) baseBands.push({ d: c.between(x, x + 150) });
+    const g = {
+      Hr, bottom: data.base ? 0 : 40, viewBox: `0 0 1920 ${Hr}`,
+      bgPath: c.leftOf(W + 1.1 * Hr + 10), baseBands,
+      underline: c.leftOf(P + OW), band1: c.between(P, P + OW), band2: c.between(P + OW + 56, P + OW + 78),
+      panel: c.leftOf(P)
+    };
+    const th = THEMES[data.theme] || THEMES.black;
+    const len1 = (data.line1 || '').length, len2 = (data.line2 || '').length;
+    const fsFor = n => Math.max(34, Math.min(70, Math.round(560 / Math.max(n, 1))));
+    const box = {
+      show: data.box !== 'none', isStripes: data.box === 'stripes', isPhoto: data.box === 'photo',
+      drawStripes: data.box === 'stripes', drawPhoto: data.box === 'photo',
+      bg: data.box === 'stripes' ? th.bg : '#1B1F26', stripe: th.stripe,
+      bands: [BOXW + 20, BOXW + 20 - 163 * 152 / 125, BOXW + 20 - 2 * 163 * 152 / 125].map(rt => ({ d: boxBand(rt) })),
+      showLogo: !!data.showLogo, line1: data.line1, line2: data.line2,
+      fs1: fsFor(len1), fs2: fsFor(len2)
+    };
+    const logo = t => t[2] === 'nfl' ? 'https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png' : `https://a.espncdn.com/i/teamlogos/nfl/500/${t[2]}.png`;
+    const slots = data.slots || DEFAULTS.slots;
+    const on = slots.map(s => data.box !== 'none' && s.kind !== 'none');
+    const slotVm = i => {
+      const s = slots[i], isLogo = s.kind === 'logo', both = on[0] && on[1];
+      const tc = TC[s.team] || TC.CIN, t = T[s.team] || T.CIN;
+      const lg = t[2] === 'nfl' ? 'https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png' : `https://a.espncdn.com/i/teamlogos/nfl/${tc[1] === '#fff' ? '500-dark' : '500'}/${t[2]}.png`;
+      if (isLogo) {
+        const sz = both ? 140 : 176, cx = both ? (i === 0 ? 98 : 312) : 200;
+        return { show: on[i], isPhoto: false, isLogo, logo: lg, x: cx - sz / 2, w: sz, h: sz, bottom: (152 - sz) / 2 };
+      }
+      const w = both ? 270 : 420, x = both ? (i === 0 ? -6 : 150) : -10;
+      return { show: on[i], isPhoto: s.kind === 'photo', isLogo, logo: lg, x, w, h: both ? 292 : 310, bottom: 0 };
+    };
+    const logoTeams = slots.filter((s, i) => on[i] && s.kind !== 'none').map(s => (TC[s.team] || TC.CIN)[0]);
+    if (logoTeams.length) {
+      box.bg = logoTeams[0];
+      box.split = logoTeams.length === 2 && logoTeams[0] !== logoTeams[1];
+      box.bg2 = logoTeams[1] || logoTeams[0];
+      box.drawStripes = false; box.drawPhoto = false;
+    }
+    const pal = PALETTES[data.palette] || PALETTES.classic;
+    const col = Object.assign({}, pal.colors, data.colors || {});
+    const ta = T[data.teamA] || T.JAX, tb = T[data.teamB] || T.CIN;
+    const tab = {
+      show: data.tab !== 'off', isMatch: data.tab === 'match', isText: data.tab === 'text',
+      a: data.teamA, b: data.teamB, conn: data.conn, info: data.info, text: data.tabText,
+      logoA: logo(ta), logoB: logo(tb), textA: `${ta[1]} ${data.conn || ''}`.trim(), textB: `${tb[1]} ${data.info || ''}`.trim()
+    };
+    const seg = (cur, val, label, pick) => {
+      const on = cur === val;
+      return { label, pick, bg: on ? '#111' : '#fff', fg: on ? '#fff' : '#111', bd: on ? '#111' : '#C9CED8' };
+    };
+    const set = key => e => { const v = e.target.value; this.mut(x => { x[key] = v; }); };
+    const bgMap = { checker: 'repeating-conic-gradient(#C8CCD3 0 25%, #E4E7EB 0 50%)', dark: '#1B1F26', photo: '#1B1F26' };
+    const hasSub = !!(data.subtitle || '').trim();
+    return {
+      g, box, tab, head: this.headBox(), base: !!data.base, pal, col, s1: slotVm(0), s2: slotVm(1),
+      paletteOpts: Object.keys(PALETTES).map(key => ({ label: PALETTES[key].label, c1: PALETTES[key].colors.panel, c2: PALETTES[key].colors.curve1, c3: PALETTES[key].colors.base,
+        border: data.palette === key ? '3px solid #111' : '1px solid #C9CED8', pick: () => this.mut(x => { x.palette = key; x.colors = null; }) })),
+      colorRows: ROWS.map(([k, label]) => ({ label, sw: SWATCHES.map(c => ({ c, ring: col[k] === c ? '0 0 0 2px #fff, 0 0 0 4px #111' : 'none',
+        pick: () => this.mut(x => { x.colors = Object.assign({}, x.colors || {}, { [k]: c }); }) })) })),
+      edSlots: slots.map((s, i) => ({ label: `IMMAGINE ${i + 1} NEL BOX`, isLogo: s.kind === 'logo', hasTeam: s.kind !== 'none', team: s.team,
+        setTeam: e => { const v = e.target.value; this.mut(x => { x.slots = x.slots || clone(DEFAULTS.slots); x.slots[i].team = v; }); },
+        kinds: [['none', 'Nessuna'], ['photo', 'Giocatore'], ['logo', 'Logo']].map(([v, l]) =>
+          seg(s.kind, v, l, () => this.mut(x => { x.slots = x.slots || clone(DEFAULTS.slots); x.slots[i].kind = v; }))) })),
+      title: data.title, subtitle: data.subtitle, hasSub, titleFs, subFs,
+      titleRef: this.titleRef, subRef: this.subRef, canvasRef: this.canvasRef,
+      previewBg: bgMap[data.bg] || bgMap.checker, bgIsPhoto: data.bg === 'photo',
+      scale, stageW: Math.round(1920 * scale), stageH: Math.round(1080 * scale),
+      showEditor: this.props.showEditor ?? true,
+      boxOpts: [['stripes', 'Strisce'], ['photo', 'Foto'], ['none', 'Nessuno']].map(([v, l]) => seg(data.box, v, l, () => this.mut(x => { x.box = v; }))),
+      themeOpts: Object.keys(THEMES).map(key => ({ label: THEMES[key].label, bg: THEMES[key].bg, stripe: THEMES[key].stripe,
+        border: data.theme === key ? '3px solid #111' : '1px solid #C9CED8', pick: () => this.mut(x => { x.theme = key; }) })),
+      tabOpts: [['off', 'Nascosta'], ['match', 'Partita'], ['text', 'Testo']].map(([v, l]) => seg(data.tab, v, l, () => this.mut(x => { x.tab = v; }))),
+      bgOpts: [['checker', 'Trasparente'], ['dark', 'Scuro'], ['photo', 'Fotogramma']].map(([v, l]) => seg(data.bg, v, l, () => this.mut(x => { x.bg = v; }))),
+      teamOpts: Object.keys(T).map(k => ({ code: k, label: k === 'NFL' ? 'NFL (generico)' : T[k][1] })).sort((p, q) => p.code === 'NFL' ? -1 : q.code === 'NFL' ? 1 : p.label.localeCompare(q.label)),
+      setTitle: set('title'), setSubtitle: set('subtitle'), setLine1: set('line1'), setLine2: set('line2'),
+      setTeamA: set('teamA'), setTeamB: set('teamB'), setConn: set('conn'), setInfo: set('info'), setTabText: set('tabText'),
+      toggleLogo: () => this.mut(x => { x.showLogo = !x.showLogo; }),
+      toggleBase: () => this.mut(x => { x.base = !x.base; }),
+      reset: () => this.mut(x => { Object.assign(x, clone(DEFAULTS)); }),
+      exportPng: () => this.exportPng(false), exportBanner: () => this.exportPng(true)
+    };
+  }
+}
+</script>
+</body>
+</html>
