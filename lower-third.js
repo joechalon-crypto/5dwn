@@ -358,8 +358,8 @@ function viewModel() {
   }
   // Sfondo "sfumato" dietro i loghi (tipo First Take): colore squadra con righe diagonali leggere che
   // sfuma con un taglio inclinato verso il centro e si fonde con la fascia chiara, senza bordo netto.
-  const logoSlots = sl.map((s, i) => (on[i] && s.kind === "logo" ? (TC[s.team] || TC.CIN)[0] : null));
-  box.fade = data.logoBg === "fade" && logoSlots.some(Boolean);
+  // vale per loghi e giocatori (anche misti)
+  box.fade = data.logoBg === "fade" && sl.some((s, i) => on[i] && (s.kind === "logo" || s.kind === "photo"));
   if (box.fade) {
     const both = on[0] && on[1];
     const [a, b] = both ? [(TC[sl[0].team] || TC.CIN)[0], (TC[sl[1].team] || TC.CIN)[0]] : [logoTeams[0], null];
@@ -390,6 +390,10 @@ function render() {
   // Giocatori: dentro l'altezza del box il ritaglio segue il bordo destro curvo del box (417 in alto → 384 in basso),
   // così spalle e maglia non escono nella zona chiara del titolo; sopra il box la testa resta libera.
   const playerClip = (sx, h) => {
+    if (box.fade) { // sfondo sfumato (senza bordo curvo): taglio inclinato come la sfumatura, prima del titolo
+      const X = (x) => r1(x - sx);
+      return `path('M${X(-40)},-200 L${X(445)},-200 L${X(445)},${h - 152} L${X(418)},${h} L${X(-40)},${h} Z')`;
+    }
     const top = h - 152, X = (x) => r1(x - sx);
     return `path('M${X(-40)},-200 L${X(417)},-200 L${X(417)},${top} C${X(414)},${top + 60} ${X(400)},${h} ${X(384)},${h} L${X(-40)},${h} Z')`;
   };
@@ -581,7 +585,7 @@ function syncEditor() {
     else if (document.activeElement !== s) s.value = slot.player || "";
   });
   $("themeField").hidden = data.box !== "stripes";
-  $("logoBgField").hidden = !(data.slots || DEFAULTS.slots).some((x) => x.kind === "logo");
+  $("logoBgField").hidden = data.box === "none" || !(data.slots || DEFAULTS.slots).some((x) => x.kind === "logo" || x.kind === "photo");
   setVal("selLogoBg", data.logoBg || "solid");
   $("boxControls").hidden = data.box === "none";
   $("tabMatch").hidden = data.tab !== "match";

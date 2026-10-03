@@ -244,9 +244,10 @@ fotogramma. Riquadri "Giocatore": tendina con il roster ESPN della squadra (QB t
 per primo) e foto profilo standard ESPN, oppure "PNG caricato". Le foto ESPN vengono analizzate
 (primo pixel non trasparente) e ridimensionate perché la cima della testa cada sempre alla stessa
 altezza per tutti i giocatori, con le spalle sul bordo inferiore. Con due giocatori quello di destra è davanti.
-Con uno o due "Logo" compare **Sfondo dei loghi**: Pieno (box colore squadra) o Sfumato (tipo First
+Con loghi o giocatori compare **Sfondo squadra**: Pieno (box colore squadra) o Sfumato (tipo First
 Take: colore squadra con righe diagonali che sfuma in diagonale verso il centro, trasparente prima
-del titolo; con due squadre i due colori si incontrano al centro). Switch **Logo 5DWN a destra**: logo nello spazio libero
+del titolo; con due squadre i due colori si incontrano al centro; con i giocatori il taglio a destra
+diventa inclinato come la sfumatura). Switch **Logo 5DWN a destra**: logo nello spazio libero
 del pannello prima delle curve, blu su pannello chiaro, nero su arancio, bianco su scuro o blu. Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
 doppio clic = rimuovi (immagini in IndexedDB, stato in localStorage `nfllowershow.v1`, Reset).
 Export con html-to-image (pixelRatio 2): "PNG banner" ritagliato sul banner reale e "1920×1080"
