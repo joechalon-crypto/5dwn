@@ -240,7 +240,8 @@ dal menu Grafica dello Studio. Porta in HTML/CSS/JS il prototipo "NFL Lower Thir
 Bézier, box segmento (strisce / foto / nessuno, giocatori o loghi con colore squadra e divisione
 curva), titolo e seconda riga ad adattamento automatico, linguetta (partita / testo), 4 palette
 con colori sovrascrivibili riga per riga, fascia base, anteprima su scacchiera / scuro /
-fotogramma. Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
+fotogramma. Riquadri "Giocatore": tendina con il roster ESPN della squadra (QB titolare proposto
+per primo) e foto profilo standard ESPN, oppure "PNG caricato". Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
 doppio clic = rimuovi (immagini in IndexedDB, stato in localStorage `nfllowershow.v1`, Reset).
 Export con html-to-image (pixelRatio 2): "PNG banner" ritagliato sul banner reale e "1920×1080"
 frame intero, entrambi trasparenti; font Archivo incorporato nell'export. Selettori a tendina

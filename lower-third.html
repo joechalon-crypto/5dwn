@@ -59,6 +59,8 @@
     /* Riquadri immagine: trascina un file o clicca per caricarlo; rotella = zoom, trascinamento = sposta */
     .img-slot { position: absolute; inset: 0; overflow: hidden; cursor: pointer; }
     .img-slot img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: contain; transform-origin: center center; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+    .img-slot.lt-player-mask img { object-position: center bottom; } /* giocatori appoggiati sul bordo inferiore */
+    .img-slot.lt-player-mask img.is-headshot { object-fit: cover; object-position: center top; } /* mezzo busto ESPN: esce sopra il box */
     .img-slot[data-filled] { cursor: grab; }
     .img-slot[data-filled]:active { cursor: grabbing; }
     .img-slot:not([data-filled]) { border: 3px dashed rgba(255, 255, 255, .75); background: rgba(0, 0, 0, .18); display: flex; align-items: center; justify-content: center; text-align: center; }
@@ -176,9 +178,9 @@
           <select class="ed-sel" id="selBg"><option value="checker">Trasparente</option><option value="dark">Scuro</option><option value="photo">Fotogramma</option></select>
         </label>
       </div>
-      <div class="ed-note">Trascina i PNG scontornati sui riquadri tratteggiati del box (oppure clicca per sceglierli). Rotella: zoom · trascina: sposta · doppio clic: rimuovi. Export PNG trasparente.</div>
+      <div class="ed-note">Per "Giocatore" scegli il nome dal menu (foto profilo ESPN) oppure trascina un PNG scontornato sul riquadro (oppure clicca per sceglierlo). Rotella: zoom · trascina: sposta · doppio clic: rimuovi. Export PNG trasparente.</div>
     </aside>
   </div>
-  <script type="module" src="lower-third.js?v=202610031538"></script>
+  <script type="module" src="lower-third.js?v=202610031546"></script>
 </body>
 </html>

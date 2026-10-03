@@ -1,4 +1,5 @@
 // Lower third per i video 5DWN.
+import { getRoster, getQualified } from "./assets/js/api.js";
 // Fonte di verità: reference/NFL Lower Third Show.dc.html (costanti, curve, palette e logica portate 1:1).
 
 // ---------------------------------------------------------------------------- costanti del prototipo
@@ -31,7 +32,8 @@ const THEMES = {
 const DEFAULTS = {
   title: "Meglio Lawrence o Burrow domenica?", subtitle: "Passer rating '26: Trevor Lawrence 8° (107.8), Joe Burrow 11° (106.6)",
   box: "stripes", theme: "black", line1: "Duello", line2: "in regia", showLogo: true,
-  slots: [{ kind: "photo", team: "JAX" }, { kind: "photo", team: "CIN" }],
+  // player: id ESPN del giocatore (foto profilo standard); "" = PNG caricato/trascinato
+  slots: [{ kind: "photo", team: "JAX", player: "4360310" }, { kind: "photo", team: "CIN", player: "3915511" }],
   palette: "classic", colors: null,
   tab: "match", teamA: "JAX", teamB: "CIN", conn: "at", info: "(-2.5) | Domenica, 19:00", tabText: "Week 5 · Anteprima",
   base: true, bg: "checker",
@@ -120,7 +122,11 @@ class ImageSlot {
     this.input.hidden = true;
     this.input.addEventListener("change", () => { const f = this.input.files?.[0]; if (f) this.readFile(f); this.input.value = ""; });
     this.el.addEventListener("click", () => { if (!this.el.dataset.filled) this.input.click(); });
-    this.el.addEventListener("dblclick", () => { if (this.el.dataset.filled) this.set(null); });
+    this.el.addEventListener("dblclick", () => {
+      if (!this.el.dataset.filled) return;
+      if (this.remoteUrl && this.onClearRemote) this.onClearRemote(); // foto ESPN: si torna al PNG caricato (o al riquadro vuoto)
+      else this.set(null);
+    });
     this.el.addEventListener("dragover", (e) => { e.preventDefault(); this.el.classList.add("drag-over"); });
     this.el.addEventListener("dragleave", () => this.el.classList.remove("drag-over"));
     this.el.addEventListener("drop", (e) => {
@@ -150,15 +156,36 @@ class ImageSlot {
   saveTf(t) { data.img = Object.assign({}, data.img, { [this.id]: t }); save(); this.apply(t); }
   readFile(file) {
     const fr = new FileReader();
-    fr.onload = () => { this.saveTf({ s: 1, x: 0, y: 0 }); this.set(fr.result); };
+    fr.onload = () => {
+      this.saveTf({ s: 1, x: 0, y: 0 });
+      if (this.onUpload) this.onUpload(); // un PNG caricato ha la priorità sulla foto ESPN
+      this.set(fr.result);
+    };
     fr.readAsDataURL(file);
   }
+  /** Immagine caricata dall'utente (salvata in IndexedDB). */
   set(src, persist = true) {
-    if (src) { this.img.src = src; this.img.hidden = false; this.el.dataset.filled = ""; }
-    else { this.img.removeAttribute("src"); this.img.hidden = true; delete this.el.dataset.filled; if (data.img) delete data.img[this.id]; save(); }
-    this.apply();
+    this.uploaded = src || null;
+    if (!src && data.img) { delete data.img[this.id]; save(); }
     if (persist) imgPut(this.id, src);
+    this.show();
     render(); // es. ritaglio dell'export e riquadri vuoti
+  }
+  /** Foto remota (profilo ESPN del giocatore scelto): ha la priorità sul PNG caricato finché è selezionata. */
+  setRemote(url) {
+    if ((url || null) === (this.remoteUrl || null)) return;
+    this.remoteUrl = url || null;
+    this.show();
+  }
+  show() {
+    const src = this.remoteUrl || this.uploaded;
+    if (!src) { this.img.removeAttribute("src"); this.img.hidden = true; delete this.el.dataset.filled; this.apply(); return; }
+    if (this.remoteUrl) this.img.crossOrigin = "anonymous"; else this.img.removeAttribute("crossorigin");
+    this.img.classList.toggle("is-headshot", !!this.remoteUrl); // foto profilo ESPN: riempie il riquadro, testa in alto
+    if (this.img.getAttribute("src") !== src) this.img.src = src;
+    this.img.hidden = false;
+    this.el.dataset.filled = "";
+    this.apply();
   }
   async restore() { const src = await imgGet(this.id); if (src) this.set(src, false); }
 }
@@ -168,6 +195,55 @@ const slots = {
   player1: new ImageSlot("lts-player-1", "Giocatore 1 (PNG scontornato)", { mask: true }),
   player2: new ImageSlot("lts-player-2", "Giocatore 2 (PNG scontornato)", { mask: true }),
 };
+[slots.player1, slots.player2].forEach((sl, i) => {
+  const clear = () => mut((x) => { x.slots = x.slots || clone(DEFAULTS.slots); x.slots[i].player = ""; });
+  sl.onUpload = clear;
+  sl.onClearRemote = clear;
+});
+
+// ---------------------------------------------------------------------------- giocatori (roster ESPN)
+const headshot = (id) => `https://a.espncdn.com/i/headshots/nfl/players/full/${id}.png`;
+const rosters = {}; // squadra → [{ id, name, pos }]
+const POS_ORDER = ["QB", "RB", "WR", "TE"];
+// yard su passaggio stagionali per id: il QB titolare è quello che ne ha di più
+let passYds = null;
+const loadPassYds = () => (passYds ||= getQualified("offense:passing", "passing.passingYards")
+  .then((r) => Object.fromEntries(r.data.map((q) => [q.id, q.stats["passing.passingYards"] || 0])))
+  .catch(() => ({})));
+async function loadRoster(team) {
+  if (!team || team === "NFL") return [];
+  if (!rosters[team]) {
+    rosters[team] = getRoster(T[team][2]).then((r) => r.data.groups.flatMap((g) => g.players.map((p) => ({ id: String(p.id), name: p.name, pos: p.pos }))))
+      .catch(() => { delete rosters[team]; return []; });
+  }
+  return rosters[team];
+}
+/** Foto profilo del giocatore scelto in ogni riquadro "Giocatore"; senza scelta resta il PNG caricato. */
+function syncPlayerPhotos() {
+  const sl = data.slots || DEFAULTS.slots;
+  [slots.player1, slots.player2].forEach((slot, i) => {
+    const s = sl[i];
+    slot.setRemote(s.kind === "photo" && /^\d+$/.test(s.player || "") ? headshot(s.player) : null);
+  });
+}
+/** Tendina giocatori di un riquadro: roster della squadra (QB, RB, WR, TE in testa). */
+async function fillPlayerSelect(i) {
+  const sel = document.querySelector(`[data-player="${i}"]`);
+  const s = (data.slots || DEFAULTS.slots)[i];
+  const [list, yds] = await Promise.all([loadRoster(s.team), loadPassYds()]);
+  const sorted = list.slice().sort((a, b) => ((POS_ORDER.indexOf(a.pos) + 1 || 9) - (POS_ORDER.indexOf(b.pos) + 1 || 9))
+    || (a.pos === "QB" ? (yds[b.id] || 0) - (yds[a.id] || 0) : 0) || a.name.localeCompare(b.name));
+  sel.innerHTML = `<option value="">PNG caricato (trascina sul riquadro)</option>` +
+    sorted.map((p) => `<option value="${p.id}">${esc(p.name)}${p.pos ? ` · ${esc(p.pos)}` : ""}</option>`).join("");
+  sel.dataset.forTeam = s.team;
+  // squadra cambiata e giocatore non più nel roster: si propone il primo QB
+  if (s.player && !list.some((p) => p.id === s.player)) {
+    const qb = sorted.find((p) => p.pos === "QB") || sorted[0];
+    mut((x) => { x.slots[i].player = qb ? qb.id : ""; });
+    return;
+  }
+  sel.value = s.player || "";
+}
 
 // ---------------------------------------------------------------------------- render del banner
 const $ = (id) => document.getElementById(id);
@@ -290,6 +366,7 @@ function render() {
   headEl.style.width = `${head.width}px`;
   headEl.innerHTML = `<div class="lt-title" id="ltTitle" style="color:${col.title}">${esc(data.title)}</div>
       ${hasSub ? `<div class="lt-sub" id="ltSub" style="color:${col.sub}">${esc(data.subtitle)}</div>` : ""}`;
+  syncPlayerPhotos();
   slots.player1.apply(); slots.player2.apply(); slots.boxPhoto.apply();
   // anteprima: scacchiera / scuro / fotogramma (non esportata)
   const bgMap = { checker: "repeating-conic-gradient(#C8CCD3 0 25%, #E4E7EB 0 50%)", dark: "#1B1F26", photo: "#1B1F26" };
@@ -357,7 +434,9 @@ function buildEditor() {
       <div class="ed-2">
         <select class="ed-sel" data-kind="${i}" aria-label="Tipo immagine ${i + 1}"><option value="none">Nessuna</option><option value="photo">Giocatore</option><option value="logo">Logo</option></select>
         <select class="ed-sel" data-team="${i}" aria-label="Squadra immagine ${i + 1}">${teamOptionsHtml}</select>
-      </div></div>`).join("");
+      </div>
+      <select class="ed-sel" data-player="${i}" aria-label="Giocatore immagine ${i + 1}"><option value="">PNG caricato (trascina sul riquadro)</option></select>
+    </div>`).join("");
   $("selTeamA").innerHTML = teamOptionsHtml;
   $("selTeamB").innerHTML = teamOptionsHtml;
 
@@ -373,12 +452,13 @@ function buildEditor() {
     if (k) mut((x) => { x.colors = Object.assign({}, x.colors || {}, { [k]: e.target.value }); });
   });
   $("slotControls").addEventListener("change", (e) => {
-    const i = e.target.dataset.kind ?? e.target.dataset.team;
+    const d = e.target.dataset, i = d.kind ?? d.team ?? d.player;
     if (i == null) return;
     mut((x) => {
       x.slots = x.slots || clone(DEFAULTS.slots);
-      if (e.target.dataset.kind != null) x.slots[i].kind = e.target.value;
-      else x.slots[i].team = e.target.value;
+      if (d.kind != null) x.slots[i].kind = e.target.value;
+      else if (d.team != null) { x.slots[i].team = e.target.value; if (x.slots[i].player) x.slots[i].player = "auto"; } // giocatore scelto → primo QB della nuova squadra
+      else x.slots[i].player = e.target.value;
     });
   });
   $("chkLogo").addEventListener("change", () => mut((x) => { x.showLogo = !x.showLogo; }));
@@ -406,6 +486,13 @@ function syncEditor() {
   const sl = data.slots || DEFAULTS.slots;
   document.querySelectorAll("[data-kind]").forEach((s) => { s.value = sl[s.dataset.kind].kind; });
   document.querySelectorAll("[data-team]").forEach((s) => { s.value = sl[s.dataset.team].team; s.hidden = sl[s.dataset.team].kind === "none"; });
+  document.querySelectorAll("[data-player]").forEach((s) => {
+    const i = Number(s.dataset.player), slot = sl[i];
+    s.hidden = slot.kind !== "photo" || slot.team === "NFL";
+    if (s.hidden) return;
+    if (s.dataset.forTeam !== slot.team || (slot.player && ![...s.options].some((o) => o.value === slot.player))) fillPlayerSelect(i);
+    else if (document.activeElement !== s) s.value = slot.player || "";
+  });
   $("themeField").hidden = data.box !== "stripes";
   $("boxControls").hidden = data.box === "none";
   $("tabMatch").hidden = data.tab !== "match";
