@@ -248,7 +248,14 @@ Con loghi o giocatori compare **Sfondo squadra**: Pieno (box colore squadra) o S
 Take: colore squadra con righe diagonali che sfuma in diagonale verso il centro, trasparente prima
 del titolo; con due squadre i due colori si incontrano al centro; con i giocatori il taglio a destra
 diventa inclinato come la sfumatura). Switch **Logo 5DWN a destra**: logo nello spazio libero
-del pannello prima delle curve, blu su pannello chiaro, nero su arancio, bianco su scuro o blu. Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
+del pannello prima delle curve, blu su pannello chiaro, nero su arancio, bianco su scuro o blu.
+**Animazione e video**: "▶ Play" mostra l'entrata (~2 s: fascia base e onde dai lati, pannello,
+titolo e seconda riga con fade+rise, box e loghi/giocatori, poi fermo). "Esporta video" registra la
+stessa animazione (timeline unica) su canvas 1920×1080 a 30 fps con MediaRecorder e scarica un WebM:
+Trasparente (VP9 con alfa, per editor che leggono WebM con alfa), Pieno (sfondo scuro) o Chroma key
+(sfondo verde #00B140, da togliere con il filtro chroma key, va bene anche in Premiere). Durata a
+scelta (default 8 s). Ogni livello viene rasterizzato con lo stesso motore dell'export PNG; la
+registrazione avviene in tempo reale (tenere la scheda in primo piano). Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
 doppio clic = rimuovi (immagini in IndexedDB, stato in localStorage `nfllowershow.v1`, Reset).
 Export con html-to-image (pixelRatio 2): "PNG banner" ritagliato sul banner reale e "1920×1080"
 frame intero, entrambi trasparenti; font Archivo incorporato nell'export. Selettori a tendina

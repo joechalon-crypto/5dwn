@@ -397,7 +397,7 @@ function render() {
     const top = h - 152, X = (x) => r1(x - sx);
     return `path('M${X(-40)},-200 L${X(417)},-200 L${X(417)},${top} C${X(414)},${top + 60} ${X(400)},${h} ${X(384)},${h} L${X(-40)},${h} Z')`;
   };
-  const slotHtml = (s, key) => !s.show ? "" : `<div class="lt-slot-pos" style="left:${s.x}px;bottom:${s.bottom}px;width:${s.w}px;height:${s.h}px${s.isPhoto ? `;clip-path:${playerClip(s.x, s.h)}` : ""}">
+  const slotHtml = (s, key) => !s.show ? "" : `<div class="lt-slot-pos" data-layer="slots" style="left:${s.x}px;bottom:${s.bottom}px;width:${s.w}px;height:${s.h}px${s.isPhoto ? `;clip-path:${playerClip(s.x, s.h)}` : ""}">
       ${s.isPhoto ? `<div data-host="${key}" style="position:absolute;inset:0"></div>` : ""}
       ${s.isLogo ? `<img class="lt-logo" src="${s.logo}" alt="" crossorigin="anonymous">` : ""}
     </div>`;
@@ -412,27 +412,27 @@ function render() {
           <stop offset="1" stop-color="#000000" stop-opacity=".1"></stop>
         </linearGradient>
       </defs>
-      <path d="${g.bgPath}" fill="${col.base}"></path>
-      <g clip-path="url(#lts-cp-base)">${g.baseBands.map((d) => `<path d="${d}" fill="${col.baseStripe}"></path>`).join("")}</g>
-      <path d="${g.underline}" fill="${col.curve1}" clip-path="url(#lts-cp-top)"></path>
+      <g data-layer="base"><path d="${g.bgPath}" fill="${col.base}"></path>
+      <g clip-path="url(#lts-cp-base)">${g.baseBands.map((d) => `<path d="${d}" fill="${col.baseStripe}"></path>`).join("")}</g></g>
+      <g data-layer="waves"><path d="${g.underline}" fill="${col.curve1}" clip-path="url(#lts-cp-top)"></path>
       <path d="${g.band1}" fill="${col.curve1}"></path>
-      <path d="${g.band2}" fill="${col.curve2}"></path>
-      <path d="${g.panel}" fill="${col.panel}" clip-path="url(#lts-cp-panel)"></path>
-      <path d="${g.panel}" fill="url(#lts-panel-grad)" clip-path="url(#lts-cp-panel)"></path>
+      <path d="${g.band2}" fill="${col.curve2}"></path></g>
+      <g data-layer="panel"><path d="${g.panel}" fill="${col.panel}" clip-path="url(#lts-cp-panel)"></path>
+      <path d="${g.panel}" fill="url(#lts-panel-grad)" clip-path="url(#lts-cp-panel)"></path></g>
     </svg>
-    ${tab.show ? `<div class="lt-tab" style="left:${head.center}px;background:${col.tabBg};color:${col.tabText}">
+    ${tab.show ? `<div class="lt-tab" data-layer="tab" style="left:${head.center}px;background:${col.tabBg};color:${col.tabText}">
       ${tab.isMatch ? `<img src="${tab.logoA}" alt="" crossorigin="anonymous"><span>${esc(tab.textA)}</span><img src="${tab.logoB}" alt="" crossorigin="anonymous"><span>${esc(tab.textB)}</span>` : ""}
       ${tab.isText ? `<span>${esc(tab.text)}</span>` : ""}
     </div>` : ""}
     ${box.show ? `<div class="lt-box">
-      ${box.fade ? `<div class="lt-fade-wrap">${box.fadeLayers.map((l) => `<div class="lt-fade" style="left:${l.left}px;width:${l.width}px;background-color:${l.color};-webkit-mask-image:${l.mask};mask-image:${l.mask}"></div>`).join("")}</div>` : `<div class="lt-box-clip" style="background:${box.bg}">
+      ${box.fade ? `<div class="lt-fade-wrap" data-layer="box">${box.fadeLayers.map((l) => `<div class="lt-fade" style="left:${l.left}px;width:${l.width}px;background-color:${l.color};-webkit-mask-image:${l.mask};mask-image:${l.mask}"></div>`).join("")}</div>` : `<div class="lt-box-clip" data-layer="box" style="background:${box.bg}">
         ${box.drawStripes ? `<svg width="417" height="152" viewBox="0 0 417 152">${box.bands.map((d) => `<path d="${d}" fill="${box.stripe}"></path>`).join("")}</svg>` : ""}
         ${box.drawPhoto ? `<div data-host="boxPhoto" style="position:absolute;inset:0"></div>` : ""}
         ${box.split ? `<div class="lt-box-split" style="background:${box.bg2}"></div>` : ""}
       </div>`}
       ${slotHtml(s1, "player1")}
       ${slotHtml(s2, "player2")}
-      <div class="lt-box-text">
+      <div class="lt-box-text" data-layer="boxtext">
         ${box.showLogo ? `<img src="assets/5dwn-logo-light.png" alt="5DWN">` : ""}
         <div class="lt-box-lines">
           <div style="font-size:${box.fs1}px;color:${col.l1}">${esc(box.line1)}</div>
@@ -440,7 +440,7 @@ function render() {
         </div>
       </div>
     </div>` : ""}
-    ${data.logoRight ? `<img class="lt-logo-right" src="${logoForPanel(col.panel)}" alt="5DWN" style="left:${RIGHT_LOGO.cx - RIGHT_LOGO.h * 0.59}px;top:${RIGHT_LOGO.cy - RIGHT_LOGO.h / 2}px;height:${RIGHT_LOGO.h}px">` : ""}
+    ${data.logoRight ? `<img class="lt-logo-right" data-layer="rlogo" src="${logoForPanel(col.panel)}" alt="5DWN" style="left:${RIGHT_LOGO.cx - RIGHT_LOGO.h * 0.59}px;top:${RIGHT_LOGO.cy - RIGHT_LOGO.h / 2}px;height:${RIGHT_LOGO.h}px">` : ""}
     <div class="lt-head" id="ltHead"></div>`;
   // si ricostruisce solo se la grafica è cambiata (scrivere il titolo non ridisegna loghi e curve)
   if (html !== lastBannerHtml) {
@@ -452,8 +452,8 @@ function render() {
   const headEl = $("ltHead");
   headEl.style.left = `${head.left}px`;
   headEl.style.width = `${head.width}px`;
-  headEl.innerHTML = `<div class="lt-title" id="ltTitle" style="color:${col.title}">${esc(data.title)}</div>
-      ${hasSub ? `<div class="lt-sub" id="ltSub" style="color:${col.sub}">${esc(data.subtitle)}</div>` : ""}`;
+  headEl.innerHTML = `<div class="lt-title" id="ltTitle" data-layer="title" style="color:${col.title}">${esc(data.title)}</div>
+      ${hasSub ? `<div class="lt-sub" id="ltSub" data-layer="sub" style="color:${col.sub}">${esc(data.subtitle)}</div>` : ""}`;
   syncPlayerPhotos();
   slots.player1.fitHeadshot(); slots.player2.fitHeadshot(); // il riquadro cambia misura con 1 o 2 giocatori
   slots.player1.apply(); slots.player2.apply(); slots.boxPhoto.apply();
@@ -653,6 +653,147 @@ async function exportPng(crop) {
     alert("Export non riuscito (loghi esterni bloccati). Usa uno screenshot del canvas.");
   }
 }
+
+// ---------------------------------------------------------------------------- animazione di entrata + export video
+// Un'unica timeline (secondi) usata sia dall'anteprima (Web Animations) sia dal video (canvas): stessi tempi.
+// Ordine = ordine di disegno (come nel DOM). from: x/y in px (coordinate 1920×1080), o = opacità, s = scala.
+const TIMELINE = [
+  { layer: "base", start: 0.0, dur: 0.6, from: { x: -1920 } },          // fascia base dai lati (da sinistra)
+  { layer: "waves", start: 0.1, dur: 0.6, from: { x: 700 } },           // onde/curve da destra
+  { layer: "panel", start: 0.45, dur: 0.6, from: { x: -1950 } },        // pannello centrale
+  { layer: "tab", start: 1.0, dur: 0.45, from: { y: 30, o: 0 } },
+  { layer: "box", start: 1.25, dur: 0.5, from: { x: -460, o: 0 } },     // box segmento
+  { layer: "slots", start: 1.45, dur: 0.5, from: { s: 0.85, o: 0 } },   // loghi / giocatori
+  { layer: "boxtext", start: 1.4, dur: 0.45, from: { x: -60, o: 0 } },
+  { layer: "rlogo", start: 1.5, dur: 0.45, from: { s: 0.85, o: 0 } },
+  { layer: "title", start: 0.95, dur: 0.45, from: { y: 24, o: 0 } },   // titolo (fade + rise)
+  { layer: "sub", start: 1.1, dur: 0.45, from: { y: 24, o: 0 } },      // seconda riga, 0,15 s dopo
+];
+const INTRO = Math.max(...TIMELINE.map((t) => t.start + t.dur)); // ~2 s
+const EASE = "cubic-bezier(0.33, 1, 0.68, 1)"; // ease-out cubica (uguale a easeOut sotto)
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+const layerEls = (name) => [...$("canvas").querySelectorAll(`[data-layer="${name}"]`)];
+
+/** Anteprima: il banner si compone in ingresso, poi resta fermo. */
+function playPreview() {
+  for (const t of TIMELINE) {
+    const f = t.from;
+    const from = `translate(${f.x || 0}px, ${f.y || 0}px) scale(${f.s ?? 1})`;
+    for (const el of layerEls(t.layer)) {
+      el.getAnimations().forEach((a) => a.cancel());
+      if (el instanceof SVGElement) { el.style.transformBox = "fill-box"; }
+      el.style.transformOrigin = "center";
+      el.animate([{ transform: from, opacity: f.o ?? 1 }, { transform: "none", opacity: 1 }],
+        { duration: t.dur * 1000, delay: t.start * 1000, easing: EASE, fill: "backwards" });
+    }
+  }
+}
+
+/** Ogni livello rasterizzato da solo a 1920×1080 (stesso motore e stesso font dell'export PNG). */
+async function rasterLayers() {
+  await document.fonts.ready;
+  const fontCss = await fontEmbedCss().catch(() => undefined);
+  const node = $("canvas");
+  node.getAnimations({ subtree: true }).forEach((an) => an.finish()); // niente anteprima a metà
+  const all = [...node.querySelectorAll("[data-layer]")];
+  const base = node.getBoundingClientRect();
+  const out = {};
+  for (const t of TIMELINE) {
+    const mine = layerEls(t.layer);
+    if (!mine.length) continue;
+    all.forEach((el) => { el.style.visibility = mine.includes(el) ? "" : "hidden"; });
+    // centro del livello (per la scala), in coordinate 1920×1080
+    let x0 = 1920, y0 = 1080, x1 = 0, y1 = 0;
+    for (const el of mine) {
+      const r = el.getBoundingClientRect();
+      x0 = Math.min(x0, (r.left - base.left) / scale); y0 = Math.min(y0, (r.top - base.top) / scale);
+      x1 = Math.max(x1, (r.right - base.left) / scale); y1 = Math.max(y1, (r.bottom - base.top) / scale);
+    }
+    $("status").textContent = `Preparo il video: livello ${Object.keys(out).length + 1}/${TIMELINE.length}…`;
+    out[t.layer] = {
+      img: await window.htmlToImage.toCanvas(node, { width: 1920, height: 1080, pixelRatio: 1, cacheBust: true, fontEmbedCSS: fontCss,
+        filter: (n) => !(n.classList?.contains("img-slot") && !n.hasAttribute("data-filled")) }),
+      cx: (x0 + x1) / 2, cy: (y0 + y1) / 2,
+    };
+  }
+  all.forEach((el) => { el.style.visibility = ""; });
+  return out;
+}
+
+/** Disegna il fotogramma al tempo t (secondi) su un contesto 1920×1080. */
+function drawFrame(ctx, layers, t, bg) {
+  ctx.clearRect(0, 0, 1920, 1080);
+  if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, 1920, 1080); }
+  for (const tl of TIMELINE) {
+    const L = layers[tl.layer];
+    if (!L) continue;
+    const p = easeOut(Math.max(0, Math.min(1, (t - tl.start) / tl.dur)));
+    const f = tl.from, k = (v, end) => v + (end - v) * p;
+    const o = k(f.o ?? 1, 1);
+    if (o <= 0) continue;
+    const s = k(f.s ?? 1, 1);
+    ctx.save();
+    ctx.globalAlpha = o;
+    ctx.translate(k(f.x || 0, 0) + L.cx, k(f.y || 0, 0) + L.cy);
+    ctx.scale(s, s);
+    ctx.translate(-L.cx, -L.cy);
+    ctx.drawImage(L.img, 0, 0, 1920, 1080);
+    ctx.restore();
+  }
+}
+
+const VIDEO_BG = { transparent: null, dark: "#1B1F26", chroma: "#00B140" };
+async function exportVideo() {
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) { alert("Il browser non supporta la registrazione video (usa Chrome)."); return; }
+  const mode = $("selVidMode").value, secs = Number($("selVidDur").value) || 8;
+  const btn = $("btnVideo");
+  btn.disabled = true;
+  try {
+    const layers = await rasterLayers();
+    const cv = document.createElement("canvas");
+    cv.width = 1920; cv.height = 1080;
+    const ctx = cv.getContext("2d", { alpha: true });
+    drawFrame(ctx, layers, 0, VIDEO_BG[mode]);
+    const types = mode === "transparent"
+      ? ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"] // VP9 con canale alfa
+      : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+    const mimeType = types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+    const stream = cv.captureStream(30);
+    const rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 12_000_000 });
+    const chunks = [];
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    const done = new Promise((res) => { rec.onstop = res; });
+    rec.start(250);
+    const t0 = performance.now();
+    await new Promise((res) => {
+      const tick = () => {
+        const t = (performance.now() - t0) / 1000;
+        drawFrame(ctx, layers, Math.min(t, secs), VIDEO_BG[mode]);
+        $("status").textContent = `Registro il video: ${Math.min(secs, t).toFixed(1)} / ${secs} s…`;
+        if (t >= secs) res(); else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    rec.stop();
+    await done;
+    const blob = new Blob(chunks, { type: "video/webm" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    const suffix = { transparent: "trasparente", dark: "pieno", chroma: "chroma-key" }[mode];
+    a.download = `lower-third-${(data.title || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").slice(0, 40)}-${suffix}.webm`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    $("status").textContent = `Scaricato: ${a.download}`;
+  } catch (err) {
+    console.error(err);
+    $("status").textContent = "";
+    alert("Export video non riuscito. Riprova (con la scheda in primo piano).");
+  } finally {
+    btn.disabled = false;
+  }
+}
+$("btnPlay").addEventListener("click", playPreview);
+$("btnVideo").addEventListener("click", exportVideo);
 
 // ---------------------------------------------------------------------------- avvio
 buildEditor();

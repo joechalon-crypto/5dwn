@@ -186,9 +186,31 @@
           <select class="ed-sel" id="selBg"><option value="checker">Trasparente</option><option value="dark">Scuro</option><option value="photo">Fotogramma</option></select>
         </label>
       </div>
+      <div class="ed-sec">
+        <span class="ed-lbl">Animazione e video</span>
+        <div class="ed-2">
+          <label class="ed-field"><span class="ed-lbl" style="font-size:11px">Tipo video</span>
+            <select class="ed-sel" id="selVidMode">
+              <option value="transparent">Trasparente (WebM con alfa)</option>
+              <option value="dark">Pieno (sfondo scuro)</option>
+              <option value="chroma">Chroma key (verde)</option>
+            </select>
+          </label>
+          <label class="ed-field"><span class="ed-lbl" style="font-size:11px">Durata</span>
+            <select class="ed-sel" id="selVidDur">
+              <option value="4">4 s</option><option value="6">6 s</option><option value="8" selected>8 s</option><option value="10">10 s</option><option value="12">12 s</option><option value="15">15 s</option><option value="20">20 s</option>
+            </select>
+          </label>
+        </div>
+        <div class="ed-btns">
+          <button type="button" class="ed-btn outline" id="btnPlay" title="Anteprima dell'entrata (~2 s)">▶ Play</button>
+          <button type="button" class="ed-btn primary" id="btnVideo" title="Registra l'animazione e scarica il WebM 1920×1080 30 fps">Esporta video</button>
+        </div>
+        <div class="ed-note">Il video (WebM 1920×1080, 30 fps) viene registrato in tempo reale: tieni la scheda in primo piano. Trasparente: per CapCut e programmi che leggono WebM con alfa. Chroma key: sfondo verde #00B140 da togliere con il filtro chroma key (va bene anche in Premiere).</div>
+      </div>
       <div class="ed-note">Per "Giocatore" scegli il nome dal menu (foto profilo ESPN) oppure trascina un PNG scontornato sul riquadro (oppure clicca per sceglierlo). Rotella: zoom · trascina: sposta · doppio clic: rimuovi. Export PNG trasparente.</div>
     </aside>
   </div>
-  <script type="module" src="lower-third.js?v=202610031901"></script>
+  <script type="module" src="lower-third.js?v=202610031916"></script>
 </body>
 </html>
