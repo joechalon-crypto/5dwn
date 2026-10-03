@@ -4,7 +4,7 @@
    La grafica ha colori propri, indipendenti dal tema chiaro/scuro del sito.
    ========================================================================== */
 
-.studio-controls [hidden], .studio-block[hidden], .studio-slots[hidden], .studio-compare[hidden], .studio-compare [hidden] { display: none !important; }
+.studio-controls [hidden], .studio-block[hidden], .studio-slots[hidden], .studio-compare[hidden], .studio-compare [hidden], .cmp-players[hidden] { display: none !important; }
 .studio-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 24px; }
 .studio-hint { font-size: 0.85rem; color: var(--text-muted); margin: 6px 0 0; }
 .studio-block { margin-top: 28px; }
@@ -109,6 +109,7 @@
 .gt-cmp-val { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: #111111; }
 .gt-cmp-note { font-family: "Barlow", sans-serif; font-weight: 400; font-style: italic; }
 .g-clip img { max-width: none; }
+.g-cover { object-fit: cover; }
 /* Template Giocatore */
 .gt-p-name { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 75%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
 .gt-p-vs { font-family: "Archivo", sans-serif; font-weight: 400; font-stretch: 100%; }

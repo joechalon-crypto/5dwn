@@ -886,6 +886,22 @@ async function loadTeamSeason(id) {
 }
 export const getTeamSeason = (id, opts) => cached(`tseason:${id}`, TTL.rankings, () => loadTeamSeason(id), opts);
 
+/** Statistiche complete di una squadra in una singola partita (API "core" ESPN), mappa "categoria.nome" → numero. */
+const eventStatsMem = new Map(); // solo in memoria: ~120 KB a richiesta, troppe per localStorage
+export async function getEventTeamStats(eventId, teamId) {
+  const key = `${eventId}:${teamId}`;
+  if (!eventStatsMem.has(key)) {
+    eventStatsMem.set(key, fetchJSON(`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${eventId}/competitions/${eventId}/competitors/${teamId}/statistics`)
+      .then((json) => {
+        const out = {};
+        for (const c of json.splits?.categories || []) for (const st of c.stats || []) if (typeof st.value === "number") out[`${c.name}.${st.name}`] = st.value;
+        return out;
+      })
+      .catch((err) => { eventStatsMem.delete(key); throw err; }));
+  }
+  return eventStatsMem.get(key);
+}
+
 
 /** Red zone % (touchdown) per squadra: dato presente solo nelle statistiche della singola squadra. */
 async function loadRedZone(id) {

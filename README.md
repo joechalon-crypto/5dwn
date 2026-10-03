@@ -192,6 +192,17 @@ calcolato confrontando le statistiche stagionali ESPN di tutte le 32 squadre (ES
 espone), nella direzione giusta per ogni statistica (es. punti concessi: meno = meglio);
 colori: top 10 verde, 11-22 grigio, bottom 10 rosso. Titolo e sottotitolo obbligatori.
 Non disponibili in ESPN: QB hit, safety, goal-to-go %.
+**Periodo** (vale anche per 2-3 squadre): intera stagione (statistiche stagionali ESPN) oppure
+ultima partita / ultime 2…10 partite: si sommano le statistiche partita per partita ESPN
+(API core, proprie e degli avversari) e si ricalcolano percentuali e medie; il rank usa le
+stesse ultime N partite di tutte le 32 squadre (la prima volta servono alcuni secondi, i dati
+restano in memoria finché la pagina è aperta). Il **record** nel box segue lo stesso periodo.
+**1 squadra = Focus squadra** (riferimento "NFL Team Focus"): titolo = nome della squadra
+(sostituibile), sottotitolo obbligatorio (es. "BILANCIO WEEK 1-4") con il box RECORD del
+periodo, tabella centrale con dato/rank e due card laterali: per ognuna si sceglie la
+persona (head coach o un giocatore del roster ESPN; proposti QB titolare e head coach) e la
+foto (foto profilo ESPN scontornata per i giocatori, foto Wikimedia Commons cercate con nome
++ squadra, oppure "Carica foto"). ESPN non ha foto degli allenatori.
 
 **Testi personalizzati**: il riquadro "Testi personalizzati" sotto i controlli ha tre
 campi opzionali (Titolo, Sottotitolo, Footer) per il template attivo. Vuoto = testo
