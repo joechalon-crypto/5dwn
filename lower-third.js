@@ -360,7 +360,13 @@ function render() {
   const banner = $("banner");
   banner.style.bottom = `${g.bottom}px`;
   banner.style.height = `${g.Hr}px`;
-  const slotHtml = (s, key) => !s.show ? "" : `<div class="lt-slot-pos" style="left:${s.x}px;bottom:${s.bottom}px;width:${s.w}px;height:${s.h}px">
+  // Giocatori: dentro l'altezza del box il ritaglio segue il bordo destro curvo del box (417 in alto → 384 in basso),
+  // così spalle e maglia non escono nella zona chiara del titolo; sopra il box la testa resta libera.
+  const playerClip = (sx, h) => {
+    const top = h - 152, X = (x) => r1(x - sx);
+    return `path('M${X(-40)},-200 L${X(417)},-200 L${X(417)},${top} C${X(414)},${top + 60} ${X(400)},${h} ${X(384)},${h} L${X(-40)},${h} Z')`;
+  };
+  const slotHtml = (s, key) => !s.show ? "" : `<div class="lt-slot-pos" style="left:${s.x}px;bottom:${s.bottom}px;width:${s.w}px;height:${s.h}px${s.isPhoto ? `;clip-path:${playerClip(s.x, s.h)}` : ""}">
       ${s.isPhoto ? `<div data-host="${key}" style="position:absolute;inset:0"></div>` : ""}
       ${s.isLogo ? `<img class="lt-logo" src="${s.logo}" alt="" crossorigin="anonymous">` : ""}
     </div>`;
