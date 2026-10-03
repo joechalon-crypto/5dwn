@@ -170,6 +170,13 @@ ultime N partite della stagione; percentuali, medie e passer rating sono ricalco
 squadra ingrandito nella card. **Titolo e sottotitolo non hanno un testo automatico**:
 vanno sempre scritti in "Testi personalizzati" (senza, il download è bloccato). Footer
 automatico "NFL 2026 REGULAR SEASON" (sostituibile) e nota facoltativa sotto le card.
+**Rank NFL** accanto a ogni valore, con **Mostra**: dato + rank / solo dato / solo rank.
+Il rank è calcolato tra i giocatori "qualificati" ESPN del ruolo della statistica (passaggi:
+QB qualificati; corse: RB; ricezioni: WR/TE; difesa: difensori), sullo stesso periodo:
+intera stagione = statistiche stagionali ESPN di tutta la lega; ultime N partite = gamelog
+dei primi 60 qualificati del ruolo sommati sulle loro ultime N partite. INT, sack subiti e
+fumble: meno = meglio. "NQ" = giocatore non qualificato. Colori: top 10 verde, ultimi 10
+rossi, il resto grigio.
 Ogni giocatore ha la spunta **Anonimo**: la foto diventa la sua sagoma scura, il logo
 della squadra è sostituito da un "?", il nome sparisce e card e barra usano un grigio
 neutro (le statistiche restano).

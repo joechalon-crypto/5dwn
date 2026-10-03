@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030324";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, currentWeekIndex } from "../api.js?v=202610030324";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030328";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, currentWeekIndex } from "../api.js?v=202610030328";
 
 renderChrome("");
 
@@ -1945,10 +1945,10 @@ const CMP_GREY = "#f3f4f6";
 const CMP_ANON = "#5b616e"; // sfondo neutro dei giocatori anonimi
 // Statistiche confrontabili (chiave "categoria.nome" del gamelog ESPN; combinazioni calcolate).
 const CMP_STATS = [
-  { key: "cmpatt", label: "COMP/ATT", get: (a) => (a["passing.passingAttempts"] != null ? `${a["passing.completions"] ?? 0}/${a["passing.passingAttempts"]}` : null) },
+  { key: "cmpatt", label: "COMP/ATT", num: (a) => (a["passing.passingAttempts"] ? ((a["passing.completions"] || 0) / a["passing.passingAttempts"]) * 100 : null), get: (a) => (a["passing.passingAttempts"] != null ? `${a["passing.completions"] ?? 0}/${a["passing.passingAttempts"]}` : null) },
   { key: "passing.completionPct", label: "COMP %", dec: 1 },
   { key: "passing.passingYards", label: "PASS YDS" },
-  { key: "passYdsG", label: "PASS YDS/G", get: (a) => (a["passing.passingYards"] != null && a.games ? (a["passing.passingYards"] / a.games).toFixed(1) : null) },
+  { key: "passYdsG", label: "PASS YDS/G", num: (a) => (a["passing.passingYards"] != null && a.games ? a["passing.passingYards"] / a.games : null), get: (a) => (a["passing.passingYards"] != null && a.games ? (a["passing.passingYards"] / a.games).toFixed(1) : null) },
   { key: "passing.yardsPerPassAttempt", label: "YDS/ATT", dec: 1 },
   { key: "passing.passingTouchdowns", label: "PASS TD" },
   { key: "passing.interceptions", label: "INT" },
@@ -1963,13 +1963,13 @@ const CMP_STATS = [
   { key: "rushing.longRushing", label: "RUSH LNG" },
   { key: "receiving.receptions", label: "REC" },
   { key: "receiving.receivingTargets", label: "TARGET" },
-  { key: "rectgt", label: "REC/TGT", get: (a) => (a["receiving.receivingTargets"] != null ? `${a["receiving.receptions"] ?? 0}/${a["receiving.receivingTargets"]}` : null) },
+  { key: "rectgt", label: "REC/TGT", num: (a) => (a["receiving.receivingTargets"] ? (a["receiving.receptions"] || 0) / a["receiving.receivingTargets"] : null), get: (a) => (a["receiving.receivingTargets"] != null ? `${a["receiving.receptions"] ?? 0}/${a["receiving.receivingTargets"]}` : null) },
   { key: "receiving.receivingYards", label: "REC YDS" },
   { key: "receiving.yardsPerReception", label: "YDS/REC", dec: 1 },
   { key: "receiving.receivingTouchdowns", label: "REC TD" },
   { key: "receiving.longReception", label: "REC LNG" },
-  { key: "scrimYds", label: "YDS TOTALI", get: (a) => (a["rushing.rushingYards"] != null || a["receiving.receivingYards"] != null ? String((a["rushing.rushingYards"] || 0) + (a["receiving.receivingYards"] || 0)) : null) },
-  { key: "totTd", label: "TD TOTALI", get: (a) => (a["rushing.rushingTouchdowns"] != null || a["receiving.receivingTouchdowns"] != null ? String((a["rushing.rushingTouchdowns"] || 0) + (a["receiving.receivingTouchdowns"] || 0)) : null) },
+  { key: "scrimYds", label: "YDS TOTALI", num: (a) => (a["rushing.rushingYards"] != null || a["receiving.receivingYards"] != null ? (a["rushing.rushingYards"] || 0) + (a["receiving.receivingYards"] || 0) : null), get: (a) => (a["rushing.rushingYards"] != null || a["receiving.receivingYards"] != null ? String((a["rushing.rushingYards"] || 0) + (a["receiving.receivingYards"] || 0)) : null) },
+  { key: "totTd", label: "TD TOTALI", num: (a) => (a["rushing.rushingTouchdowns"] != null || a["receiving.receivingTouchdowns"] != null ? (a["rushing.rushingTouchdowns"] || 0) + (a["receiving.receivingTouchdowns"] || 0) : null), get: (a) => (a["rushing.rushingTouchdowns"] != null || a["receiving.receivingTouchdowns"] != null ? String((a["rushing.rushingTouchdowns"] || 0) + (a["receiving.receivingTouchdowns"] || 0)) : null) },
   { key: "tackles.totalTackles", label: "TACKLE" },
   { key: "tackles.soloTackles", label: "TACKLE SOLO" },
   { key: "tackles.assistTackles", label: "TACKLE ASSISTITI" },
@@ -1990,7 +1990,98 @@ const CMP_DEFAULTS = {
   DEF: ["tackles.totalTackles", "tackles.soloTackles", "tackles.sacks", "tackles.stuffs", "interceptions.interceptions", "interceptions.passesDefended", "fumbles.fumblesForced"],
 };
 const posGroup = (pos) => (pos === "QB" ? "QB" : ["RB", "FB"].includes(pos) ? "RB" : ["WR", "TE"].includes(pos) ? "WR" : "DEF");
-const cmp = { period: "season", nPlayers: 3, nStats: 5, slots: [{}, {}, {}], stats: [], note: "", loaded: false };
+const cmp = { period: "season", nPlayers: 3, nStats: 5, show: "both", slots: [{}, {}, {}], stats: [], note: "", loaded: false };
+
+// ---- rank NFL nel Confronto giocatori: tra i "qualificati" ESPN del ruolo, sullo stesso periodo scelto.
+const CMP_POOLS = {
+  passing: ["offense:passing", "passing.passingYards"],
+  rushing: ["offense:rushing", "rushing.rushingYards"],
+  receiving: ["offense:receiving", "receiving.receivingYards"],
+  defense: ["defense:defensive", "defensive.totalTackles"],
+};
+const POOL_LAST_N = 60; // ultime N partite: si sommano i gamelog dei primi 60 qualificati del ruolo
+const CMP_LOW = new Set(["passing.interceptions", "passing.sacks", "fumbles.fumbles", "fumbles.fumblesLost"]); // meno = meglio
+const cmpRankData = { qualified: {}, logs: {} };
+function poolsOf(st) {
+  const k = st.key;
+  if (k.startsWith("passing.") || k === "cmpatt" || k === "passYdsG") return ["passing"];
+  if (k.startsWith("rushing.")) return ["rushing"];
+  if (k.startsWith("receiving.") || k === "rectgt") return ["receiving"];
+  if (k === "scrimYds" || k === "totTd") return ["rushing", "receiving"];
+  if (k === "fumbles.fumbles" || k === "fumbles.fumblesLost") return ["passing", "rushing", "receiving"];
+  return ["defense"];
+}
+/** Statistiche stagionali "byathlete" → stesse chiavi del gamelog sommato. */
+function seasonAgg(stats) {
+  const a = { games: stats["general.gamesPlayed"] || 0 };
+  for (const [k, v] of Object.entries(stats)) {
+    const [c, n] = k.split(".");
+    if (c === "passing" || c === "rushing" || c === "receiving") a[k] = v;
+    else if (c === "defensive") a[n === "passesDefended" ? `interceptions.${n}` : `tackles.${n}`] = v;
+    else if (c === "defensiveinterceptions") a[`interceptions.${n}`] = v;
+    else if (c === "general" && (n === "fumblesForced" || n === "fumblesRecovered")) a[`fumbles.${n}`] = v;
+  }
+  return a;
+}
+const cmpNum = (st, a) => {
+  if (!a) return null;
+  const v = st.num ? st.num(a) : a[st.key];
+  return v == null || Number.isNaN(v) ? null : v;
+};
+/** Carica i dati della lega che servono ai rank delle statistiche scelte (con il periodo attuale). */
+async function ensureRankData() {
+  const stats = cmp.stats.slice(0, cmp.nStats).map((k) => CMP_STATS.find((s) => s.key === k)).filter(Boolean);
+  const pools = [...new Set(stats.flatMap(poolsOf))];
+  for (const p of pools) {
+    if (!cmpRankData.qualified[p]) cmpRankData.qualified[p] = (await getQualified(...CMP_POOLS[p])).data;
+  }
+  if (cmp.period === "season") return;
+  const ids = [...new Set(pools.flatMap((p) => cmpRankData.qualified[p].slice(0, POOL_LAST_N).map((q) => q.id)))].filter((id) => !cmpRankData.logs[id]);
+  let done = 0;
+  const queue = ids.slice();
+  const worker = async () => {
+    while (queue.length) {
+      const id = queue.shift();
+      try {
+        let res = await getGamelog(id);
+        if (!res.data.keys) res = await getGamelog(id, { force: true });
+        cmpRankData.logs[id] = res.data;
+      } catch { cmpRankData.logs[id] = null; }
+      done += 1;
+      if (done % 10 === 0) status.textContent = `Calcolo i rank NFL sulle ultime ${cmp.period} partite: ${done}/${ids.length} giocatori…`;
+    }
+  };
+  await Promise.all(Array.from({ length: 6 }, worker));
+}
+/** Rank del giocatore nella stat (1 = migliore); "NQ" se non è tra i qualificati del ruolo. */
+function cmpRank(st, sl) {
+  const pools = poolsOf(st);
+  if (!pools.every((p) => cmpRankData.qualified[p])) return null;
+  const members = new Map();
+  for (const p of pools) {
+    const list = cmpRankData.qualified[p];
+    (cmp.period === "season" ? list : list.slice(0, POOL_LAST_N)).forEach((q) => members.set(q.id, q));
+  }
+  const pid = String(sl.player?.id);
+  if (!members.has(pid)) return { nq: true };
+  const aggOf = (q) => (cmp.period === "season" ? seasonAgg(q.stats) : cmpRankData.logs[q.id] ? aggregateGamelog(cmpRankData.logs[q.id], cmp.period) : null);
+  const vals = [...members.values()].map((q) => ({ id: q.id, v: cmpNum(st, q.id === pid && cmp.period !== "season" ? sl.agg : aggOf(q)) })).filter((x) => x.v != null);
+  const mine = vals.find((x) => x.id === pid)?.v;
+  if (mine == null) return null;
+  const low = CMP_LOW.has(st.key);
+  const better = vals.filter((x) => (low ? x.v < mine - 1e-9 : x.v > mine + 1e-9)).length;
+  return { r: better + 1, of: vals.length };
+}
+async function cmpRefresh() {
+  try {
+    if (cmp.show !== "value") {
+      status.textContent = "Calcolo i rank NFL…";
+      await ensureRankData();
+    }
+  } catch (err) { console.warn("rank", err); }
+  renderAll();
+  cmpStatus();
+}
 const cmpReady = () => cmp.loaded && cmp.slots.slice(0, cmp.nPlayers).every((sl) => sl.player && sl.team);
 
 /** Somma le ultime n partite (o tutta la stagione) dal gamelog; medie e percentuali ricalcolate. */
@@ -2042,6 +2133,7 @@ const cmpEls = {
   period: document.getElementById("cmp-period"),
   nPlayers: document.getElementById("cmp-nplayers"),
   nStats: document.getElementById("cmp-nstats"),
+  show: document.getElementById("cmp-show"),
   note: document.getElementById("cmp-note"),
   slots: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`cmp-p${i}`), team: document.getElementById(`cmp-team${i}`), player: document.getElementById(`cmp-player${i}`), anon: document.getElementById(`cmp-anon${i}`) })),
   stats: [...document.querySelectorAll(".cmp-stat")],
@@ -2115,8 +2207,7 @@ async function loadCompare() {
     cmp.loaded = true;
     renderCmpSlotsVisibility();
     renderCmpStatSelects();
-    renderAll();
-    cmpStatus();
+    await cmpRefresh();
   } catch (err) {
     console.error(err);
     status.textContent = "Non riesco a caricare il confronto: riprova.";
@@ -2126,14 +2217,14 @@ function cmpStatus() {
   const per = cmp.period === "season" ? "intera stagione" : cmp.period === 1 ? "ultima partita" : `ultime ${cmp.period} partite`;
   const games = cmp.slots.slice(0, cmp.nPlayers).map((sl) => `${sl.player?.name}: ${sl.agg?.games ?? 0} partite`).join(" · ");
   const o = overrides.compare || {};
-  status.textContent = `Statistiche ESPN, ${per} · ${games}${!o.title?.trim() || !o.sub?.trim() ? " · scrivi titolo e sottotitolo in \"Testi personalizzati\"" : ""}`;
+  const rk = cmp.show === "value" ? "" : ` · rank NFL tra i qualificati ESPN del ruolo${cmp.period === "season" ? "" : ` (primi ${POOL_LAST_N} del ruolo, stesse ultime ${cmp.period} partite)`}`;
+  status.textContent = `Statistiche ESPN, ${per} · ${games}${rk}${!o.title?.trim() || !o.sub?.trim() ? " · scrivi titolo e sottotitolo in \"Testi personalizzati\"" : ""}`;
 }
 
 cmpEls.period.addEventListener("change", () => {
   cmp.period = cmpEls.period.value === "season" ? "season" : Number(cmpEls.period.value);
   cmp.slots.forEach((sl) => { if (sl.gamelog) sl.agg = aggregateGamelog(sl.gamelog, cmp.period); });
-  renderAll();
-  cmpStatus();
+  cmpRefresh();
 });
 cmpEls.nPlayers.addEventListener("change", async () => {
   cmp.nPlayers = Number(cmpEls.nPlayers.value);
@@ -2145,10 +2236,11 @@ cmpEls.nPlayers.addEventListener("change", async () => {
 cmpEls.nStats.addEventListener("change", () => {
   cmp.nStats = Number(cmpEls.nStats.value);
   renderCmpStatSelects();
-  renderAll();
+  cmpRefresh();
 });
+cmpEls.show.addEventListener("change", () => { cmp.show = cmpEls.show.value; cmpRefresh(); });
 cmpEls.note.addEventListener("input", () => { cmp.note = cmpEls.note.value; renderAll(); });
-cmpEls.stats.forEach((sel, i) => sel.addEventListener("change", () => { cmp.stats[i] = sel.value; renderAll(); }));
+cmpEls.stats.forEach((sel, i) => sel.addEventListener("change", () => { cmp.stats[i] = sel.value; cmpRefresh(); }));
 cmpEls.slots.forEach((el, i) => {
   el.anon.addEventListener("change", () => { cmp.slots[i].anon = el.anon.checked; renderAll(); });
   el.team.addEventListener("change", async () => {
@@ -2162,16 +2254,14 @@ cmpEls.slots.forEach((el, i) => {
     el.player.value = sl.player?.id || "";
     await loadSlotStats(i);
     renderCmpStatSelects();
-    renderAll();
-    cmpStatus();
+    cmpRefresh();
   });
   el.player.addEventListener("change", async () => {
     const sl = cmp.slots[i];
     sl.player = { ...(sl.roster.find((p) => p.id === el.player.value) || {}) };
     await loadSlotStats(i);
     renderCmpStatSelects();
-    renderAll();
-    cmpStatus();
+    cmpRefresh();
   });
 });
 
@@ -2192,9 +2282,21 @@ function cmpCard(sl, x, stats) {
   stats.forEach((st, i) => {
     const y = CP.panelBot + i * pitch;
     const v = cmpValue(st, sl.agg);
+    const showV = cmp.show !== "rank", showR = cmp.show !== "value";
+    const valCx = showR ? CP.cardW - 190 : CP.valCx, rCx = showV ? CP.cardW - 62 : CP.valCx;
     rows += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${CP.cardW}px;height:${pitch + 0.5}px;background:${i % 2 ? CMP_GREY : "#ffffff"}"></div>
-      ${T("cmpLabel", st.label, x + CP.labelX, y + (pitch - STYLES.cmpLabel.ref[1] * kt) / 2, "left", { scale: kt, maxW: 260 })}
-      ${v != null ? T("cmpVal", v, x + CP.valCx, y + (pitch - STYLES.cmpVal.ref[1] * kt) / 2, "center", { scale: kt, maxW: 190 }) : ""}`;
+      ${T("cmpLabel", st.label, x + CP.labelX, y + (pitch - STYLES.cmpLabel.ref[1] * kt) / 2, "left", { scale: kt, maxW: (showV ? valCx : rCx) - 60 - CP.labelX })}
+      ${showV && v != null ? T("cmpVal", v, x + valCx, y + (pitch - STYLES.cmpVal.ref[1] * kt) / 2, "center", { scale: kt, maxW: showR ? 150 : 190 }) : ""}`;
+    if (showR) {
+      const rk = v != null ? cmpRank(st, sl) : null;
+      const r = rk && !rk.nq ? rk.r : null;
+      const txt = rk?.nq ? "NQ" : r == null ? "–" : `${r}°`;
+      const bg = r == null ? RANK_COL.mid : r <= 10 ? RANK_COL.top : r > rk.of - 10 ? RANK_COL.low : RANK_COL.mid;
+      const fg = r != null && bg !== RANK_COL.mid ? "#ffffff" : "#1a1a1a";
+      const bw = 64 * Math.max(kt, 0.85), bh = 38 * kt;
+      rows += `<div class="g-bar" style="left:${x + rCx - bw / 2}px;top:${y + (pitch - bh) / 2}px;width:${bw}px;height:${bh}px;background:${bg}"></div>
+        ${T("tcRank", txt, x + rCx, y + (pitch - STYLES.tcRank.ref[1] * kt) / 2, "center", { scale: kt, color: fg, maxW: bw - 8 })}`;
+    }
   });
   return `<div class="g-cell" style="left:${x}px;top:${CP.panelTop}px;width:${CP.cardW}px;height:${CP.panelBot - CP.panelTop}px;background:${col}"></div>
     <div class="g-clip" style="position:absolute;overflow:hidden;left:${x + ph.x}px;top:${ph.top}px;width:${ph.w}px;height:${ph.h}px">
@@ -2207,6 +2309,21 @@ function cmpCard(sl, x, stats) {
     ${T("cmpLast", last, x + CP.nameX, CP.lastCap, "left", { color: ink, maxW: CP.nameMaxW })}`}
     ${rows}
     <div class="g-bar" style="left:${x}px;top:${CP.rowsBot}px;width:${CP.cardW}px;height:${CP.barH}px;background:${col}"></div>`;
+}
+
+/** Legenda dei rank (allineata a destra sotto le card) + "NQ = non qualificato". */
+function cmpLegend(right) {
+  const items = [["top", "TOP 10"], ["mid", "INTERMEDI"], ["low", "ULTIMI 10"], [null, "NQ = NON QUALIFICATO"]];
+  const L = TC.legend;
+  const widths = items.map(([, t]) => inkWidth("tcLeg", t));
+  let x = right - widths.reduce((a, w, i) => a + w + (items[i][0] ? 20 : 0), 0) - (items.length - 1) * 18;
+  return items.map(([c, t], i) => {
+    let h = "";
+    if (c) { h += `<div class="g-bar" style="left:${x}px;top:${L.y}px;width:${L.sq}px;height:${L.sq}px;background:${RANK_COL[c]}"></div>`; x += 20; }
+    h += T("tcLeg", t, x, L.cap, "left", { color: "#4b5058" });
+    x += widths[i] + 18;
+    return h;
+  }).join("");
 }
 
 function renderCompareStage(stage) {
@@ -2231,7 +2348,8 @@ function renderCompareStage(stage) {
       ${title ? T("week", title, W / 2, CP.title.cap, "center", { scale: CP.title.h / STYLES.week.ref[1], maxW: CP.title.maxW }) : ""}
       ${sub ? T("cmpSub", sub, W / 2, CP.sub.cap, "center", { maxW: 1500 }) : ""}
       ${cards}
-      ${cmp.note.trim() ? T("cmpNote", cmp.note, CP.note.x, CP.note.cap, "left", { color: "#474c54", maxW: total }) : ""}
+      ${cmp.note.trim() ? T("cmpNote", cmp.note, x0, CP.note.cap, "left", { color: "#474c54", maxW: total - 420 }) : ""}
+      ${cmp.show === "value" ? "" : cmpLegend(x0 + total)}
       ${T("cmpFoot", ovr("foot", `NFL ${year} ${seasonLabel}`), 46, 966, "left", { color: TS_BLUE, maxW: 900 })}
       ${rectBar([45, 995, 25, 2.5], TS_BLUE)}
       ${T("tsQd", `QUINTO DOWN ${year}`, 1872, 966, "right")}

@@ -815,6 +815,23 @@ async function loadAthleteRanking(def, seasonType) {
     }),
   };
 }
+/**
+ * Giocatori "qualificati" ESPN di una categoria (es. "offense:passing"), con tutte le statistiche stagionali
+ * come mappa "categoria.nome" → numero. Serve al rank NFL del Confronto giocatori.
+ */
+async function loadQualified(category, sort) {
+  const qs = new URLSearchParams({ isqualified: "true", limit: "400", category, sort: `${sort}:desc` });
+  const json = await fetchJSON(`${STATS_BASE}/byathlete?${qs}`);
+  const names = {};
+  for (const c of json.categories || []) names[c.name] = c.names || [];
+  return (json.athletes || []).map((a) => {
+    const stats = {};
+    for (const c of a.categories || []) (names[c.name] || []).forEach((n, i) => { const v = c.values?.[i]; if (typeof v === "number") stats[`${c.name}.${n}`] = v; });
+    return { id: String(a.athlete?.id), name: a.athlete?.displayName || "", pos: a.athlete?.position?.abbreviation || "", stats };
+  });
+}
+export const getQualified = (category, sort, opts) => cached(`qual:${category}:${sort}`, TTL.rankings, () => loadQualified(category, sort), opts);
+
 /** Stessa statistica = stessa richiesta (la versione "a partita" riusa i totali in cache). */
 export function getAthleteRanking(def, opts) {
   const f = (x) => (x ? `${x.group}.${x.field}` : "");
