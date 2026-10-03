@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <link rel="preconnect" href="https://site.api.espn.com" crossorigin>
   <link rel="preconnect" href="https://a.espncdn.com">
-  <link rel="stylesheet" href="assets/css/style.css?v=202610030300">
-  <link rel="stylesheet" href="assets/css/studio.css?v=202610030300">
+  <link rel="stylesheet" href="assets/css/style.css?v=202610030319">
+  <link rel="stylesheet" href="assets/css/studio.css?v=202610030319">
 </head>
 <body>
   <header id="site-header" class="site-header">
@@ -45,6 +45,7 @@
           <button type="button" data-tpl="game" aria-pressed="false">Partita</button>
           <button type="button" data-tpl="player" aria-pressed="false">Giocatore</button>
           <button type="button" data-tpl="compare" aria-pressed="false">Confronto giocatori</button>
+          <button type="button" data-tpl="tcompare" aria-pressed="false">Confronto squadre</button>
         </div>
         <div class="segmented" id="fmt-toggle" role="group" aria-label="Formato">
           <button type="button" data-fmt="wide" aria-pressed="true">16:9</button>
@@ -116,6 +117,28 @@
           <label class="select-field"><span class="select-label">Statistica 7</span><span class="select-wrap"><select class="select cmp-stat" aria-label="Statistica 7" autocomplete="off"></select></span></label>
         </div>
         <label class="text-field cmp-note-field"><span class="select-label">Nota sotto le card (facoltativa)</span><input type="text" id="cmp-note" class="text-input" autocomplete="off" placeholder="Es. * 3 fumble, tutti recuperati dall'attacco (0 persi)"></label>
+      </div>
+      <div class="studio-compare tcompare-only" hidden>
+        <div class="cmp-row">
+          <label class="select-field"><span class="select-label">Squadre</span><span class="select-wrap"><select id="tc-n" class="select" aria-label="Numero di squadre" autocomplete="off"><option value="2" selected>2</option><option value="3">3</option></select></span></label>
+          <label class="select-field"><span class="select-label">Statistiche</span><span class="select-wrap"><select id="tc-nstats" class="select" aria-label="Numero di statistiche" autocomplete="off"><option value="5">5</option><option value="6" selected>6</option><option value="7">7</option></select></span></label>
+          <label class="select-field"><span class="select-label">Valori</span><span class="select-wrap"><select id="tc-mode" class="select" aria-label="Valori" autocomplete="off"><option value="game" selected>Per partita</option><option value="total">Totale</option></select></span></label>
+          <label class="select-field"><span class="select-label">Mostra</span><span class="select-wrap"><select id="tc-show" class="select" aria-label="Cosa mostrare" autocomplete="off"><option value="both" selected>Dato + rank</option><option value="value">Solo dato</option><option value="rank">Solo rank</option></select></span></label>
+        </div>
+        <div class="cmp-stats">
+          <label class="select-field"><span class="select-label">Squadra 1</span><span class="select-wrap"><select id="tc-team0" class="select" aria-label="Squadra 1" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Squadra 2</span><span class="select-wrap"><select id="tc-team1" class="select" aria-label="Squadra 2" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Squadra 3</span><span class="select-wrap"><select id="tc-team2" class="select" aria-label="Squadra 3" autocomplete="off"></select></span></label>
+        </div>
+        <div class="cmp-stats">
+          <label class="select-field"><span class="select-label">Statistica 1</span><span class="select-wrap"><select class="select tc-stat" aria-label="Statistica 1" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 2</span><span class="select-wrap"><select class="select tc-stat" aria-label="Statistica 2" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 3</span><span class="select-wrap"><select class="select tc-stat" aria-label="Statistica 3" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 4</span><span class="select-wrap"><select class="select tc-stat" aria-label="Statistica 4" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 5</span><span class="select-wrap"><select class="select tc-stat" aria-label="Statistica 5" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 6</span><span class="select-wrap"><select class="select tc-stat" aria-label="Statistica 6" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 7</span><span class="select-wrap"><select class="select tc-stat" aria-label="Statistica 7" autocomplete="off"></select></span></label>
+        </div>
       </div>
       <details class="studio-texts">
         <summary>Testi personalizzati (titolo, sottotitolo, footer)</summary>
@@ -195,6 +218,13 @@
         </div>
         <div class="gfx-preview portrait" id="preview-game-tall"><div class="gfx-scaler"><div class="gfx" id="gfx-game-tall"></div></div></div>
       </section>
+      <section data-fmt="wide" class="studio-block tpl-tcompare" hidden>
+        <div class="section-head">
+          <div><span class="eyebrow">Confronto squadre</span><h2>16:9 · 1920 × 1080</h2></div>
+          <div class="studio-actions"><button type="button" class="btn btn-primary" id="dl-tcompare">Scarica PNG confronto squadre</button></div>
+        </div>
+        <div class="gfx-preview" id="preview-tcompare"><div class="gfx-scaler"><div class="gfx" id="gfx-tcompare"></div></div></div>
+      </section>
       <section data-fmt="wide" class="studio-block tpl-compare" hidden>
         <div class="section-head">
           <div><span class="eyebrow">Confronto giocatori</span><h2>16:9 · 1920 × 1080</h2></div>
@@ -220,6 +250,6 @@
   </main>
 
   <footer id="site-footer" class="site-footer"></footer>
-  <script type="module" src="assets/js/pages/studio.js?v=202610030300"></script>
+  <script type="module" src="assets/js/pages/studio.js?v=202610030319"></script>
 </body>
 </html>

@@ -847,6 +847,29 @@ async function loadTeamStats() {
 }
 export const getTeamStats = (opts) => cached("rank:teams", TTL.rankings, loadTeamStats, opts);
 
+/**
+ * Statistiche stagionali complete di una squadra (proprie e concesse agli avversari), come mappa
+ * "categoria.nome" → numero. Include difesa, red zone, possesso e special teams (non presenti in byteam).
+ */
+async function loadTeamSeason(id) {
+  const json = await fetchJSON(`${SITE}/teams/${id}/statistics`);
+  const flat = (block) => {
+    const out = {};
+    const cats = Array.isArray(block) ? block : block?.stats?.categories || block?.categories || [];
+    for (const c of cats) {
+      for (const st of c.stats || []) {
+        const k = `${c.name}.${st.name}`;
+        if (!(k in out) && typeof st.value === "number") out[k] = st.value;
+      }
+    }
+    return out;
+  };
+  const r = json.results || {};
+  return { id: String(id), own: flat(r), opp: flat(r.opponent) }; // "opponent": elenco di categorie delle squadre avversarie
+}
+export const getTeamSeason = (id, opts) => cached(`tseason:${id}`, TTL.rankings, () => loadTeamSeason(id), opts);
+
+
 /** Red zone % (touchdown) per squadra: dato presente solo nelle statistiche della singola squadra. */
 async function loadRedZone(id) {
   const json = await fetchJSON(`${SITE}/teams/${id}/statistics`);

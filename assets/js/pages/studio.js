@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030300";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610030300";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030319";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, currentWeekIndex } from "../api.js?v=202610030319";
 
 renderChrome("");
 
@@ -21,6 +21,7 @@ const stages = {
   nfcTall: { root: document.getElementById("gfx-nfc-tall"), wrap: document.getElementById("preview-nfc-tall"), W: 1080, H: 1920 },
   game: { root: document.getElementById("gfx-game"), wrap: document.getElementById("preview-game"), W: 1920, H: 1080 },
   gameTall: { root: document.getElementById("gfx-game-tall"), wrap: document.getElementById("preview-game-tall"), W: 1080, H: 1920 },
+  tcompare: { root: document.getElementById("gfx-tcompare"), wrap: document.getElementById("preview-tcompare"), W: 1920, H: 1080 },
   compare: { root: document.getElementById("gfx-compare"), wrap: document.getElementById("preview-compare"), W: 1920, H: 1080 },
   team: { root: document.getElementById("gfx-team"), wrap: document.getElementById("preview-team"), W: 1920, H: 1080 },
   player: { root: document.getElementById("gfx-player"), wrap: document.getElementById("preview-player"), W: 1920, H: 1080 },
@@ -93,6 +94,15 @@ const STYLES = {
   tsQd: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO DOWN 2026", 12.5, 212] },
   tsRecL: { cls: "gt-ts-rec", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["RECORD", 14, 68] },
   tsRecV: { cls: "gt-ts-recv", family: "Archivo", weight: 900, stretch: "normal", ref: ["0-3", 18, 42] },
+  // Template Confronto squadre ("NFL Team Comparison-selection.png", 7640×4296 → 1920×1080)
+  tcCity: { cls: "gt-cmp-first", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["BUFFALO", 24, 98] },
+  tcNick: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["BILLS", 39, 107] },
+  tcRec: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["3-1", 15, 24] },
+  tcHdr: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["STATISTICA", 12, 88] },
+  tcLabel: { cls: "gt-cmp-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["PUNTI A PARTITA", 21, 163] },
+  tcVal: { cls: "gt-cmp-val", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["29.5", 28, 60] },
+  tcRank: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["4°", 22, 23] },
+  tcLeg: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["TOP 10", 11.5, 43] },
   // Template Confronto giocatori ("NFL Player Comparison-selection.png", 10984×6180 → 1920×1080)
   cmpFirst: { cls: "gt-cmp-first", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["JUSTIN", 22, 76] },
   cmpLast: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["HERBERT", 28, 132] },
@@ -200,7 +210,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -220,10 +230,11 @@ const OV_FIELDS = {
   team: { title: true, sub: true, foot: true },
   player: { title: true, sub: true },
   compare: { title: true, sub: true, foot: true },
+  tcompare: { title: true, sub: true, foot: true },
   game: {},
 };
 // Testi senza valore automatico: vanno sempre scritti (Confronto giocatori).
-const OV_REQUIRED = { compare: { title: true, sub: true } };
+const OV_REQUIRED = { compare: { title: true, sub: true }, tcompare: { title: true, sub: true } };
 const ovPlaceholder = (k) => (OV_REQUIRED[tpl]?.[k] ? "Obbligatorio: scrivi il testo" : `Automatico: ${lastAuto[tpl]?.[k] ?? "…"}`);
 const overrides = {}; // { [tpl]: { title, sub, foot } }
 const lastAuto = {}; // testi automatici dell'ultimo render, mostrati come segnaposto
@@ -265,16 +276,18 @@ function applyVisibility() {
     else if (el.classList.contains("tpl-player")) ok = tpl === "player"; // per ora solo 16:9
     else if (el.classList.contains("tpl-team")) ok = tpl === "team"; // per ora solo 16:9
     else if (el.classList.contains("tpl-compare")) ok = tpl === "compare"; // per ora solo 16:9
+    else if (el.classList.contains("tpl-tcompare")) ok = tpl === "tcompare"; // per ora solo 16:9
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
     el.hidden = !ok;
   });
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
   document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
-  document.getElementById("fmt-toggle").hidden = tpl === "player" || tpl === "team" || tpl === "compare";
+  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare"].includes(tpl);
+  document.querySelectorAll(".tcompare-only").forEach((el) => (el.hidden = tpl !== "tcompare"));
   document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
   document.querySelectorAll(".compare-only").forEach((el) => (el.hidden = tpl !== "compare"));
-  weekSelect.closest(".select-field").hidden = tpl === "team" || tpl === "compare";
-  if (tpl === "compare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
+  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare"].includes(tpl);
+  if (tpl === "compare" || tpl === "tcompare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
   syncOverrideFields();
   document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
   Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
@@ -570,6 +583,10 @@ function syncOverridePlaceholders() {
   for (const k of OV_KEYS) if (fields[k]) ovInputs[k].placeholder = ovPlaceholder(k);
 }
 function renderAllInner() {
+  if (tpl === "tcompare") {
+    if (tc.loaded) renderTCompareStage(stages.tcompare);
+    return;
+  }
   if (tpl === "compare") {
     if (cmpReady()) renderCompareStage(stages.compare);
     return;
@@ -799,6 +816,18 @@ const gameFile = (f) => {
   return `5dwn-partita-${gameData.away.team.abbr.toLowerCase()}-${gameData.home.team.abbr.toLowerCase()}-week-${e ? e.week : ""}-${sb.season.year}-${f}.png`;
 };
 document.getElementById("dl-game").addEventListener("click", () => gameData && exportPng(stages.game, gameFile("16x9")));
+document.getElementById("dl-tcompare").addEventListener("click", () => {
+  if (!tc.loaded) return;
+  const o = overrides.tcompare || {};
+  if (!o.title?.trim() || !o.sub?.trim()) {
+    status.textContent = "Prima di scaricare scrivi titolo e sottotitolo in \"Testi personalizzati\".";
+    document.querySelector(".studio-texts").open = true;
+    (o.title?.trim() ? ovInputs.sub : ovInputs.title).focus();
+    return;
+  }
+  const slug = tc.teams.slice(0, tc.n).map((id) => teamList.find((t) => t.id === id)?.abbr.toLowerCase()).join("-vs-");
+  exportPng(stages.tcompare, `5dwn-confronto-squadre-${slug}-${sb.season.year}.png`);
+});
 document.getElementById("dl-compare").addEventListener("click", () => {
   if (!cmpReady()) return;
   const o = overrides.compare || {};
@@ -1614,6 +1643,289 @@ function renderPlayerStage(stage) {
   fitPreview(stage);
 }
 
+// ---------------------------------------------------------------------------- template Confronto squadre
+// Misurato su "NFL Team Comparison-selection.png" (7640×4296 → 1920×1080). Solo 16:9.
+// Dati: statistiche stagionali ESPN di tutte le 32 squadre (proprie e concesse); il rank NFL è calcolato
+// confrontando le 32 squadre (ESPN non lo espone), con la direzione giusta per ogni statistica.
+const TC = {
+  panelTop: 241, hdrTop: 471, hdrH: 34, rowsTop: 505.5, rowsBot: 871, barH: 5.5,
+  logo: { cx: 119.5, cy: 356, box: 185 }, textX: 227, cityCap: 294, nickCap: 337,
+  rec: { top: 395, h: 29, pad: 10.5, cap: 404 },
+  hdrCap: 483, labelX: 43, rowRef: 61, labelDy: 20.5, valDy: 17.5, rankBox: { w: 70, h: 38, dy: 10.5 }, rankDy: 19.5,
+  legend: { y: 907, sq: 14, cap: 909 },
+};
+const RANK_COL = { top: "#1e9e4a", mid: "#c9cdd3", low: "#d62828" };
+const g0 = (d) => d.own["general.gamesPlayed"] || d.own["passing.teamGamesPlayed"] || 0;
+const O = (k) => (d) => d.own[k], OP = (k) => (d) => d.opp[k];
+const ratio = (a, b) => (d) => (d.own[b] ? d.own[a] / d.own[b] : null);
+const ratioOpp = (a, b) => (d) => (d.opp[b] ? d.opp[a] / d.opp[b] : null);
+const passerRating = (c, att, y, td, it) => {
+  if (!att) return null;
+  const cl = (x) => Math.max(0, Math.min(2.375, x));
+  return ((cl((c / att - 0.3) * 5) + cl((y / att - 3) * 0.25) + cl((td / att) * 20) + cl(2.375 - (it / att) * 25)) / 6) * 100;
+};
+const fracDisp = (m, a) => (d) => (d.own[a] != null ? `${d.own[m] ?? 0}/${d.own[a]}` : null);
+// count: convertibile a partita · better: direzione del rank (null = nessun rank) · fmt: int | dec | pct | time
+const TC_STATS = [
+  ["ATTACCO", [
+    { key: "pts", label: "PUNTI FATTI", labelG: "PUNTI A PARTITA", v: O("scoring.totalPoints"), count: true, better: "high" },
+    { key: "yds", label: "YARD TOTALI", labelG: "YARD A PARTITA", v: O("rushing.totalYards"), count: true, better: "high" },
+    { key: "passYds", label: "YARD SU PASSAGGIO", v: O("passing.netPassingYards"), count: true, better: "high" },
+    { key: "rushYds", label: "YARD SU CORSA", v: O("rushing.rushingYards"), count: true, better: "high" },
+    // efficienze (medie per giocata: stesso valore in "per partita" e "totale")
+    { key: "ypp", label: "YARD/GIOCATA", v: ratio("rushing.totalYards", "rushing.totalOffensivePlays"), fmt: "dec", better: "high" },
+    { key: "ypaO", label: "YARD/TENTATIVO", v: O("passing.yardsPerPassAttempt"), fmt: "dec", better: "high" },
+    { key: "ypc", label: "YARD/PORTATA", v: O("rushing.yardsPerRushAttempt"), fmt: "dec", better: "high" },
+    { key: "fd", label: "PRIMI DOWN", v: O("miscellaneous.firstDowns"), count: true, better: "high" },
+    { key: "fdPass", label: "PRIMI DOWN SU PASSAGGIO", v: O("miscellaneous.firstDownsPassing"), count: true, better: "high" },
+    { key: "fdRush", label: "PRIMI DOWN SU CORSA", v: O("miscellaneous.firstDownsRushing"), count: true, better: "high" },
+    { key: "fdPen", label: "PRIMI DOWN DA PENALITÀ", v: O("miscellaneous.firstDownsPenalty"), count: true, better: "high" },
+    { key: "third", label: "TERZI DOWN %", v: O("miscellaneous.thirdDownConvPct"), fmt: "pct", better: "high" },
+    { key: "fourth", label: "QUARTI DOWN %", v: O("miscellaneous.fourthDownConvPct"), fmt: "pct", better: "high" },
+    { key: "rz", label: "RED ZONE % (TD)", v: O("miscellaneous.redzoneTouchdownPct"), fmt: "pct", better: "high" },
+    { key: "td", label: "TD TOTALI", v: O("scoring.totalTouchdowns"), count: true, better: "high" },
+    { key: "tdPass", label: "TD SU PASSAGGIO", v: O("passing.passingTouchdowns"), count: true, better: "high" },
+    { key: "tdRush", label: "TD SU CORSA", v: O("rushing.rushingTouchdowns"), count: true, better: "high" },
+    { key: "top", label: "POSSESSO A PARTITA", v: (d) => (g0(d) ? d.own["miscellaneous.possessionTimeSeconds"] / g0(d) : null), fmt: "time", better: "high" },
+    { key: "cmpAtt", label: "COMPLETATI/TENTATI", v: O("passing.completionPct"), disp: fracDisp("passing.completions", "passing.passingAttempts"), better: "high" },
+    { key: "cmpPct", label: "COMPLETAMENTI %", v: O("passing.completionPct"), fmt: "pct", better: "high" },
+    { key: "rtg", label: "PASSER RATING", v: O("passing.QBRating"), fmt: "dec", better: "high" },
+    { key: "sacked", label: "SACK SUBITI", v: O("passing.sacks"), count: true, better: "low" },
+    { key: "sackYds", label: "YARD PERSE IN SACK", v: O("passing.sackYardsLost"), count: true, better: "low" },
+    { key: "bigPass", label: "BIG PLAY SU PASSAGGIO", v: O("receiving.receivingBigPlays"), count: true, better: "high" },
+    { key: "bigRush", label: "BIG PLAY SU CORSA", v: O("rushing.rushingBigPlays"), count: true, better: "high" },
+    { key: "fum", label: "FUMBLE", v: O("general.fumbles"), count: true, better: "low" },
+    { key: "fumLost", label: "FUMBLE PERSI", v: O("miscellaneous.fumblesLost"), count: true, better: "low" },
+    { key: "give", label: "PALLE PERSE", v: O("miscellaneous.totalGiveaways"), count: true, better: "low" },
+    { key: "toDiff", label: "DIFFERENZIALE TURNOVER", v: O("miscellaneous.turnOverDifferential"), count: true, better: "high", signed: true },
+    { key: "pen", label: "PENALITÀ", v: O("miscellaneous.totalPenalties"), count: true, better: "low" },
+    { key: "penYds", label: "YARD DI PENALITÀ", v: O("miscellaneous.totalPenaltyYards"), count: true, better: "low" },
+  ]],
+  ["DIFESA", [
+    { key: "ptsA", label: "PUNTI CONCESSI", labelG: "PUNTI CONCESSI A PARTITA", v: OP("scoring.totalPoints"), count: true, better: "low" },
+    { key: "ydsA", label: "YARD CONCESSE", labelG: "YARD CONCESSE A PARTITA", v: OP("rushing.totalYards"), count: true, better: "low" },
+    { key: "passA", label: "YARD SU PASSAGGIO CONCESSE", v: OP("passing.netPassingYards"), count: true, better: "low" },
+    { key: "rushA", label: "YARD SU CORSA CONCESSE", v: OP("rushing.rushingYards"), count: true, better: "low" },
+    { key: "yppA", label: "YARD/GIOCATA CONCESSA", v: ratioOpp("rushing.totalYards", "rushing.totalOffensivePlays"), fmt: "dec", better: "low" },
+    { key: "ypaA", label: "YARD/TENTATIVO CONCESSO", v: OP("passing.yardsPerPassAttempt"), fmt: "dec", better: "low" },
+    { key: "ypcA", label: "YARD/PORTATA CONCESSA", v: OP("rushing.yardsPerRushAttempt"), fmt: "dec", better: "low" },
+    { key: "fdA", label: "PRIMI DOWN CONCESSI", v: OP("miscellaneous.firstDowns"), count: true, better: "low" },
+    { key: "thirdA", label: "TERZI DOWN % CONCESSI", v: OP("miscellaneous.thirdDownConvPct"), fmt: "pct", better: "low" },
+    { key: "fourthA", label: "QUARTI DOWN % CONCESSI", v: OP("miscellaneous.fourthDownConvPct"), fmt: "pct", better: "low" },
+    { key: "rzA", label: "RED ZONE % CONCESSA", v: OP("miscellaneous.redzoneTouchdownPct"), fmt: "pct", better: "low" },
+    { key: "tdPassA", label: "TD SU PASSAGGIO CONCESSI", v: OP("passing.passingTouchdowns"), count: true, better: "low" },
+    { key: "tdRushA", label: "TD SU CORSA CONCESSI", v: OP("rushing.rushingTouchdowns"), count: true, better: "low" },
+    { key: "rtgA", label: "PASSER RATING AGAINST", v: (d) => passerRating(d.opp["passing.completions"], d.opp["passing.passingAttempts"], d.opp["passing.passingYards"], d.opp["passing.passingTouchdowns"], d.opp["passing.interceptions"]), fmt: "dec", better: "low" },
+    { key: "tkl", label: "TACKLE TOTALI", v: O("defensive.totalTackles"), count: true, better: "high" },
+    { key: "tklSolo", label: "TACKLE SOLO", v: O("defensive.soloTackles"), count: true, better: "high" },
+    { key: "tklAst", label: "TACKLE ASSISTITI", v: O("defensive.assistTackles"), count: true, better: "high" },
+    { key: "sacks", label: "SACK", v: O("defensive.sacks"), count: true, better: "high" },
+    { key: "sackYdsD", label: "YARD DA SACK", v: O("defensive.sackYards"), count: true, better: "high" },
+    { key: "tfl", label: "TACKLE FOR LOSS", v: O("defensive.tacklesForLoss"), count: true, better: "high" },
+    { key: "int", label: "INTERCETTI", v: O("defensiveInterceptions.interceptions"), count: true, better: "high" },
+    { key: "intYds", label: "YARD SU INTERCETTO", v: O("defensiveInterceptions.interceptionYards"), count: true, better: "high" },
+    { key: "intTd", label: "TD SU INTERCETTO", v: O("defensiveInterceptions.interceptionTouchdowns"), count: true, better: "high" },
+    { key: "pd", label: "PASSAGGI DEVIATI", v: O("defensive.passesDefended"), count: true, better: "high" },
+    { key: "ff", label: "FUMBLE FORZATI", v: O("general.fumblesForced"), count: true, better: "high" },
+    { key: "fr", label: "FUMBLE RECUPERATI", v: O("general.fumblesRecovered"), count: true, better: "high" },
+    { key: "take", label: "PALLE RECUPERATE", v: O("miscellaneous.totalTakeaways"), count: true, better: "high" },
+    { key: "tdDef", label: "TD DIFENSIVI", v: (d) => (d.own["defensiveInterceptions.interceptionTouchdowns"] ?? 0) + (d.own["general.fumblesTouchdowns"] ?? 0) + (d.own["defensive.miscTouchdowns"] ?? 0), count: true, better: "high" },
+  ]],
+  ["SPECIAL TEAMS", [
+    { key: "fg", label: "FIELD GOAL", v: O("kicking.fieldGoalPct"), disp: fracDisp("kicking.fieldGoalsMade", "kicking.fieldGoalAttempts"), better: "high" },
+    { key: "fgPct", label: "FIELD GOAL %", v: O("kicking.fieldGoalPct"), fmt: "pct", better: "high" },
+    ...[["1_19", "1-19"], ["20_29", "20-29"], ["30_39", "30-39"], ["40_49", "40-49"], ["50", "50+"]].map(([k, l]) => ({
+      key: `fg${k}`, label: `FIELD GOAL ${l} YARD`, v: ratio(`kicking.fieldGoalsMade${k}`, `kicking.fieldGoalAttempts${k}`),
+      disp: fracDisp(`kicking.fieldGoalsMade${k}`, `kicking.fieldGoalAttempts${k}`), better: "high" })),
+    { key: "fgLong", label: "FIELD GOAL PIÙ LUNGO", v: O("kicking.longFieldGoalMade"), better: "high" },
+    { key: "xp", label: "EXTRA POINT", v: O("kicking.extraPointPct"), disp: fracDisp("kicking.extraPointsMade", "kicking.extraPointAttempts"), better: "high" },
+    { key: "xpPct", label: "EXTRA POINT %", v: O("kicking.extraPointPct"), fmt: "pct", better: "high" },
+    { key: "punts", label: "PUNT", v: O("punting.punts"), count: true, better: null },
+    { key: "puntYds", label: "YARD SU PUNT", v: O("punting.puntYards"), count: true, better: null },
+    { key: "puntAvg", label: "MEDIA PUNT", v: O("punting.grossAvgPuntYards"), fmt: "dec", better: "high" },
+    { key: "puntNet", label: "MEDIA NETTA PUNT", v: O("punting.netAvgPuntYards"), fmt: "dec", better: "high" },
+    { key: "puntTb", label: "TOUCHBACK SU PUNT", v: O("punting.touchbacks"), count: true, better: "low" },
+    { key: "punt20", label: "PUNT DENTRO LE 20", v: O("punting.puntsInside20"), count: true, better: "high" },
+    { key: "puntLong", label: "PUNT PIÙ LUNGO", v: O("punting.longPunt"), better: "high" },
+    { key: "puntBlk", label: "PUNT BLOCCATI", v: O("punting.puntsBlocked"), count: true, better: "low" },
+    { key: "kr", label: "KICK RETURN", v: O("returning.kickReturns"), count: true, better: null },
+    { key: "krYds", label: "YARD SU KICK RETURN", v: O("returning.kickReturnYards"), count: true, better: "high" },
+    { key: "krAvg", label: "MEDIA KICK RETURN", v: O("returning.yardsPerKickReturn"), fmt: "dec", better: "high" },
+    { key: "krTd", label: "TD SU KICK RETURN", v: O("returning.kickReturnTouchdowns"), count: true, better: "high" },
+    { key: "krLong", label: "KICK RETURN PIÙ LUNGO", v: O("returning.longKickReturn"), better: "high" },
+    { key: "pr", label: "PUNT RETURN", v: O("returning.puntReturns"), count: true, better: null },
+    { key: "prYds", label: "YARD SU PUNT RETURN", v: O("returning.puntReturnYards"), count: true, better: "high" },
+    { key: "prAvg", label: "MEDIA PUNT RETURN", v: O("returning.yardsPerPuntReturn"), fmt: "dec", better: "high" },
+    { key: "prTd", label: "TD SU PUNT RETURN", v: O("returning.puntReturnTouchdowns"), count: true, better: "high" },
+    { key: "prLong", label: "PUNT RETURN PIÙ LUNGO", v: O("returning.longPuntReturn"), better: "high" },
+    { key: "prFc", label: "FAIR CATCH", v: O("returning.puntReturnFairCatches"), count: true, better: null },
+  ]],
+];
+const TC_ALL = TC_STATS.flatMap(([, list]) => list);
+const tc = { n: 2, nStats: 6, mode: "game", show: "both", teams: [], stats: ["pts", "yds", "passYds", "rushYds", "third", "give", "td"], data: {}, records: {}, loaded: false };
+const tcEls = {
+  n: document.getElementById("tc-n"), nStats: document.getElementById("tc-nstats"), mode: document.getElementById("tc-mode"), show: document.getElementById("tc-show"),
+  teams: [0, 1, 2].map((i) => document.getElementById(`tc-team${i}`)), stats: [...document.querySelectorAll(".tc-stat")],
+};
+
+/** Valore numerico (per il rank) nella modalità scelta: i conteggi diventano "a partita". */
+function tcNum(st, d) {
+  if (!d) return null;
+  const v = st.v(d);
+  if (v == null || Number.isNaN(v)) return null;
+  return st.count && tc.mode === "game" ? (g0(d) ? v / g0(d) : null) : v;
+}
+function tcDisp(st, d) {
+  if (st.disp) return st.disp(d);
+  const v = tcNum(st, d);
+  if (v == null) return null;
+  const sign = st.signed && v > 0 ? "+" : "";
+  if (st.fmt === "time") return `${Math.floor(v / 60)}:${String(Math.round(v % 60)).padStart(2, "0")}`;
+  if (st.fmt === "pct") return `${v.toFixed(1)}%`;
+  if (st.fmt === "dec" || (st.count && tc.mode === "game")) return sign + v.toFixed(1);
+  return sign + String(Math.round(v));
+}
+/** Rank NFL fra le 32 squadre (pari merito = stesso rank). */
+function tcRank(st, id) {
+  if (!st.better) return null;
+  const mine = tcNum(st, tc.data[id]);
+  if (mine == null) return null;
+  const vals = Object.values(tc.data).map((d) => tcNum(st, d)).filter((v) => v != null);
+  const better = vals.filter((v) => (st.better === "high" ? v > mine + 1e-9 : v < mine - 1e-9)).length;
+  return better + 1;
+}
+const tcLabel = (st) => (tc.mode === "game" && st.labelG ? st.labelG : st.label);
+
+async function loadTCompare() {
+  try {
+    status.textContent = "Carico le statistiche delle 32 squadre…";
+    if (!teamList.length) teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+    const opts = teamList.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+    tcEls.teams.forEach((el) => { if (el.options.length !== teamList.length) el.innerHTML = opts; });
+    if (!tc.teams.length) {
+      const byAbbr = (a) => teamList.find((t) => t.abbr === a)?.id;
+      tc.teams = [byAbbr("BUF"), byAbbr("KC"), byAbbr("PHI")].map((id, i) => id || teamList[i].id);
+    }
+    // statistiche stagionali di tutte le squadre (servono per il rank)
+    const all = await Promise.all(teamList.map((t) => getTeamSeason(t.id).then((r) => r.data).catch(() => null)));
+    all.forEach((d, i) => { if (d) tc.data[teamList[i].id] = d; });
+    await Promise.all(tc.teams.map(async (id) => {
+      try {
+        const sch = (await getSchedule(id, {}, { seasonType: 2 })).data.events.filter((e) => e.state === "post");
+        const w = sch.filter((e) => e.result === "W").length, l = sch.filter((e) => e.result === "L").length, t = sch.length - w - l;
+        tc.records[id] = `${w}-${l}${t ? `-${t}` : ""}`;
+      } catch { tc.records[id] = ""; }
+    }));
+    tc.loaded = true;
+    tcRenderControls();
+    renderAll();
+    tcStatus();
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare il confronto squadre: riprova.";
+  }
+}
+function tcRenderControls() {
+  tcEls.teams.forEach((el, i) => { el.closest(".select-field").hidden = i >= tc.n; el.value = tc.teams[i] || ""; });
+  const opts = TC_STATS.map(([g, list]) => `<optgroup label="${g}">${list.map((st) => `<option value="${st.key}">${esc(st.label)}${st.labelG ? ` (${esc(st.labelG)})` : ""}</option>`).join("")}</optgroup>`).join("");
+  tcEls.stats.forEach((el, i) => {
+    el.closest(".select-field").hidden = i >= tc.nStats;
+    if (!el.options.length) el.innerHTML = opts;
+    el.value = tc.stats[i] || "";
+  });
+}
+function tcStatus() {
+  const o = overrides.tcompare || {};
+  const n = Object.keys(tc.data).length;
+  status.textContent = `Statistiche stagionali ESPN · rank calcolato su ${n} squadre · valori ${tc.mode === "game" ? "a partita" : "totali"}${!o.title?.trim() || !o.sub?.trim() ? " · scrivi titolo e sottotitolo in \"Testi personalizzati\"" : ""}`;
+}
+tcEls.n.addEventListener("change", async () => {
+  tc.n = Number(tcEls.n.value);
+  while (tc.teams.length < tc.n) tc.teams.push(teamList.find((t) => !tc.teams.includes(t.id)).id);
+  await loadTCompare();
+});
+tcEls.nStats.addEventListener("change", () => { tc.nStats = Number(tcEls.nStats.value); tcRenderControls(); renderAll(); });
+tcEls.mode.addEventListener("change", () => { tc.mode = tcEls.mode.value; renderAll(); tcStatus(); });
+tcEls.show.addEventListener("change", () => { tc.show = tcEls.show.value; renderAll(); });
+tcEls.stats.forEach((el, i) => el.addEventListener("change", () => { tc.stats[i] = el.value; renderAll(); }));
+tcEls.teams.forEach((el, i) => el.addEventListener("change", () => { tc.teams[i] = el.value; loadTCompare(); }));
+for (const k of ["title", "sub"]) ovInputs[k].addEventListener("input", () => { if (tpl === "tcompare" && tc.loaded) tcStatus(); });
+
+function tcCard(id, x, w, stats) {
+  const t = teamList.find((tt) => tt.id === id), d = tc.data[id];
+  const col = TEAM_CELL[t.abbr] || t.color || "#333";
+  const ink = DARK_TEXT.has(t.abbr) ? "#111111" : "#ffffff";
+  const showV = tc.show !== "rank", showR = tc.show !== "value";
+  const rankCx = w - 76, valCx = showR ? w - 230 : w - 110;
+  const rCx = showV ? rankCx : w - 110;
+  const lg = TC.logo, rec = tc.records[id] || "";
+  const recW = inkWidth("tcRec", rec) + 2 * TC.rec.pad;
+  const n = stats.length, pitch = (TC.rowsBot - TC.rowsTop) / n, kt = Math.min(1, (pitch / TC.rowRef) * 1.1);
+  const labelMax = (showV ? valCx : rCx) - 50 - TC.labelX;
+  let rows = "";
+  stats.forEach((st, i) => {
+    const y = TC.rowsTop + i * pitch;
+    const v = tcDisp(st, d), r = tcRank(st, id);
+    rows += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${w}px;height:${pitch + 0.5}px;background:${i % 2 ? CMP_GREY : "#ffffff"}"></div>
+      ${T("tcLabel", tcLabel(st), x + TC.labelX, y + (pitch - STYLES.tcLabel.ref[1] * kt) / 2, "left", { scale: kt, maxW: labelMax, color: "#1d2026" })}`;
+    if (showV && v != null) rows += T("tcVal", v, x + valCx, y + (pitch - STYLES.tcVal.ref[1] * kt) / 2, "center", { scale: kt, maxW: 170, color: "#0b0b0b" });
+    if (showR) {
+      const bw = TC.rankBox.w * Math.max(kt, 0.85), bh = TC.rankBox.h * kt;
+      const bg = r == null ? RANK_COL.mid : r <= 10 ? RANK_COL.top : r <= 22 ? RANK_COL.mid : RANK_COL.low;
+      const fg = r != null && (r <= 10 || r > 22) ? "#ffffff" : "#1a1a1a";
+      rows += `<div class="g-bar" style="left:${x + rCx - bw / 2}px;top:${y + (pitch - bh) / 2}px;width:${bw}px;height:${bh}px;background:${bg}"></div>
+        ${T("tcRank", r == null ? "–" : `${r}°`, x + rCx, y + (pitch - STYLES.tcRank.ref[1] * kt) / 2, "center", { scale: kt, color: fg })}`;
+    }
+  });
+  const hdr = `<div class="g-bar" style="left:${x}px;top:${TC.hdrTop}px;width:${w}px;height:${TC.hdrH}px;background:#0f1e3f"></div>
+    ${T("tcHdr", "STATISTICA", x + 41, TC.hdrCap, "left", { color: "#ffffff" })}
+    ${showV ? T("tcHdr", tc.mode === "game" ? "A PARTITA" : "TOTALE", x + valCx, TC.hdrCap, "center", { color: "#ffffff" }) : ""}
+    ${showR ? T("tcHdr", "RANK NFL", x + rCx, TC.hdrCap, "center", { color: "#ffffff" }) : ""}`;
+  return `<div class="g-cell" style="left:${x}px;top:${TC.panelTop}px;width:${w}px;height:${TC.hdrTop - TC.panelTop}px;background:${col}"></div>
+    <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${t.abbr.toLowerCase()}.png`, 400)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
+    ${T("tcCity", (t.location || "").toUpperCase(), x + TC.textX, TC.cityCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
+    ${T("tcNick", (t.nickname || "").toUpperCase(), x + TC.textX, TC.nickCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
+    ${rec ? `<div class="g-bar" style="left:${x + TC.textX - 2}px;top:${TC.rec.top}px;width:${recW}px;height:${TC.rec.h}px;background:#ffffff"></div>
+    ${T("tcRec", rec, x + TC.textX - 2 + recW / 2, TC.rec.cap, "center", { color: "#0f1e3f" })}` : ""}
+    ${hdr}${rows}
+    <div class="g-bar" style="left:${x}px;top:${TC.rowsBot}px;width:${w}px;height:${TC.barH}px;background:${col}"></div>`;
+}
+
+function renderTCompareStage(stage) {
+  const { W, H, root } = stage;
+  const year = sb.season.year;
+  const n = tc.n, w = n === 2 ? 635.5 : 526, gap = n === 2 ? 20 : 21;
+  const total = n * w + (n - 1) * gap;
+  const x0 = n === 2 ? 296 : W / 2 - total / 2; // 2 squadre: posizione del riferimento
+  const stats = tc.stats.slice(0, tc.nStats).map((k) => TC_ALL.find((s) => s.key === k)).filter(Boolean);
+  const cards = tc.teams.slice(0, n).map((id, i) => tcCard(id, x0 + i * (w + gap), w, stats)).join("");
+  const L = TC.legend;
+  const legend = tc.show === "value" ? "" : [["top", "TOP 10", 0, 20], ["mid", "11-22", 86, 105], ["low", "BOTTOM 10", 156, 177]]
+    .map(([c, txt, sx, tx]) => `<div class="g-bar" style="left:${x0 + sx}px;top:${L.y}px;width:${L.sq}px;height:${L.sq}px;background:${RANK_COL[c]}"></div>
+      ${T("tcLeg", txt, x0 + tx, L.cap, "left", { color: "#4b5058" })}`).join("");
+  const title = ovr("title", ""), sub = ovr("sub", "");
+  const seasonLabel = Number(sb.season.type) === 3 ? "PLAYOFF" : "REGULAR SEASON";
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, true)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${["FOOTBALL", "MORE", "THAN", "A GAME"].map((w2, i) => T("stSide", w2, 46, [47, 71, 95, 118][i], "left", { scale: 1.06 })).join("")}
+      ${rectBar([45, 149, 25, 3], TS_BLUE)}
+      ${rectBar([1850, 48, 25, 3], TS_BLUE)}
+      ${T("stInk", String(year), 1872, 67, "right", { scale: 1.04 })}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${CP.brand[0]}px;top:${CP.brand[1]}px;width:${CP.brand[2]}px;height:${CP.brand[3]}px">
+      ${title ? T("week", title, W / 2, CP.title.cap, "center", { scale: CP.title.h / STYLES.week.ref[1], maxW: CP.title.maxW }) : ""}
+      ${sub ? T("cmpSub", sub, W / 2, CP.sub.cap, "center", { maxW: 1500 }) : ""}
+      ${cards}
+      ${legend}
+      ${T("cmpFoot", ovr("foot", `NFL ${year} ${seasonLabel}`), 46, 966, "left", { color: TS_BLUE, maxW: 900 })}
+      ${rectBar([45, 995, 25, 2.5], TS_BLUE)}
+      ${T("tsQd", `QUINTO DOWN ${year}`, 1872, 966, "right")}
+      ${rectBar([1850, 995, 25, 2.5], TS_BLUE)}
+    </div>`;
+  fitPreview(stage);
+}
+
 // ---------------------------------------------------------------------------- template Confronto giocatori
 // Misurato su "NFL Player Comparison-selection.png" (10984×6180 → 1920×1080). Solo 16:9.
 const CP = {
@@ -2119,7 +2431,7 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre" }[tpl] || "calendario");
   if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
   if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
@@ -2159,6 +2471,7 @@ tplToggle.addEventListener("click", (e) => {
 async function loadWeek() {
   if (tpl === "team") return loadTeamSchedule();
   if (tpl === "compare") return loadCompare();
+  if (tpl === "tcompare") return loadTCompare();
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
   status.textContent = "Carico le partite…";
@@ -2229,6 +2542,7 @@ async function init() {
   }
   await document.fonts.ready;
   calibrate();
+  STYLES.tcRank.ls = Math.max(STYLES.tcRank.ls, 1.5); // il "°" non deve toccare le cifre (es. 11°)
   // Anno e settimane dalle API ESPN.
   weeks = sb.calendar.filter((e) => e.seasonType === 2 || e.seasonType === 3);
   const idx = currentWeekIndex(sb);
