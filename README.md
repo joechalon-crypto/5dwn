@@ -204,13 +204,28 @@ persona (head coach o un giocatore del roster ESPN; proposti QB titolare e head 
 foto (foto profilo ESPN scontornata per i giocatori, foto Wikimedia Commons cercate con nome
 + squadra, oppure "Carica foto"). ESPN non ha foto degli allenatori.
 
+**Stagioni storiche (Confronto giocatori e Confronto squadre, Focus compreso)**: ogni
+giocatore e ogni squadra ha il proprio menu **Stagione** (ultime 20 stagioni, default la
+corrente). Con la stagione cambiano valori, record, rank e squadra com'era quell'anno (nome,
+sigla, logo: es. 2010 → Oakland Raiders). Il **rank** è calcolato dentro la stagione del box
+(Brady 2010 fra i QB del 2010): per i giocatori si applicano le soglie NFL di qualificazione
+(passaggi 14 tentativi, corse 6,25 portate, ricezioni 1,875 ricezioni per partita della squadra),
+perché ESPN non le applica alle stagioni passate. Per le stagioni passate le tendine dei
+giocatori elencano chi ha statistiche quell'anno con quella squadra (ESPN non fornisce roster
+e coach storici). Le risposte delle stagioni concluse restano in cache a lungo (30 giorni).
+Le statistiche non disponibili in una stagione spariscono dal menu (Confronto squadre).
+**Titolo automatico** con le stagioni (es. "MAHOMES 2023 VS BRADY 2010", "BILLS 2026 VS
+PATRIOTS 2007", Focus "NEW ENGLAND PATRIOTS 2007"), sostituibile; sottotitolo da scrivere;
+footer automatico con le stagioni (es. "NFL 2010 / 2007 REGULAR SEASON"). Le foto profilo
+ESPN sono sempre le più recenti del giocatore (per foto d'epoca: Commons o "Carica foto").
+
 **Testi personalizzati**: il riquadro "Testi personalizzati" sotto i controlli ha tre
 campi opzionali (Titolo, Sottotitolo, Footer) per il template attivo. Vuoto = testo
 automatico (mostrato come segnaposto); compilato = il testo digitato sostituisce quello
 automatico in anteprima e nel PNG. Ogni template ricorda i propri testi finché la pagina
 resta aperta; "Testi automatici" li azzera. Nelle Classifiche il testo vale per AFC e NFC;
-Giocatore non ha footer; Partita non ha testi sostituibili (campi disattivati); nel
-Confronto giocatori titolo e sottotitolo sono obbligatori.
+Giocatore non ha footer; Partita non ha testi sostituibili (campi disattivati); nei
+Confronti titolo automatico (con le stagioni) e sottotitolo obbligatorio.
 
 Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
 `STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,

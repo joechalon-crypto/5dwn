@@ -63,11 +63,17 @@ function writeStore(key, entry) {
   }
 }
 
-async function fetchJSON(url) {
+async function fetchJSON(url, attempt = 0) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, { signal: ctrl.signal });
+    // ESPN sovraccarico (503/502/429): riprova fino a 4 volte con attese crescenti (1,5 / 3 / 5 / 8 s)
+    if ((res.status === 503 || res.status === 502 || res.status === 429) && attempt < 4) {
+      clearTimeout(timer);
+      await new Promise((r) => setTimeout(r, [1500, 3000, 5000, 8000][attempt]));
+      return fetchJSON(url, attempt + 1);
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } finally {
@@ -744,8 +750,14 @@ async function loadWebPhotos(query) {
 }
 export const getWebPhotos = (query, opts) => cached(`web:${query}`, TTL.athlete, () => loadWebPhotos(query), opts);
 
-async function loadGamelog(id) {
-  const json = await fetchJSON(`${ATHLETE}/${id}/gamelog`);
+// Stagioni passate: i dati non cambiano più, cache lunga (TTL.history). "season" vuoto = stagione corrente.
+let CURRENT_SEASON = null;
+export const setCurrentSeason = (y) => { CURRENT_SEASON = Number(y) || null; };
+const seasonTtl = (season, ttl) => (season && CURRENT_SEASON && Number(season) < CURRENT_SEASON ? TTL.history : ttl);
+const seasonQs = (season) => (season ? `season=${season}` : "");
+
+async function loadGamelog(id, season) {
+  const json = await fetchJSON(`${ATHLETE}/${id}/gamelog${season ? `?${seasonQs(season)}` : ""}`);
   const events = {};
   for (const [eid, e] of Object.entries(json.events || {})) {
     events[eid] = {
@@ -772,7 +784,8 @@ async function loadGamelog(id) {
     events,
   };
 }
-export const getGamelog = (id, opts) => cached(`gamelog:${id}`, TTL.gamelog, () => loadGamelog(id), opts);
+export const getGamelog = (id, opts, season) =>
+  cached(`gamelog:${id}${season ? `:${season}` : ""}`, seasonTtl(season, TTL.gamelog), () => loadGamelog(id, season), opts);
 
 // ---------------------------------------------------------------------------
 // Classifiche statistiche complete (pagina Statistiche)
@@ -819,18 +832,38 @@ async function loadAthleteRanking(def, seasonType) {
  * Giocatori "qualificati" ESPN di una categoria (es. "offense:passing"), con tutte le statistiche stagionali
  * come mappa "categoria.nome" → numero. Serve al rank NFL del Confronto giocatori.
  */
-async function loadQualified(category, sort) {
-  const qs = new URLSearchParams({ isqualified: "true", limit: "400", category, sort: `${sort}:desc` });
+async function loadQualified(category, sort, season, qualified = true) {
+  const qs = new URLSearchParams({ isqualified: String(qualified), limit: qualified ? "400" : "1000", category, sort: `${sort}:desc` });
+  if (season) { qs.set("season", season); qs.set("seasontype", "2"); }
   const json = await fetchJSON(`${STATS_BASE}/byathlete?${qs}`);
   const names = {};
   for (const c of json.categories || []) names[c.name] = c.names || [];
   return (json.athletes || []).map((a) => {
     const stats = {};
     for (const c of a.categories || []) (names[c.name] || []).forEach((n, i) => { const v = c.values?.[i]; if (typeof v === "number") stats[`${c.name}.${n}`] = v; });
-    return { id: String(a.athlete?.id), name: a.athlete?.displayName || "", pos: a.athlete?.position?.abbreviation || "", stats };
+    const at = a.athlete || {};
+    return { id: String(at.id), name: at.displayName || "", first: at.firstName || "", last: at.lastName || "", pos: at.position?.abbreviation || "", posName: at.position?.displayName || "", teamId: String(at.teamId || ""), stats };
   });
 }
-export const getQualified = (category, sort, opts) => cached(`qual:${category}:${sort}`, TTL.rankings, () => loadQualified(category, sort), opts);
+export const getQualified = (category, sort, opts, season) =>
+  cached(`qual:${category}:${sort}${season ? `:${season}` : ""}`, seasonTtl(season, TTL.rankings), () => loadQualified(category, sort, season), opts);
+/** Tutti i giocatori con statistiche in una stagione (passaggi, corse, ricezioni, difesa): per le tendine storiche. */
+export const getSeasonPlayers = (season, opts) =>
+  cached(`splayers:${season}`, seasonTtl(season, TTL.rankings), async () => {
+    const cats = [["offense:passing", "passing.passingYards"], ["offense:rushing", "rushing.rushingYards"], ["offense:receiving", "receiving.receivingYards"], ["defense:defensive", "defensive.totalTackles"]];
+    const lists = [];
+    for (const [c, s2] of cats) lists.push(await loadQualified(c, s2, season, false)); // una alla volta: richieste pesanti
+    const seen = new Map();
+    for (const l of lists) for (const a of l) if (!seen.has(a.id)) seen.set(a.id, { id: a.id, name: a.name, first: a.first, last: a.last, pos: a.pos, posName: a.posName, teamId: a.teamId });
+    return [...seen.values()];
+  }, opts);
+/** Nome, sigla, colore e logo di una squadra in una stagione passata (es. 2010 → Oakland Raiders). */
+export const getTeamHistory = (id, season, opts) =>
+  cached(`thist:${id}:${season}`, TTL.history, async () => {
+    const d = await fetchJSON(`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/${season}/teams/${id}`);
+    const logo = (d.logos || []).find((l) => (l.rel || []).includes("default"))?.href || d.logos?.[0]?.href || "";
+    return { id: String(id), name: d.displayName || "", location: d.location || "", nickname: d.name || "", abbr: d.abbreviation || "", color: d.color ? `#${d.color}` : null, alt: d.alternateColor ? `#${d.alternateColor}` : null, logo };
+  }, opts);
 
 /** Stessa statistica = stessa richiesta (la versione "a partita" riusa i totali in cache). */
 export function getAthleteRanking(def, opts) {
@@ -868,8 +901,8 @@ export const getTeamStats = (opts) => cached("rank:teams", TTL.rankings, loadTea
  * Statistiche stagionali complete di una squadra (proprie e concesse agli avversari), come mappa
  * "categoria.nome" → numero. Include difesa, red zone, possesso e special teams (non presenti in byteam).
  */
-async function loadTeamSeason(id) {
-  const json = await fetchJSON(`${SITE}/teams/${id}/statistics`);
+async function loadTeamSeason(id, season) {
+  const json = await fetchJSON(`${SITE}/teams/${id}/statistics${season ? `?${seasonQs(season)}` : ""}`);
   const flat = (block) => {
     const out = {};
     const cats = Array.isArray(block) ? block : block?.stats?.categories || block?.categories || [];
@@ -884,7 +917,8 @@ async function loadTeamSeason(id) {
   const r = json.results || {};
   return { id: String(id), own: flat(r), opp: flat(r.opponent) }; // "opponent": elenco di categorie delle squadre avversarie
 }
-export const getTeamSeason = (id, opts) => cached(`tseason:${id}`, TTL.rankings, () => loadTeamSeason(id), opts);
+export const getTeamSeason = (id, opts, season) =>
+  cached(`tseason:${id}${season ? `:${season}` : ""}`, seasonTtl(season, TTL.rankings), () => loadTeamSeason(id, season), opts);
 
 /** Statistiche complete di una squadra in una singola partita (API "core" ESPN), mappa "categoria.nome" → numero. */
 const eventStatsMem = new Map(); // solo in memoria: ~120 KB a richiesta, troppe per localStorage
