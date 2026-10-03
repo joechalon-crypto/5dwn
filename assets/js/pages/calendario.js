@@ -1,5 +1,5 @@
-import { renderChrome, loading, showError, staleNotice, updatedLine, renderDayGroups, weekLabel, weekShort, weekRange, every, esc } from "../ui.js?v=202610031606";
-import { getScoreboard, getWeek, currentWeekIndex, TTL } from "../api.js?v=202610031606";
+import { renderChrome, loading, showError, staleNotice, updatedLine, renderDayGroups, weekLabel, weekShort, weekRange, every, esc } from "../ui.js?v=202610031627";
+import { getScoreboard, getWeek, currentWeekIndex, TTL } from "../api.js?v=202610031627";
 
 renderChrome("calendario");
 

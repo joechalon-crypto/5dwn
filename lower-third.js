@@ -37,6 +37,7 @@ const DEFAULTS = {
   palette: "classic", colors: null,
   tab: "match", teamA: "JAX", teamB: "CIN", conn: "at", info: "(-2.5) | Domenica, 19:00", tabText: "Week 5 · Anteprima",
   base: true, bg: "checker",
+  logoBg: "solid", // sfondo dietro i loghi: "solid" (box pieno) | "fade" (sfumato, tipo First Take)
   img: {}, // zoom/spostamento dei riquadri immagine (le immagini stanno in IndexedDB)
 };
 const KEY = "nfllowershow.v1";
@@ -344,6 +345,19 @@ function viewModel() {
     box.bg2 = logoTeams[1] || logoTeams[0];
     box.drawStripes = false; box.drawPhoto = false;
   }
+  // Sfondo "sfumato" dietro i loghi (tipo First Take): colore squadra con righe diagonali leggere che
+  // sfuma con un taglio inclinato verso il centro e si fonde con la fascia chiara, senza bordo netto.
+  const logoSlots = sl.map((s, i) => (on[i] && s.kind === "logo" ? (TC[s.team] || TC.CIN)[0] : null));
+  box.fade = data.logoBg === "fade" && logoSlots.some(Boolean);
+  if (box.fade) {
+    const both = on[0] && on[1];
+    const [a, b] = both ? [(TC[sl[0].team] || TC.CIN)[0], (TC[sl[1].team] || TC.CIN)[0]] : [logoTeams[0], null];
+    // ogni strato è più lungo della sua sfumatura (niente bordi netti) ed è già trasparente prima del titolo (x 453)
+    box.fadeLayers = !both || a === b
+      ? [{ color: a, left: 0, width: 500, mask: "linear-gradient(100deg, #000 0%, #000 46%, transparent 86%)" }]
+      : [{ color: a, left: 0, width: 330, mask: "linear-gradient(100deg, #000 0%, #000 52%, transparent 96%)" },
+         { color: b, left: 150, width: 340, mask: "linear-gradient(100deg, transparent 2%, #000 34%, #000 58%, transparent 86%)" }];
+  }
   const pal = PALETTES[data.palette] || PALETTES.classic;
   const col = Object.assign({}, pal.colors, data.colors || {});
   const ta = T[data.teamA] || T.JAX, tb = T[data.teamB] || T.CIN;
@@ -394,11 +408,11 @@ function render() {
       ${tab.isText ? `<span>${esc(tab.text)}</span>` : ""}
     </div>` : ""}
     ${box.show ? `<div class="lt-box">
-      <div class="lt-box-clip" style="background:${box.bg}">
+      ${box.fade ? `<div class="lt-fade-wrap">${box.fadeLayers.map((l) => `<div class="lt-fade" style="left:${l.left}px;width:${l.width}px;background-color:${l.color};-webkit-mask-image:${l.mask};mask-image:${l.mask}"></div>`).join("")}</div>` : `<div class="lt-box-clip" style="background:${box.bg}">
         ${box.drawStripes ? `<svg width="417" height="152" viewBox="0 0 417 152">${box.bands.map((d) => `<path d="${d}" fill="${box.stripe}"></path>`).join("")}</svg>` : ""}
         ${box.drawPhoto ? `<div data-host="boxPhoto" style="position:absolute;inset:0"></div>` : ""}
         ${box.split ? `<div class="lt-box-split" style="background:${box.bg2}"></div>` : ""}
-      </div>
+      </div>`}
       ${slotHtml(s1, "player1")}
       ${slotHtml(s2, "player2")}
       <div class="lt-box-text">
@@ -501,7 +515,7 @@ function buildEditor() {
   bindText("inTitle", "title"); bindText("inSub", "subtitle"); bindText("inLine1", "line1"); bindText("inLine2", "line2");
   bindText("inConn", "conn"); bindText("inInfo", "info"); bindText("inTabText", "tabText");
   const bindSel = (id, key) => $(id).addEventListener("change", (e) => mut((x) => { x[key] = e.target.value; }));
-  bindSel("selBox", "box"); bindSel("selTheme", "theme"); bindSel("selTab", "tab"); bindSel("selTeamA", "teamA"); bindSel("selTeamB", "teamB"); bindSel("selBg", "bg");
+  bindSel("selBox", "box"); bindSel("selTheme", "theme"); bindSel("selTab", "tab"); bindSel("selTeamA", "teamA"); bindSel("selTeamB", "teamB"); bindSel("selBg", "bg"); bindSel("selLogoBg", "logoBg");
   // cambiare preset azzera le sovrascritture dei singoli colori
   $("selPalette").addEventListener("change", (e) => mut((x) => { x.palette = e.target.value; x.colors = null; }));
   $("colorRows").addEventListener("change", (e) => {
@@ -551,6 +565,8 @@ function syncEditor() {
     else if (document.activeElement !== s) s.value = slot.player || "";
   });
   $("themeField").hidden = data.box !== "stripes";
+  $("logoBgField").hidden = !(data.slots || DEFAULTS.slots).some((x) => x.kind === "logo");
+  setVal("selLogoBg", data.logoBg || "solid");
   $("boxControls").hidden = data.box === "none";
   $("tabMatch").hidden = data.tab !== "match";
   $("inTabText").hidden = data.tab !== "text";
