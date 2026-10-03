@@ -38,6 +38,7 @@ const DEFAULTS = {
   tab: "match", teamA: "JAX", teamB: "CIN", conn: "at", info: "(-2.5) | Domenica, 19:00", tabText: "Week 5 · Anteprima",
   base: true, bg: "checker",
   logoRight: false, // logo 5DWN anche all'estremità destra (sulle curve)
+  curtainLogo: "auto", // colore del logo 5DWN sul "sipario" dell'animazione: auto | light | black | blue | orange
   logoBg: "solid", // sfondo dietro i loghi: "solid" (box pieno) | "fade" (sfumato, tipo First Take)
   img: {}, // zoom/spostamento dei riquadri immagine (le immagini stanno in IndexedDB)
 };
@@ -553,6 +554,7 @@ function buildEditor() {
   $("chkLogo").addEventListener("change", () => mut((x) => { x.showLogo = !x.showLogo; }));
   $("chkBase").addEventListener("change", () => mut((x) => { x.base = !x.base; }));
   $("chkLogoRight").addEventListener("change", () => mut((x) => { x.logoRight = !x.logoRight; }));
+  $("selCurtainLogo").addEventListener("change", (e) => mut((x) => { x.curtainLogo = e.target.value; }));
   $("btnReset").addEventListener("click", () => {
     mut((x) => { Object.keys(x).forEach((k) => delete x[k]); Object.assign(x, clone(DEFAULTS)); });
     Object.values(slots).forEach((s) => { if (s.el.dataset.filled) s.set(null); });
@@ -568,6 +570,7 @@ function syncEditor() {
   setVal("inConn", data.conn); setVal("inInfo", data.info); setVal("inTabText", data.tabText);
   setVal("selPalette", data.palette); setVal("selTheme", data.theme); setVal("selBox", data.box); setVal("selTab", data.tab);
   setVal("selTeamA", data.teamA); setVal("selTeamB", data.teamB); setVal("selBg", data.bg);
+  setVal("selCurtainLogo", data.curtainLogo || "auto");
   $("chkLogo").checked = !!data.showLogo;
   $("chkBase").checked = !!data.base;
   $("chkLogoRight").checked = !!data.logoRight;
@@ -627,6 +630,7 @@ function cropBox(node) {
 async function exportPng(crop) {
   const node = $("canvas");
   if (!window.htmlToImage) { alert("Export non disponibile."); return; }
+  stopPreview(); // mai il sipario nel PNG
   $("status").textContent = "Preparo il PNG…";
   try {
     await document.fonts.ready;
@@ -655,89 +659,129 @@ async function exportPng(crop) {
 }
 
 // ---------------------------------------------------------------------------- animazione di entrata + export video
-// Un'unica timeline (secondi) usata sia dall'anteprima (Web Animations) sia dal video (canvas): stessi tempi.
-// Ordine = ordine di disegno (come nel DOM). from: x/y in px (coordinate 1920×1080), o = opacità, s = scala.
-const TIMELINE = [
-  { layer: "base", start: 0.0, dur: 0.6, from: { x: -1920 } },          // fascia base dai lati (da sinistra)
-  { layer: "waves", start: 0.1, dur: 0.6, from: { x: 700 } },           // onde/curve da destra
-  { layer: "panel", start: 0.45, dur: 0.6, from: { x: -1950 } },        // pannello centrale
-  { layer: "tab", start: 1.0, dur: 0.45, from: { y: 30, o: 0 } },
-  { layer: "box", start: 1.25, dur: 0.5, from: { x: -460, o: 0 } },     // box segmento
-  { layer: "slots", start: 1.45, dur: 0.5, from: { s: 0.85, o: 0 } },   // loghi / giocatori
-  { layer: "boxtext", start: 1.4, dur: 0.45, from: { x: -60, o: 0 } },
-  { layer: "rlogo", start: 1.5, dur: 0.45, from: { s: 0.85, o: 0 } },
-  { layer: "title", start: 0.95, dur: 0.45, from: { y: 24, o: 0 } },   // titolo (fade + rise)
-  { layer: "sub", start: 1.1, dur: 0.45, from: { y: 24, o: 0 } },      // seconda riga, 0,15 s dopo
-];
-const INTRO = Math.max(...TIMELINE.map((t) => t.start + t.dur)); // ~2 s
+// Coreografia a "sipario", unica per anteprima (Web Animations) e video (canvas), stessi tempi in secondi:
+// la fascia (base + onde) entra da entrambi i lati e si chiude al centro, compare il logo 5DWN, pausa,
+// poi la fascia si riapre verso i lati e scopre il banner completo, che resta fermo.
+const CUR = { close: 0.6, logoIn: 0.5, logoDur: 0.3, open: 1.9, openDur: 0.6, logoOut: 0.2 };
+const INTRO = CUR.open + CUR.openDur; // 2,5 s
 const EASE = "cubic-bezier(0.33, 1, 0.68, 1)"; // ease-out cubica (uguale a easeOut sotto)
+const EASE_IO = "cubic-bezier(0.65, 0, 0.35, 1)"; // ease-in-out cubica (uguale a easeInOut sotto)
 const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-const layerEls = (name) => [...$("canvas").querySelectorAll(`[data-layer="${name}"]`)];
-
-/** Anteprima: il banner si compone in ingresso, poi resta fermo. */
-function playPreview() {
-  for (const t of TIMELINE) {
-    const f = t.from;
-    const from = `translate(${f.x || 0}px, ${f.y || 0}px) scale(${f.s ?? 1})`;
-    for (const el of layerEls(t.layer)) {
-      el.getAnimations().forEach((a) => a.cancel());
-      if (el instanceof SVGElement) { el.style.transformBox = "fill-box"; }
-      el.style.transformOrigin = "center";
-      el.animate([{ transform: from, opacity: f.o ?? 1 }, { transform: "none", opacity: 1 }],
-        { duration: t.dur * 1000, delay: t.start * 1000, easing: EASE, fill: "backwards" });
-    }
-  }
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const LOGO_RATIO = 678 / 576;
+const LOGO_FILES = { light: "assets/5dwn-logo-light.png", black: "assets/5dwn-logo-black.png", blue: "assets/5dwn-logo-blue.png", orange: "assets/5dwn-logo-orange.png" };
+/** Logo del sipario: colore scelto, oppure automatico in base al colore della fascia dietro al logo. */
+function curtainLogoSrc() {
+  if (LOGO_FILES[data.curtainLogo]) return LOGO_FILES[data.curtainLogo];
+  return logoForPanel(viewModel().col.curve1);
+}
+/** Stato del sipario al tempo t: spostamento delle due metà (px), metà larghezza del varco, logo. */
+function curtainAt(t) {
+  const shut = t < CUR.open ? 1 - easeOut(clamp01(t / CUR.close)) : easeInOut(clamp01((t - CUR.open) / CUR.openDur));
+  const lin = easeOut(clamp01((t - CUR.logoIn) / CUR.logoDur));
+  const lout = clamp01((t - CUR.open) / CUR.logoOut);
+  return { off: 960 * shut, gap: t < CUR.open ? 0 : 960 * shut, logoO: lin * (1 - lout), logoS: 0.8 + 0.2 * lin };
+}
+/** Posizione del banner nel 1920×1080 e misure del logo al centro della fascia. */
+function curtainGeo() {
+  const b = $("banner"), Hr = b.offsetHeight, top = b.offsetTop;
+  const h = Math.round(Hr * 0.62);
+  return { top, Hr, logoH: h, logoW: Math.round(h * LOGO_RATIO), cy: top + Hr / 2 };
 }
 
-/** Ogni livello rasterizzato da solo a 1920×1080 (stesso motore e stesso font dell'export PNG). */
+let previewEnd = null;
+function stopPreview() {
+  if (previewEnd) previewEnd();
+}
+/** Anteprima: sipario che si chiude sul logo e si riapre sul banner completo. */
+function playPreview() {
+  stopPreview();
+  const banner = $("banner"), svg = banner.querySelector(":scope > svg");
+  if (!svg) return;
+  const geo = curtainGeo(), total = INTRO * 1000, at = (s) => s / INTRO;
+  const cur = document.createElement("div");
+  cur.className = "lt-curtain";
+  cur.style.cssText = `position:absolute;left:0;top:${geo.top}px;width:1920px;height:${geo.Hr}px;pointer-events:none`;
+  const anims = [];
+  for (const side of [-1, 1]) {
+    const half = document.createElement("div");
+    half.style.cssText = `position:absolute;inset:0;clip-path:${side < 0 ? "inset(0 960px 0 0)" : "inset(0 0 0 960px)"}`;
+    const copy = svg.cloneNode(true);
+    copy.querySelectorAll('[data-layer]:not([data-layer="base"]):not([data-layer="waves"])').forEach((n) => n.remove());
+    copy.querySelectorAll("[data-layer]").forEach((n) => n.removeAttribute("data-layer"));
+    half.appendChild(copy);
+    cur.appendChild(half);
+    const away = `translateX(${side * 960}px)`;
+    anims.push(half.animate([
+      { offset: 0, transform: away, easing: EASE }, { offset: at(CUR.close), transform: "none" },
+      { offset: at(CUR.open), transform: "none", easing: EASE_IO }, { offset: 1, transform: away },
+    ], { duration: total, fill: "both" }));
+  }
+  const logo = document.createElement("img");
+  logo.src = curtainLogoSrc();
+  logo.alt = "";
+  logo.style.cssText = `position:absolute;left:${960 - geo.logoW / 2}px;top:${(geo.Hr - geo.logoH) / 2}px;width:${geo.logoW}px;height:${geo.logoH}px`;
+  cur.appendChild(logo);
+  anims.push(logo.animate([
+    { offset: 0, opacity: 0, transform: "scale(.8)" }, { offset: at(CUR.logoIn), opacity: 0, transform: "scale(.8)", easing: EASE },
+    { offset: at(CUR.logoIn + CUR.logoDur), opacity: 1, transform: "none" }, { offset: at(CUR.open), opacity: 1, transform: "none" },
+    { offset: at(CUR.open + CUR.logoOut), opacity: 0, transform: "none" }, { offset: 1, opacity: 0, transform: "none" },
+  ], { duration: total, fill: "both" }));
+  $("canvas").appendChild(cur);
+  // banner nascosto sotto il sipario e scoperto dal centro verso i lati (y ampio: linguetta e teste sopra il banner)
+  const gap = (g) => `polygon(${960 - g}px -1100px, ${960 + g}px -1100px, ${960 + g}px 1100px, ${960 - g}px 1100px)`;
+  anims.push(banner.animate([
+    { offset: 0, clipPath: gap(0) }, { offset: at(CUR.open), clipPath: gap(0), easing: EASE_IO }, { offset: 1, clipPath: gap(960) },
+  ], { duration: total, fill: "both" }));
+  previewEnd = () => { anims.forEach((a) => a.cancel()); cur.remove(); previewEnd = null; };
+  anims[anims.length - 1].finished.then(() => { if (previewEnd) previewEnd(); }, () => {});
+}
+
+/** Rasterizza a 1920×1080 il banner completo e la sola fascia (stesso motore e stesso font dell'export PNG). */
 async function rasterLayers() {
+  stopPreview();
   await document.fonts.ready;
   const fontCss = await fontEmbedCss().catch(() => undefined);
   const node = $("canvas");
-  node.getAnimations({ subtree: true }).forEach((an) => an.finish()); // niente anteprima a metà
+  const shot = () => window.htmlToImage.toCanvas(node, { width: 1920, height: 1080, pixelRatio: 1, cacheBust: true, fontEmbedCSS: fontCss,
+    filter: (n) => !(n.classList?.contains("img-slot") && !n.hasAttribute("data-filled")) });
+  $("status").textContent = "Preparo il video: banner…";
+  const full = await shot();
   const all = [...node.querySelectorAll("[data-layer]")];
-  const base = node.getBoundingClientRect();
-  const out = {};
-  for (const t of TIMELINE) {
-    const mine = layerEls(t.layer);
-    if (!mine.length) continue;
-    all.forEach((el) => { el.style.visibility = mine.includes(el) ? "" : "hidden"; });
-    // centro del livello (per la scala), in coordinate 1920×1080
-    let x0 = 1920, y0 = 1080, x1 = 0, y1 = 0;
-    for (const el of mine) {
-      const r = el.getBoundingClientRect();
-      x0 = Math.min(x0, (r.left - base.left) / scale); y0 = Math.min(y0, (r.top - base.top) / scale);
-      x1 = Math.max(x1, (r.right - base.left) / scale); y1 = Math.max(y1, (r.bottom - base.top) / scale);
-    }
-    $("status").textContent = `Preparo il video: livello ${Object.keys(out).length + 1}/${TIMELINE.length}…`;
-    out[t.layer] = {
-      img: await window.htmlToImage.toCanvas(node, { width: 1920, height: 1080, pixelRatio: 1, cacheBust: true, fontEmbedCSS: fontCss,
-        filter: (n) => !(n.classList?.contains("img-slot") && !n.hasAttribute("data-filled")) }),
-      cx: (x0 + x1) / 2, cy: (y0 + y1) / 2,
-    };
-  }
-  all.forEach((el) => { el.style.visibility = ""; });
-  return out;
+  all.forEach((el) => { if (!["base", "waves"].includes(el.dataset.layer)) el.style.visibility = "hidden"; });
+  $("status").textContent = "Preparo il video: fascia…";
+  let band;
+  try { band = await shot(); } finally { all.forEach((el) => { el.style.visibility = ""; }); }
+  const logo = new Image();
+  logo.src = curtainLogoSrc();
+  await logo.decode();
+  return { full, band, logo, geo: curtainGeo() };
 }
 
 /** Disegna il fotogramma al tempo t (secondi) su un contesto 1920×1080. */
 function drawFrame(ctx, layers, t, bg) {
   ctx.clearRect(0, 0, 1920, 1080);
   if (bg) { ctx.fillStyle = bg; ctx.fillRect(0, 0, 1920, 1080); }
-  for (const tl of TIMELINE) {
-    const L = layers[tl.layer];
-    if (!L) continue;
-    const p = easeOut(Math.max(0, Math.min(1, (t - tl.start) / tl.dur)));
-    const f = tl.from, k = (v, end) => v + (end - v) * p;
-    const o = k(f.o ?? 1, 1);
-    if (o <= 0) continue;
-    const s = k(f.s ?? 1, 1);
+  const c = curtainAt(t), { geo } = layers;
+  if (c.gap > 0) { // banner completo, visibile solo nel varco al centro
     ctx.save();
-    ctx.globalAlpha = o;
-    ctx.translate(k(f.x || 0, 0) + L.cx, k(f.y || 0, 0) + L.cy);
-    ctx.scale(s, s);
-    ctx.translate(-L.cx, -L.cy);
-    ctx.drawImage(L.img, 0, 0, 1920, 1080);
+    ctx.beginPath(); ctx.rect(960 - c.gap, 0, 2 * c.gap, 1080); ctx.clip();
+    ctx.drawImage(layers.full, 0, 0, 1920, 1080);
+    ctx.restore();
+  }
+  if (c.off < 960) for (const side of [-1, 1]) { // le due metà della fascia
+    ctx.save();
+    ctx.translate(side * c.off, 0);
+    ctx.beginPath(); ctx.rect(side < 0 ? 0 : 960, 0, 960, 1080); ctx.clip();
+    ctx.drawImage(layers.band, 0, 0, 1920, 1080);
+    ctx.restore();
+  }
+  if (c.logoO > 0) {
+    const w = geo.logoW * c.logoS, h = geo.logoH * c.logoS;
+    ctx.save();
+    ctx.globalAlpha = c.logoO;
+    ctx.drawImage(layers.logo, 960 - w / 2, geo.cy - h / 2, w, h);
     ctx.restore();
   }
 }

@@ -249,12 +249,15 @@ Take: colore squadra con righe diagonali che sfuma in diagonale verso il centro,
 del titolo; con due squadre i due colori si incontrano al centro; con i giocatori il taglio a destra
 diventa inclinato come la sfumatura). Switch **Logo 5DWN a destra**: logo nello spazio libero
 del pannello prima delle curve, blu su pannello chiaro, nero su arancio, bianco su scuro o blu.
-**Animazione e video**: "▶ Play" mostra l'entrata (~2 s: fascia base e onde dai lati, pannello,
-titolo e seconda riga con fade+rise, box e loghi/giocatori, poi fermo). "Esporta video" registra la
-stessa animazione (timeline unica) su canvas 1920×1080 a 30 fps con MediaRecorder e scarica un WebM:
+**Animazione e video**: "▶ Play" mostra l'entrata a sipario (~2,5 s): la fascia (base + onde)
+entra da entrambi i lati e si chiude al centro (0,6 s), compare il logo 5DWN (colore dalla tendina
+"Colore logo (entrata)": automatico, bianco, nero, blu, arancio), pausa ~1 s, poi la fascia si
+riapre verso i lati (0,6 s) scoprendo il banner completo, che resta fermo. La linguetta non si
+anima mai da sola: resta centrata dal primo fotogramma. "Esporta video" registra la stessa
+coreografia (tempi in `CUR`) su canvas 1920×1080 a 30 fps con MediaRecorder e scarica un WebM:
 Trasparente (VP9 con alfa, per editor che leggono WebM con alfa), Pieno (sfondo scuro) o Chroma key
 (sfondo verde #00B140, da togliere con il filtro chroma key, va bene anche in Premiere). Durata a
-scelta (default 8 s). Ogni livello viene rasterizzato con lo stesso motore dell'export PNG; la
+scelta (default 8 s). Banner completo e fascia vengono rasterizzati con lo stesso motore dell'export PNG; la
 registrazione avviene in tempo reale (tenere la scheda in primo piano). Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
 doppio clic = rimuovi (immagini in IndexedDB, stato in localStorage `nfllowershow.v1`, Reset).
 Export con html-to-image (pixelRatio 2): "PNG banner" ritagliato sul banner reale e "1920×1080"
