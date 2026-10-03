@@ -2,8 +2,8 @@
 // UI condivisa: header, footer, stati di caricamento/errore, formattazione.
 // ============================================================================
 
-import { SITO } from "../../content/sito.js?v=202610022012";
-import { TV_ITALIA, TV_ITALIA_PLACEHOLDER } from "../../content/tv-italia.js?v=202610022012";
+import { SITO } from "../../content/sito.js?v=202610030259";
+import { TV_ITALIA, TV_ITALIA_PLACEHOLDER } from "../../content/tv-italia.js?v=202610030259";
 
 export const TZ = "Europe/Rome";
 

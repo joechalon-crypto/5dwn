@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610022012";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610022012";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030259";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610030259";
 
 renderChrome("");
 
@@ -1620,7 +1620,7 @@ const CP = {
   cardW: 526, gap: 21, panelTop: 241, panelBot: 527.5, rowsBot: 872, barH: 5.5,
   photo: { x: 0, w: 320, top: 222, h: 305.5 }, // box della foto profilo (relativo alla card), sotto il sottotitolo
   logo: { cx: 421.5, cy: 333, box: 180 }, // logo squadra ingrandito
-  nameX: 319.5, firstCap: 433, lastCap: 469, nameMaxW: 195,
+  nameX: 346, firstCap: 433, lastCap: 469, nameMaxW: 164, // nome staccato di ~26 px dal box foto (che finisce a 320)
   qMark: 120, // altezza del "?" che sostituisce il logo (anonimo)
   labelX: 36, valCx: 421.5, rowRef: 68.8, labelDy: 26, valDy: 20,
   title: { cap: 81, h: 86, maxW: 1500 }, sub: { cap: 191 }, note: { x: 152, cap: 898 },
