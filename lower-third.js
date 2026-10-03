@@ -186,6 +186,25 @@ class ImageSlot {
     this.img.hidden = false;
     this.el.dataset.filled = "";
     this.apply();
+    this.fitHeadshot();
+  }
+  /**
+   * Foto profilo ESPN: la cima della testa sempre alla stessa altezza (HEAD_TOP px dall'alto del riquadro)
+   * e le spalle appoggiate sul bordo inferiore. Le foto ESPN hanno la testa a quote diverse: si misura
+   * dove inizia (primo pixel non trasparente) e si ridimensiona l'immagine di conseguenza.
+   */
+  async fitHeadshot() {
+    const url = this.remoteUrl;
+    const st = this.img.style;
+    if (!url) { st.left = st.top = st.width = st.height = ""; return; }
+    const m = await headMetrics(url);
+    if (this.remoteUrl !== url || !m) return;
+    const w = this.el.clientWidth, h = this.el.clientHeight;
+    if (!w || !h) return;
+    const H = (h - HEAD_TOP) / (1 - m.top); // altezza mostrata: testa a HEAD_TOP, fondo sul bordo
+    const Wd = H * m.ratio;
+    st.width = `${Wd}px`; st.height = `${H}px`;
+    st.left = `${(w - Wd) / 2}px`; st.top = `${h - H}px`;
   }
   async restore() { const src = await imgGet(this.id); if (src) this.set(src, false); }
 }
@@ -243,6 +262,37 @@ async function fillPlayerSelect(i) {
     return;
   }
   sel.value = s.player || "";
+}
+
+// ---------------------------------------------------------------------------- allineamento teste (foto ESPN)
+const HEAD_TOP = 12; // px dall'alto del riquadro giocatore in cui inizia la testa, uguale per tutti
+const headCache = new Map();
+/** Dove inizia la testa nella foto (frazione dell'altezza) e proporzioni dell'immagine. */
+function headMetrics(url) {
+  if (!headCache.has(url)) {
+    headCache.set(url, new Promise((res) => {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onload = () => {
+        try {
+          const cw = 200, ch = Math.round((200 * im.naturalHeight) / im.naturalWidth);
+          const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+          const x = c.getContext("2d"); x.drawImage(im, 0, 0, cw, ch);
+          const px = x.getImageData(0, 0, cw, ch).data;
+          let top = 0;
+          for (let y = 0; y < ch; y++) { // prima riga con abbastanza pixel pieni (ignora pixel isolati)
+            let n = 0;
+            for (let i = 0; i < cw; i++) if (px[(y * cw + i) * 4 + 3] > 60) n++;
+            if (n >= cw * 0.02) { top = y / ch; break; }
+          }
+          res({ top: Math.min(top, 0.6), ratio: im.naturalWidth / im.naturalHeight });
+        } catch { res(null); }
+      };
+      im.onerror = () => res(null);
+      im.src = url;
+    }));
+  }
+  return headCache.get(url);
 }
 
 // ---------------------------------------------------------------------------- render del banner
@@ -367,6 +417,7 @@ function render() {
   headEl.innerHTML = `<div class="lt-title" id="ltTitle" style="color:${col.title}">${esc(data.title)}</div>
       ${hasSub ? `<div class="lt-sub" id="ltSub" style="color:${col.sub}">${esc(data.subtitle)}</div>` : ""}`;
   syncPlayerPhotos();
+  slots.player1.fitHeadshot(); slots.player2.fitHeadshot(); // il riquadro cambia misura con 1 o 2 giocatori
   slots.player1.apply(); slots.player2.apply(); slots.boxPhoto.apply();
   // anteprima: scacchiera / scuro / fotogramma (non esportata)
   const bgMap = { checker: "repeating-conic-gradient(#C8CCD3 0 25%, #E4E7EB 0 50%)", dark: "#1B1F26", photo: "#1B1F26" };

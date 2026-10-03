@@ -241,7 +241,9 @@ Bézier, box segmento (strisce / foto / nessuno, giocatori o loghi con colore sq
 curva), titolo e seconda riga ad adattamento automatico, linguetta (partita / testo), 4 palette
 con colori sovrascrivibili riga per riga, fascia base, anteprima su scacchiera / scuro /
 fotogramma. Riquadri "Giocatore": tendina con il roster ESPN della squadra (QB titolare proposto
-per primo) e foto profilo standard ESPN, oppure "PNG caricato". Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
+per primo) e foto profilo standard ESPN, oppure "PNG caricato". Le foto ESPN vengono analizzate
+(primo pixel non trasparente) e ridimensionate perché la cima della testa cada sempre alla stessa
+altezza per tutti i giocatori, con le spalle sul bordo inferiore. Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
 doppio clic = rimuovi (immagini in IndexedDB, stato in localStorage `nfllowershow.v1`, Reset).
 Export con html-to-image (pixelRatio 2): "PNG banner" ritagliato sul banner reale e "1920×1080"
 frame intero, entrambi trasparenti; font Archivo incorporato nell'export. Selettori a tendina
