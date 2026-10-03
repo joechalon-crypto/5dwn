@@ -37,6 +37,7 @@ const DEFAULTS = {
   palette: "classic", colors: null,
   tab: "match", teamA: "JAX", teamB: "CIN", conn: "at", info: "(-2.5) | Domenica, 19:00", tabText: "Week 5 · Anteprima",
   base: true, bg: "checker",
+  logoRight: false, // logo 5DWN anche all'estremità destra (sulle curve)
   logoBg: "solid", // sfondo dietro i loghi: "solid" (box pieno) | "fade" (sfumato, tipo First Take)
   img: {}, // zoom/spostamento dei riquadri immagine (le immagini stanno in IndexedDB)
 };
@@ -57,6 +58,16 @@ const ROWS = [["panel", "Pannello"], ["curve1", "Linea + curva 1"], ["curve2", "
   ["title", "Titolo"], ["sub", "Seconda riga"], ["l1", "Box riga 1"], ["l2", "Box riga 2"], ["tabText", "Linguetta testo"], ["tabBg", "Linguetta sfondo"]];
 const W = 1920, P = 1830, OW = 40, BOXW = 417;
 const T_BASE = 80, S_BASE = 50, T_SOLO = 92;
+// logo 5DWN a destra: nello spazio libero del pannello tra il titolo (finisce a P−190) e le curve
+const RIGHT_LOGO = { cx: 1712, cy: 76, h: 84 }; // centro e altezza (proporzioni 678×576)
+/** Variante del logo leggibile sul colore del pannello. */
+function logoForPanel(hex) {
+  const n = parseInt(String(hex).replace("#", ""), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const lum = 0.3 * r + 0.59 * g + 0.11 * b;
+  if (lum > 200) return "assets/5dwn-logo-blue.png"; // pannello chiaro
+  if (r > 180 && g > 120 && b < 120) return "assets/5dwn-logo-black.png"; // pannello arancio
+  return "assets/5dwn-logo-light.png"; // pannello scuro o blu
+}
 const NFL_LOGO = "https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png";
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const r1 = (n) => Math.round(n * 10) / 10;
@@ -425,6 +436,7 @@ function render() {
         </div>
       </div>
     </div>` : ""}
+    ${data.logoRight ? `<img class="lt-logo-right" src="${logoForPanel(col.panel)}" alt="5DWN" style="left:${RIGHT_LOGO.cx - RIGHT_LOGO.h * 0.59}px;top:${RIGHT_LOGO.cy - RIGHT_LOGO.h / 2}px;height:${RIGHT_LOGO.h}px">` : ""}
     <div class="lt-head" id="ltHead"></div>`;
   // si ricostruisce solo se la grafica è cambiata (scrivere il titolo non ridisegna loghi e curve)
   if (html !== lastBannerHtml) {
@@ -536,6 +548,7 @@ function buildEditor() {
   });
   $("chkLogo").addEventListener("change", () => mut((x) => { x.showLogo = !x.showLogo; }));
   $("chkBase").addEventListener("change", () => mut((x) => { x.base = !x.base; }));
+  $("chkLogoRight").addEventListener("change", () => mut((x) => { x.logoRight = !x.logoRight; }));
   $("btnReset").addEventListener("click", () => {
     mut((x) => { Object.keys(x).forEach((k) => delete x[k]); Object.assign(x, clone(DEFAULTS)); });
     Object.values(slots).forEach((s) => { if (s.el.dataset.filled) s.set(null); });
@@ -553,6 +566,7 @@ function syncEditor() {
   setVal("selTeamA", data.teamA); setVal("selTeamB", data.teamB); setVal("selBg", data.bg);
   $("chkLogo").checked = !!data.showLogo;
   $("chkBase").checked = !!data.base;
+  $("chkLogoRight").checked = !!data.logoRight;
   const col = Object.assign({}, (PALETTES[data.palette] || PALETTES.classic).colors, data.colors || {});
   document.querySelectorAll("[data-color]").forEach((s) => { s.value = col[s.dataset.color]; });
   document.querySelectorAll("[data-chip]").forEach((c) => { c.style.background = col[c.dataset.chip]; });

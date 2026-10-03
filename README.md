@@ -246,7 +246,8 @@ per primo) e foto profilo standard ESPN, oppure "PNG caricato". Le foto ESPN ven
 altezza per tutti i giocatori, con le spalle sul bordo inferiore. Con due giocatori quello di destra è davanti.
 Con uno o due "Logo" compare **Sfondo dei loghi**: Pieno (box colore squadra) o Sfumato (tipo First
 Take: colore squadra con righe diagonali che sfuma in diagonale verso il centro, trasparente prima
-del titolo; con due squadre i due colori si incontrano al centro). Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
+del titolo; con due squadre i due colori si incontrano al centro). Switch **Logo 5DWN a destra**: logo nello spazio libero
+del pannello prima delle curve, blu su pannello chiaro, nero su arancio, bianco su scuro o blu. Riquadri immagine: trascina un PNG o clicca, rotella = zoom, trascina = sposta,
 doppio clic = rimuovi (immagini in IndexedDB, stato in localStorage `nfllowershow.v1`, Reset).
 Export con html-to-image (pixelRatio 2): "PNG banner" ritagliato sul banner reale e "1920×1080"
 frame intero, entrambi trasparenti; font Archivo incorporato nell'export. Selettori a tendina
