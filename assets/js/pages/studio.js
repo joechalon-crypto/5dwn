@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030259";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610030259";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030300";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, currentWeekIndex } from "../api.js?v=202610030300";
 
 renderChrome("");
 
@@ -1633,6 +1633,7 @@ const CMP_STATS = [
   { key: "cmpatt", label: "COMP/ATT", get: (a) => (a["passing.passingAttempts"] != null ? `${a["passing.completions"] ?? 0}/${a["passing.passingAttempts"]}` : null) },
   { key: "passing.completionPct", label: "COMP %", dec: 1 },
   { key: "passing.passingYards", label: "PASS YDS" },
+  { key: "passYdsG", label: "PASS YDS/G", get: (a) => (a["passing.passingYards"] != null && a.games ? (a["passing.passingYards"] / a.games).toFixed(1) : null) },
   { key: "passing.yardsPerPassAttempt", label: "YDS/ATT", dec: 1 },
   { key: "passing.passingTouchdowns", label: "PASS TD" },
   { key: "passing.interceptions", label: "INT" },
