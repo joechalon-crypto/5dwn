@@ -219,6 +219,21 @@ PATRIOTS 2007", Focus "NEW ENGLAND PATRIOTS 2007"), sostituibile; sottotitolo da
 footer automatico con le stagioni (es. "NFL 2010 / 2007 REGULAR SEASON"). Le foto profilo
 ESPN sono sempre le più recenti del giocatore (per foto d'epoca: Commons o "Carica foto").
 
+**Dati non tracciati / mancanti**: se una statistica non esiste per la stagione scelta
+(campo assente nei dati ESPN dell'anno, oppure 0 per tutti in una stagione conclusa, es. TFL o
+red zone negli anni vecchi) la riga sparisce dalla grafica e dal menu; se esiste ma manca il
+dato del singolo giocatore/squadra compare **N/D** senza rank. Mai 0 o rank finti (anche nel PNG).
+**Foto personalizzata** in ogni box del Confronto giocatori e nelle card del Focus squadra:
+URL incollato o file caricato, con priorità sulla foto automatica (ESPN ha solo la foto
+profilo più recente, non una per stagione). Un URL funziona solo se il sito che ospita
+l'immagine ne permette l'uso (es. Wikimedia Commons); altrimenti va scaricata e caricata.
+Le card dei Confronti mostrano "STAGIONE 2010" sotto il nome / accanto al record.
+**Calendario squadra** e **Giocatore** hanno anche il menu **Stagione** (settimane, partite,
+risultati e nomi delle squadre dell'anno scelto; ESPN usa i loghi attuali anche per gli anni
+passati). Le **Classifiche** riportano la settimana e la data nel sottotitolo
+("CLASSIFICA · WEEK 4 · 4 OTT"). Tutti i selettori dello Studio sono menu a tendina (anche
+Grafica e Formato).
+
 **Testi personalizzati**: il riquadro "Testi personalizzati" sotto i controlli ha tre
 campi opzionali (Titolo, Sottotitolo, Footer) per il template attivo. Vuoto = testo
 automatico (mostrato come segnaposto); compilato = il testo digitato sostituisce quello

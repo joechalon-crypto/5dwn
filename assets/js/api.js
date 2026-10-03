@@ -859,10 +859,12 @@ export const getSeasonPlayers = (season, opts) =>
   }, opts);
 /** Nome, sigla, colore e logo di una squadra in una stagione passata (es. 2010 → Oakland Raiders). */
 export const getTeamHistory = (id, season, opts) =>
-  cached(`thist:${id}:${season}`, TTL.history, async () => {
+  cached(`thist2:${id}:${season}`, TTL.history, async () => {
     const d = await fetchJSON(`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/${season}/teams/${id}`);
-    const logo = (d.logos || []).find((l) => (l.rel || []).includes("default"))?.href || d.logos?.[0]?.href || "";
-    return { id: String(id), name: d.displayName || "", location: d.location || "", nickname: d.name || "", abbr: d.abbreviation || "", color: d.color ? `#${d.color}` : null, alt: d.alternateColor ? `#${d.alternateColor}` : null, logo };
+    const rel = (l) => l.rel || [];
+    const logo = (d.logos || []).find((l) => rel(l).includes("default") && !rel(l).includes("dark"))?.href || d.logos?.[0]?.href || "";
+    const logoDark = (d.logos || []).find((l) => rel(l).includes("dark"))?.href || logo; // per fondi colorati
+    return { id: String(id), name: d.displayName || "", location: d.location || "", nickname: d.name || "", abbr: d.abbreviation || "", color: d.color ? `#${d.color}` : null, alt: d.alternateColor ? `#${d.alternateColor}` : null, logo, logoDark };
   }, opts);
 
 /** Stessa statistica = stessa richiesta (la versione "a partita" riusa i totali in cache). */

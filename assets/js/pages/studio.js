@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610030402";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610030402";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610031159";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610031159";
 
 renderChrome("");
 
@@ -295,7 +295,7 @@ function applyVisibility() {
   weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare"].includes(tpl);
   if (tpl === "compare" || tpl === "tcompare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
   syncOverrideFields();
-  document.querySelectorAll("#fmt-toggle button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.fmt === fmt)));
+  document.getElementById("fmt-select").value = fmt;
   Object.values(stages).forEach((st) => st.root.innerHTML && st.wrap.offsetParent && fitPreview(st));
 }
 
@@ -856,12 +856,12 @@ document.getElementById("dl-compare").addEventListener("click", () => {
     ovInputs.sub.focus();
     return;
   }
-  const slug = cmp.slots.slice(0, cmp.nPlayers).map((sl) => (sl.anon ? "anonimo" : sl.player?.last || sl.player?.name || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-")).join("-vs-");
-  exportPng(stages.compare, `5dwn-confronto-${slug}-${sb.season.year}.png`);
+  const slug = cmp.slots.slice(0, cmp.nPlayers).map((sl) => `${(sl.anon ? "anonimo" : sl.player?.last || sl.player?.name || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-")}-${sl.season || sb.season.year}`).join("-vs-");
+  exportPng(stages.compare, `5dwn-confronto-${slug}.png`);
 });
 document.getElementById("dl-team").addEventListener("click", () => {
   if (!teamSched) return;
-  exportPng(stages.team, `5dwn-calendario-${teamSched.team.abbr.toLowerCase()}-${sb.season.year}.png`);
+  exportPng(stages.team, `5dwn-calendario-${teamSched.team.abbr.toLowerCase()}-${teamSched.season || sb.season.year}.png`);
 });
 document.getElementById("dl-player").addEventListener("click", () => {
   if (!gameData || !playerSel) return;
@@ -972,6 +972,16 @@ function stdBlock(div, x, capTop, g = SG) {
   return html;
 }
 
+/** "WEEK 4 · 28 SET": settimana della classifica e domenica di quella settimana (ora italiana). */
+const fItDayMon = new Intl.DateTimeFormat("it-IT", { timeZone: "Europe/Rome", day: "numeric", month: "short" });
+function standingsWeekTag() {
+  const e = weeks.find((x) => keyOf(x) === selectedKey);
+  if (!e) return "";
+  const d = new Date(e.start);
+  for (let k = 0; k < 7 && new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Rome", weekday: "short" }).format(d) !== "Sun"; k++) d.setUTCDate(d.getUTCDate() + 1);
+  return `${weekLabel(e).toUpperCase()} · ${fItDayMon.format(d).replace(".", "").toUpperCase()}`;
+}
+
 function renderStandingsStage(stage, conf) {
   const { W, H, root } = stage;
   const year = sb.season.year;
@@ -998,7 +1008,7 @@ function renderStandingsStage(stage, conf) {
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:892.1px;top:17px;width:135px;height:32.42px">
       ${T("week", ttl, tLeft, 66.7, "left", { scale: titleScale })}
       <img class="g-logo" crossorigin="anonymous" src="${lg.src}" alt="${conf}" style="left:${logoLeft.toFixed(1)}px;top:41px;width:${box}px;height:${box}px">
-      ${T("stSub", ovr("sub", "CLASSIFICA"), 960.25, 201.7, "center", { maxW: 1500 })}
+      ${T("stSub", ovr("sub", `CLASSIFICA · ${standingsWeekTag()}`), 960.25, 201.7, "center", { maxW: 1500 })}
       ${divs.map((d, i) => stdBlock(d, SG.blocks[i][0], SG.blocks[i][1])).join("")}
       <div class="g-sep" style="left:959.9px;top:254.1px;width:1px;height:701.4px;background:#b9bcc2"></div>
       <div class="g-bar" style="left:55.2px;top:984.1px;width:27.5px;height:1.3px"></div>
@@ -1061,7 +1071,7 @@ function renderStandingsTall(stage, conf) {
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${W / 2 - 64}px;top:${22.4 + t}px;width:128px;height:30.74px">
       ${T("week", ttl, tLeft, 66.7 + t, "left", { scale: titleScale })}
       <img class="g-logo" crossorigin="anonymous" src="${lg.src}" alt="${conf}" style="left:${logoLeft.toFixed(1)}px;top:${41 + t}px;width:${box}px;height:${box}px">
-      ${T("sub", ovr("sub", "CLASSIFICA"), W / 2, 201.7 + t, "center", { maxW: W - 2 * 60 })}
+      ${T("sub", ovr("sub", `CLASSIFICA · ${standingsWeekTag()}`), W / 2, 201.7 + t, "center", { maxW: W - 2 * 60 })}
       ${blocks}
       <div class="g-bar" style="left:44px;top:${1025.1 + f}px;width:25.4px;height:2.2px"></div>
       ${T("foot", ovr("foot", CONF_NAME[conf], "AMERICAN / NATIONAL FOOTBALL CONFERENCE"), 78.5, 1041.5 + f, "left", { maxW: W - 78.5 - 260 })}
@@ -1748,7 +1758,10 @@ const TC_STATS = [
     { key: "ff", label: "FUMBLE FORZATI", v: O("general.fumblesForced"), count: true, better: "high" },
     { key: "fr", label: "FUMBLE RECUPERATI", v: O("general.fumblesRecovered"), count: true, better: "high" },
     { key: "take", label: "PALLE RECUPERATE", v: O("miscellaneous.totalTakeaways"), count: true, better: "high" },
-    { key: "tdDef", label: "TD DIFENSIVI", v: (d) => (d.own["defensiveInterceptions.interceptionTouchdowns"] ?? 0) + (d.own["general.fumblesTouchdowns"] ?? 0) + (d.own["defensive.miscTouchdowns"] ?? 0), count: true, better: "high" },
+    { key: "tdDef", label: "TD DIFENSIVI", v: (d) => {
+        const ks = ["defensiveInterceptions.interceptionTouchdowns", "general.fumblesTouchdowns", "defensive.miscTouchdowns"].filter((k) => d.own[k] != null);
+        return ks.length ? ks.reduce((a, k) => a + d.own[k], 0) : null; // nessun campo: dato assente, non 0
+      }, count: true, better: "high" },
   ]],
   ["SPECIAL TEAMS", [
     { key: "fg", label: "FIELD GOAL", v: O("kicking.fieldGoalPct"), disp: fracDisp("kicking.fieldGoalsMade", "kicking.fieldGoalAttempts"), better: "high" },
@@ -1820,6 +1833,14 @@ function tcRank(st, i) {
   return better + 1;
 }
 const tcLabel = (st) => st.label;
+/** La statistica esiste nella stagione del box? No se nessuna squadra di quell'anno ha il dato, o se in una
+ * stagione conclusa vale 0 per tutte (campo non tracciato). In quel caso la riga si nasconde. */
+function tcFieldExists(st, i) {
+  const vals = Object.values(tc.pools[i] || {}).map((d) => tcNum(st, d)).filter((v) => v != null);
+  if (!vals.length) return false;
+  return seasonArg(tc.seasons[i] || curSeason()) ? vals.some((v) => v !== 0) : true;
+}
+const tcExistsAll = (st) => tc.teams.slice(0, tc.n).every((_, i) => tcFieldExists(st, i));
 
 let tcLoadSeq = 0;
 async function loadTCompare() {
@@ -1886,9 +1907,7 @@ function tcRenderControls() {
   tcEls.teams.forEach((el, i) => { el.closest(".select-field").hidden = i >= tc.n; el.value = tc.teams[i] || ""; tcEls.seasons[i].value = String(tc.seasons[i] || curSeason()); });
   if (tc.n === 1) tfRenderControls();
   // solo le statistiche disponibili in tutte le stagioni scelte (niente valori vuoti o zero inventati)
-  const boxes = tc.box.slice(0, tc.n);
-  const ok = (st) => boxes.every((d) => tcNum(st, d) != null);
-  const avail = TC_LISTS.map(([g, list]) => [g, list.filter(ok)]).filter(([, l]) => l.length);
+  const avail = TC_LISTS.map(([g, list]) => [g, list.filter(tcExistsAll)]).filter(([, l]) => l.length);
   const keys = new Set(avail.flatMap(([, l]) => l.map((st) => st.key)));
   tc.stats = tc.stats.map((k) => (keys.has(k) ? k : [...keys].find((x) => !tc.stats.includes(x)) || k));
   const opts = avail.map(([g, list]) => `<optgroup label="${g}">${list.map((st) => `<option value="${st.key}">${esc(st.label)}</option>`).join("")}</optgroup>`).join("");
@@ -1937,7 +1956,8 @@ function tcCard(bi, x, w, stats) {
     rows += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${w}px;height:${pitch + 0.5}px;background:${i % 2 ? CMP_GREY : "#ffffff"}"></div>
       ${T("tcLabel", tcLabel(st), x + TC.labelX, y + (pitch - STYLES.tcLabel.ref[1] * kt) / 2, "left", { scale: kt, maxW: labelMax, color: "#1d2026" })}`;
     if (showV && v != null) rows += T("tcVal", v, x + valCx, y + (pitch - STYLES.tcVal.ref[1] * kt) / 2, "center", { scale: kt, maxW: 170, color: "#0b0b0b" });
-    if (showR) {
+    if (v == null) rows += T("tcVal", "N/D", x + (showV ? valCx : rCx), y + (pitch - STYLES.tcVal.ref[1] * kt) / 2, "center", { scale: kt, color: "#8a9097" });
+    if (showR && v != null) { // dato mancante: N/D senza rank
       const bw = TC.rankBox.w * Math.max(kt, 0.85), bh = TC.rankBox.h * kt;
       const bg = r == null ? RANK_COL.mid : r <= 10 ? RANK_COL.top : r <= 22 ? RANK_COL.mid : RANK_COL.low;
       const fg = r != null && (r <= 10 || r > 22) ? "#ffffff" : "#1a1a1a";
@@ -1955,6 +1975,7 @@ function tcCard(bi, x, w, stats) {
     ${T("tcNick", (t.nickname || "").toUpperCase(), x + TC.textX, TC.nickCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
     ${rec ? `<div class="g-bar" style="left:${x + TC.textX - 2}px;top:${TC.rec.top}px;width:${recW}px;height:${TC.rec.h}px;background:#ffffff"></div>
     ${T("tcRec", rec, x + TC.textX - 2 + recW / 2, TC.rec.cap, "center", { color: "#0f1e3f" })}` : ""}
+    ${T("tcHdr", `STAGIONE ${tc.seasons[bi] || curSeason()}`, x + TC.textX - 2 + (rec ? recW + 14 : 0), TC.rec.cap + 1, "left", { color: ink, scale: 14 / STYLES.tcHdr.ref[1] })}
     ${hdr}${rows}
     <div class="g-bar" style="left:${x}px;top:${TC.rowsBot}px;width:${w}px;height:${TC.barH}px;background:${col}"></div>`;
 }
@@ -1973,12 +1994,12 @@ function tcSumMaps(maps) {
     else out[k] = (out[k] || 0) + v;
   }
   const n = maps.length;
-  const div = (a, b, m = 1) => (out[b] ? (out[a] || 0) / out[b] * m : 0);
+  const div = (a, b, m = 1) => (out[b] ? (out[a] || 0) / out[b] * m : out[b] === 0 ? 0 : null); // base assente: dato assente
   // medie e percentuali ricalcolate sui totali (le altre medie: media semplice delle partite)
   for (const k of Object.keys(out)) if (/Pct|avg|Avg|yardsPer|PerGame|QBRating|adjQBR/.test(k)) out[k] = out[k] / n;
   out["passing.completionPct"] = div("passing.completions", "passing.passingAttempts", 100);
   out["passing.yardsPerPassAttempt"] = div("passing.passingYards", "passing.passingAttempts");
-  out["passing.QBRating"] = passerRating(out["passing.completions"] || 0, out["passing.passingAttempts"] || 0, out["passing.passingYards"] || 0, out["passing.passingTouchdowns"] || 0, out["passing.interceptions"] || 0) ?? 0;
+  out["passing.QBRating"] = out["passing.passingAttempts"] == null ? null : passerRating(out["passing.completions"] || 0, out["passing.passingAttempts"] || 0, out["passing.passingYards"] || 0, out["passing.passingTouchdowns"] || 0, out["passing.interceptions"] || 0);
   out["rushing.yardsPerRushAttempt"] = div("rushing.rushingYards", "rushing.rushingAttempts");
   out["miscellaneous.thirdDownConvPct"] = div("miscellaneous.thirdDownConvs", "miscellaneous.thirdDownAttempts", 100);
   out["miscellaneous.fourthDownConvPct"] = div("miscellaneous.fourthDownConvs", "miscellaneous.fourthDownAttempts", 100);
@@ -1989,6 +2010,7 @@ function tcSumMaps(maps) {
   out["returning.yardsPerKickReturn"] = div("returning.kickReturnYards", "returning.kickReturns");
   out["returning.yardsPerPuntReturn"] = div("returning.puntReturnYards", "returning.puntReturns");
   if (out["miscellaneous.fumblesLost"] == null && out["general.fumblesLost"] != null) out["miscellaneous.fumblesLost"] = out["general.fumblesLost"];
+  for (const k of Object.keys(out)) if (out[k] == null) delete out[k]; // niente zeri per campi non presenti
   out["general.gamesPlayed"] = n;
   return out;
 }
@@ -2033,7 +2055,7 @@ const TF = {
     hdrCap: 289, hdrX: 85, labelX: 33, valCx: 450, rankCx: 635, rowRef: 91.8, rank: { w: 76, h: 50 } },
   legendY: 915, legendCap: 917, footCap: 1008, footDash: 1037,
 };
-const tfEls = [0, 1].map((i) => ({ person: document.getElementById(`tf-person${i}`), photo: document.getElementById(`tf-photo${i}`), upload: document.getElementById(`tf-upload${i}`) }));
+const tfEls = [0, 1].map((i) => ({ person: document.getElementById(`tf-person${i}`), photo: document.getElementById(`tf-photo${i}`), upload: document.getElementById(`tf-upload${i}`), url: document.getElementById(`tf-url${i}`) }));
 
 /** Persone selezionabili (head coach + roster) e foto proposte per le due card laterali. */
 // Persone e scelte delle card salvate per "squadra:stagione": caricamenti sovrapposti non si mescolano.
@@ -2089,6 +2111,7 @@ function tfRenderControls() {
     const f = tfFocus()[i];
     el.person.innerHTML = opts;
     el.person.value = f.person || "";
+    el.url.value = f.url || "";
     const ph = (f.photos || []).map((x, j) => `<option value="${j}">${esc(x.title.slice(0, 70))}</option>`);
     if (f.upload) ph.unshift(`<option value="upload">Foto caricata da te</option>`);
     ph.push(`<option value="-1">Nessuna foto</option>`);
@@ -2108,6 +2131,12 @@ tfEls.forEach((el, i) => {
     if (el.photo.value !== "upload") { if (f.upload) URL.revokeObjectURL(f.upload); f.upload = null; f.photoIdx = Number(el.photo.value); }
     renderAll();
   });
+  el.url.addEventListener("change", async () => {
+    const f = tfFocus()[i], url = el.url.value.trim();
+    if (!url) { f.url = null; renderAll(); return; }
+    if (await customPhotoOk(url)) { f.url = url; renderAll(); }
+    else status.textContent = "Questa immagine non si può usare nel PNG (il sito che la ospita non lo permette): scaricala e caricala con \"Carica foto\".";
+  });
   el.upload.addEventListener("change", (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -2125,7 +2154,8 @@ function tfSideCard(i, team) {
   const p = tfPeople().find((pp) => pp.id === f.person);
   const col = cellColor(team);
   const logo = (sz) => teamLogoUrl(team, sz);
-  const ph = f.upload ? { url: f.upload, upload: true } : f.photos?.[f.photoIdx];
+  // priorità: foto caricata > URL incollato > foto proposta
+  const ph = f.upload ? { url: f.upload, upload: true } : f.url ? { url: f.url } : f.photos?.[f.photoIdx];
   let photo = "";
   if (ph?.cutout) {
     // foto profilo ESPN scontornata: larga più della card, appoggiata in basso, ritagliata ai lati
@@ -2151,7 +2181,7 @@ function renderFocusStage(stage) {
   const year = sb.season.year;
   const team = tc.info[0], d = tc.box[0], season = tc.seasons[0] || curSeason();
   const col = cellColor(team);
-  const stats = tc.stats.slice(0, tc.nStats).map((k) => TC_ALL.find((s) => s.key === k)).filter(Boolean);
+  const stats = tc.stats.slice(0, tc.nStats).map((k) => TC_ALL.find((s) => s.key === k)).filter(Boolean).filter(tcExistsAll);
   const tb = TF.table, showV = tc.show !== "rank", showR = tc.show !== "value";
   const valCx = showR ? tb.valCx : tb.rankCx - 60, rCx = showV ? tb.rankCx : tb.valCx + 40;
   const n = stats.length, pitch = (tb.rowsBot - tb.rowsTop) / n, kt = Math.min(1, (pitch / tb.rowRef) * 1.1);
@@ -2161,7 +2191,8 @@ function renderFocusStage(stage) {
     rows += `<div class="g-cell" style="left:${tb.x}px;top:${y}px;width:${tb.w}px;height:${pitch + 0.5}px;background:${i % 2 ? CMP_GREY : "#ffffff"}"></div>
       ${T("tcLabel", tcLabel(st), tb.x + tb.labelX, y + (pitch - 24 * kt) / 2, "left", { scale: (24 / STYLES.tcLabel.ref[1]) * kt, maxW: (showV ? valCx : rCx) - 70 - tb.labelX, color: "#1d2026" })}`;
     if (showV && v != null) rows += T("tcVal", v, tb.x + valCx, y + (pitch - 34 * kt) / 2, "center", { scale: (34 / STYLES.tcVal.ref[1]) * kt, maxW: 200, color: "#0b0b0b" });
-    if (showR) {
+    if (v == null) rows += T("tcVal", "N/D", tb.x + (showV ? valCx : rCx), y + (pitch - 34 * kt) / 2, "center", { scale: (34 / STYLES.tcVal.ref[1]) * kt, color: "#8a9097" });
+    if (showR && v != null) { // dato mancante: N/D senza rank
       const bw = tb.rank.w * Math.max(kt, 0.85), bh = tb.rank.h * kt;
       const bg = r == null ? RANK_COL.mid : r <= 10 ? RANK_COL.top : r <= 22 ? RANK_COL.mid : RANK_COL.low;
       const fg = r != null && (r <= 10 || r > 22) ? "#ffffff" : "#1a1a1a";
@@ -2228,7 +2259,7 @@ function renderTCompareStage(stage) {
   const n = tc.n, w = n === 2 ? 635.5 : 526, gap = n === 2 ? 20 : 21;
   const total = n * w + (n - 1) * gap;
   const x0 = n === 2 ? 296 : W / 2 - total / 2; // 2 squadre: posizione del riferimento
-  const stats = tc.stats.slice(0, tc.nStats).map((k) => TC_ALL.find((s) => s.key === k)).filter(Boolean);
+  const stats = tc.stats.slice(0, tc.nStats).map((k) => TC_ALL.find((s) => s.key === k)).filter(Boolean).filter(tcExistsAll);
   const cards = tc.teams.slice(0, n).map((id, i) => tcCard(i, x0 + i * (w + gap), w, stats)).join("");
   const L = TC.legend;
   const legend = tc.show === "value" ? "" : [["top", "TOP 10", 0, 20], ["mid", "11-22", 86, 105], ["low", "BOTTOM 10", 156, 177]]
@@ -2264,7 +2295,7 @@ const CP = {
   cardW: 526, gap: 21, panelTop: 241, panelBot: 527.5, rowsBot: 872, barH: 5.5,
   photo: { x: 0, w: 320, top: 222, h: 305.5 }, // box della foto profilo (relativo alla card), sotto il sottotitolo
   logo: { cx: 421.5, cy: 333, box: 180 }, // logo squadra ingrandito
-  nameX: 346, firstCap: 433, lastCap: 469, nameMaxW: 164, // nome staccato di ~26 px dal box foto (che finisce a 320)
+  nameX: 346, firstCap: 433, lastCap: 469, seasonCap: 505, nameMaxW: 164, // nome staccato di ~26 px dal box foto (che finisce a 320)
   qMark: 120, // altezza del "?" che sostituisce il logo (anonimo)
   labelX: 36, valCx: 421.5, rowRef: 68.8, labelDy: 26, valDy: 20,
   title: { cap: 81, h: 86, maxW: 1500 }, sub: { cap: 191 }, note: { x: 152, cap: 898 },
@@ -2335,10 +2366,10 @@ async function teamInSeason(team, season) {
   if (!seasonArg(season)) return team;
   try {
     const h = (await getTeamHistory(team.id, season)).data;
-    return { ...team, ...h, histLogo: h.logo };
+    return { ...team, ...h, histLogo: h.logo, histLogoDark: h.logoDark };
   } catch { return team; }
 }
-const teamLogoUrl = (t, size, dark) => t.histLogo || espnImg(`https://a.espncdn.com/i/teamlogos/nfl/${dark ? "500-dark" : "500"}/${(ABBR_ALIAS[t.abbr] || t.abbr).toLowerCase()}.png`, size);
+const teamLogoUrl = (t, size, dark) => (dark ? t.histLogoDark : t.histLogo) || espnImg(`https://a.espncdn.com/i/teamlogos/nfl/${dark ? "500-dark" : "500"}/${(ABBR_ALIAS[t.abbr] || t.abbr).toLowerCase()}.png`, size);
 
 // ---- rank NFL nel Confronto giocatori: tra i "qualificati" ESPN del ruolo, sullo stesso periodo scelto.
 const CMP_POOLS = {
@@ -2349,7 +2380,22 @@ const CMP_POOLS = {
 };
 const POOL_LAST_N = 60; // ultime N partite: si sommano i gamelog dei primi 60 qualificati del ruolo
 const CMP_LOW = new Set(["passing.interceptions", "passing.sacks", "fumbles.fumbles", "fumbles.fumblesLost"]); // meno = meglio
-const cmpRankData = { qualified: {}, logs: {} };
+const cmpRankData = { raw: {}, qualified: {}, logs: {} };
+/**
+ * La statistica esiste in quella stagione? No se il campo manca nei dati ESPN dell'anno o se, in una
+ * stagione conclusa, vale 0 per tutti (campo non tracciato: es. TFL negli anni vecchi). Mai 0 o rank finti.
+ */
+function cmpFieldExists(st, y) {
+  const pools = poolsOf(st).map((p) => cmpRankData.raw[`${y}|${p}`]).filter(Boolean);
+  if (!pools.length) return true; // dati della stagione non ancora caricati
+  const past = !!seasonArg(y);
+  const vals = pools.flat().map((q) => cmpNum(st, seasonAgg(q.stats))).filter((v) => v != null);
+  if (vals.length) return past ? vals.some((v) => v !== 0) : true;
+  // campo assente nelle statistiche stagionali ESPN (es. stuff): decide il gamelog dei giocatori di quella stagione
+  return cmp.slots.slice(0, cmp.nPlayers).some((sl) => (sl.season || curSeason()) === y && (() => { const v = cmpNum(st, sl.agg); return v != null && (!past || v !== 0); })());
+}
+const cmpSeasons = () => [...new Set(cmp.slots.slice(0, cmp.nPlayers).map((sl) => sl.season || curSeason()))];
+const cmpExistsAll = (st) => cmpSeasons().every((y) => cmpFieldExists(st, y));
 function poolsOf(st) {
   const k = st.key;
   if (k.startsWith("passing.") || k === "cmpatt" || k === "passYdsG") return ["passing"];
@@ -2385,15 +2431,19 @@ function qualifyPool(p, list) {
   return list.filter((q) => (q.stats[rule[0]] || 0) >= rule[1] * teamGames);
 }
 /** Carica i dati della lega che servono ai rank delle statistiche scelte (con il periodo attuale). */
-async function ensureRankData() {
+async function ensureRankData(withLogs = true) {
   const stats = cmp.stats.slice(0, cmp.nStats).map((k) => CMP_STATS.find((s) => s.key === k)).filter(Boolean);
   const pools = [...new Set(stats.flatMap(poolsOf))];
   const seasons = [...new Set(cmp.slots.slice(0, cmp.nPlayers).map((sl) => sl.season || curSeason()))];
-  for (const y of seasons) for (const p of pools) {
+  // dati stagionali di tutti i ruoli: servono anche a capire quali statistiche esistono in quella stagione
+  for (const y of seasons) for (const p of Object.keys(CMP_POOLS)) {
     const k = `${y}|${p}`;
-    if (!cmpRankData.qualified[k]) cmpRankData.qualified[k] = qualifyPool(p, (await getQualified(...CMP_POOLS[p], {}, seasonArg(y))).data);
+    if (!cmpRankData.raw[k]) {
+      cmpRankData.raw[k] = (await getQualified(...CMP_POOLS[p], {}, seasonArg(y))).data;
+      cmpRankData.qualified[k] = qualifyPool(p, cmpRankData.raw[k]);
+    }
   }
-  if (cmp.period === "season") return;
+  if (!withLogs || cmp.period === "season") return;
   const ids = [...new Set(seasons.flatMap((y) => pools.flatMap((p) => cmpRankData.qualified[`${y}|${p}`].slice(0, POOL_LAST_N).map((q) => `${y}|${q.id}`))))].filter((k) => !(k in cmpRankData.logs));
   let done = 0;
   const queue = ids.slice();
@@ -2435,12 +2485,11 @@ let cmpRefreshSeq = 0;
 async function cmpRefresh() {
   const seq = ++cmpRefreshSeq; // conta solo l'ultimo aggiornamento (cambi rapidi di stagione/giocatore)
   try {
-    if (cmp.show !== "value") {
-      status.textContent = "Calcolo i rank NFL…";
-      await ensureRankData();
-    }
+    status.textContent = cmp.show !== "value" ? "Calcolo i rank NFL…" : "Carico i dati della stagione…";
+    await ensureRankData(cmp.show !== "value");
   } catch (err) { console.warn("rank", err); }
   if (seq !== cmpRefreshSeq) return;
+  renderCmpStatSelects();
   renderAll();
   cmpStatus();
 }
@@ -2499,7 +2548,7 @@ const cmpEls = {
   nStats: document.getElementById("cmp-nstats"),
   show: document.getElementById("cmp-show"),
   note: document.getElementById("cmp-note"),
-  slots: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`cmp-p${i}`), season: document.getElementById(`cmp-season${i}`), team: document.getElementById(`cmp-team${i}`), player: document.getElementById(`cmp-player${i}`), anon: document.getElementById(`cmp-anon${i}`) })),
+  slots: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`cmp-p${i}`), season: document.getElementById(`cmp-season${i}`), photoUrl: document.getElementById(`cmp-photourl${i}`), photoFile: document.getElementById(`cmp-photofile${i}`), photoReset: document.getElementById(`cmp-photoreset${i}`), team: document.getElementById(`cmp-team${i}`), player: document.getElementById(`cmp-player${i}`), anon: document.getElementById(`cmp-anon${i}`) })),
   stats: [...document.querySelectorAll(".cmp-stat")],
 };
 
@@ -2536,7 +2585,8 @@ async function loadSlotStats(i) {
 }
 function cmpAvailable() {
   const aggs = cmp.slots.slice(0, cmp.nPlayers).map((sl) => sl.agg);
-  return CMP_STATS.filter((st) => aggs.some((a) => cmpValue(st, a) != null));
+  // in tendina: statistiche che esistono in tutte le stagioni scelte e che almeno un giocatore ha
+  return CMP_STATS.filter((st) => cmpExistsAll(st) && aggs.some((a) => cmpValue(st, a) != null));
 }
 function renderCmpStatSelects() {
   const avail = cmpAvailable();
@@ -2623,6 +2673,27 @@ cmpEls.note.addEventListener("input", () => { cmp.note = cmpEls.note.value; rend
 cmpEls.stats.forEach((sel, i) => sel.addEventListener("change", () => { cmp.stats[i] = sel.value; cmpRefresh(); }));
 cmpEls.slots.forEach((el, i) => {
   el.anon.addEventListener("change", () => { cmp.slots[i].anon = el.anon.checked; renderAll(); });
+  // foto personalizzata (URL o file): priorità sulla foto automatica, finisce anche nel PNG
+  el.photoUrl.addEventListener("change", async () => {
+    const sl = cmp.slots[i], url = el.photoUrl.value.trim();
+    if (!url) { sl.photoUrl = null; renderAll(); return; }
+    if (await customPhotoOk(url)) { sl.photoUrl = url; renderAll(); }
+    else status.textContent = "Questa immagine non si può usare nel PNG (il sito che la ospita non lo permette): scaricala e caricala con \"File\".";
+  });
+  el.photoFile.addEventListener("change", (e) => {
+    const sl = cmp.slots[i], file = e.target.files?.[0];
+    if (!file) return;
+    if (sl.photoUpload) URL.revokeObjectURL(sl.photoUpload);
+    sl.photoUpload = URL.createObjectURL(file);
+    e.target.value = "";
+    renderAll();
+  });
+  el.photoReset.addEventListener("click", () => {
+    const sl = cmp.slots[i];
+    if (sl.photoUpload) URL.revokeObjectURL(sl.photoUpload);
+    sl.photoUpload = null; sl.photoUrl = null; el.photoUrl.value = "";
+    renderAll();
+  });
   el.season.addEventListener("change", async () => {
     const sl = cmp.slots[i];
     sl.season = Number(el.season.value);
@@ -2670,6 +2741,12 @@ function cmpCard(sl, x, stats) {
   // foto profilo ESPN (scontornata): altezza del box, centrata, ritagliata ai bordi della card
   const hsH = ph.h, hsW = hsH * (600 / 436);
   const headshot = `https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png`;
+  const custom = !anon && (sl.photoUpload || sl.photoUrl); // foto scelta dall'utente: ha la priorità
+  const photoHtml = custom
+    ? `<img class="g-logo g-cover" ${sl.photoUpload ? "" : 'crossorigin="anonymous"'} src="${esc(custom)}" alt="" style="left:${x + ph.x}px;top:${ph.top}px;width:${ph.w}px;height:${ph.h}px">`
+    : `<div class="g-clip" style="position:absolute;overflow:hidden;left:${x + ph.x}px;top:${ph.top}px;width:${ph.w}px;height:${ph.h}px">
+      <img class="g-logo${anon ? " g-sil" : ""}" crossorigin="anonymous" src="${headshot}" alt="" onerror="this.remove()" style="left:${ph.w / 2 - hsW / 2}px;top:0;width:${hsW}px;height:${hsH}px">
+    </div>`;
   const n = stats.length, pitch = (CP.rowsBot - CP.panelBot) / n;
   const kt = Math.min(1, (pitch / CP.rowRef) * 1.15);
   let rows = "";
@@ -2680,8 +2757,9 @@ function cmpCard(sl, x, stats) {
     const valCx = showR ? CP.cardW - 190 : CP.valCx, rCx = showV ? CP.cardW - 62 : CP.valCx;
     rows += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${CP.cardW}px;height:${pitch + 0.5}px;background:${i % 2 ? CMP_GREY : "#ffffff"}"></div>
       ${T("cmpLabel", st.label, x + CP.labelX, y + (pitch - STYLES.cmpLabel.ref[1] * kt) / 2, "left", { scale: kt, maxW: (showV ? valCx : rCx) - 60 - CP.labelX })}
-      ${showV && v != null ? T("cmpVal", v, x + valCx, y + (pitch - STYLES.cmpVal.ref[1] * kt) / 2, "center", { scale: kt, maxW: showR ? 150 : 190 }) : ""}`;
-    if (showR) {
+      ${showV && v != null ? T("cmpVal", v, x + valCx, y + (pitch - STYLES.cmpVal.ref[1] * kt) / 2, "center", { scale: kt, maxW: showR ? 150 : 190 }) : ""}
+      ${v == null ? T("cmpVal", "N/D", x + (showV ? valCx : rCx), y + (pitch - STYLES.cmpVal.ref[1] * kt) / 2, "center", { scale: kt, color: "#8a9097" }) : ""}`;
+    if (showR && v != null) { // dato mancante: N/D senza rank
       const rk = v != null ? cmpRank(st, sl) : null;
       const r = rk && !rk.nq ? rk.r : null;
       const txt = rk?.nq ? "NQ" : r == null ? "–" : `${r}°`;
@@ -2693,16 +2771,28 @@ function cmpCard(sl, x, stats) {
     }
   });
   return `<div class="g-cell" style="left:${x}px;top:${CP.panelTop}px;width:${CP.cardW}px;height:${CP.panelBot - CP.panelTop}px;background:${col}"></div>
-    <div class="g-clip" style="position:absolute;overflow:hidden;left:${x + ph.x}px;top:${ph.top}px;width:${ph.w}px;height:${ph.h}px">
-      <img class="g-logo${anon ? " g-sil" : ""}" crossorigin="anonymous" src="${headshot}" alt="" onerror="this.remove()" style="left:${ph.w / 2 - hsW / 2}px;top:0;width:${hsW}px;height:${hsH}px">
-    </div>
+    ${photoHtml}
     ${anon
       ? T("cmpLast", "?", x + lg.cx, lg.cy - CP.qMark / 2, "center", { color: "#ffffff", scale: CP.qMark / STYLES.cmpLast.ref[1] })
       : `<img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 400, true)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
     ${T("cmpFirst", first, x + CP.nameX, CP.firstCap, "left", { color: ink, maxW: CP.nameMaxW })}
     ${T("cmpLast", last, x + CP.nameX, CP.lastCap, "left", { color: ink, maxW: CP.nameMaxW })}`}
+    ${T("tcHdr", `STAGIONE ${sl.season || curSeason()}`, x + CP.nameX, CP.seasonCap, "left", { color: anon ? "#ffffff" : ink, maxW: CP.nameMaxW })}
     ${rows}
     <div class="g-bar" style="left:${x}px;top:${CP.rowsBot}px;width:${CP.cardW}px;height:${CP.barH}px;background:${col}"></div>`;
+}
+
+/** Un'immagine da URL si può disegnare nel PNG solo se il sito che la ospita permette l'uso (CORS). */
+function customPhotoOk(url) {
+  return new Promise((res) => {
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    im.onload = () => {
+      try { const c = document.createElement("canvas"); c.width = c.height = 2; const x = c.getContext("2d"); x.drawImage(im, 0, 0, 2, 2); x.getImageData(0, 0, 1, 1); res(true); } catch { res(false); }
+    };
+    im.onerror = () => res(false);
+    im.src = url;
+  });
 }
 
 /** Legenda dei rank (allineata a destra sotto le card) + "NQ = non qualificato". */
@@ -2724,7 +2814,8 @@ function renderCompareStage(stage) {
   const { W, H, root } = stage;
   const year = sb.season.year;
   const n = cmp.nPlayers;
-  const stats = cmp.stats.slice(0, cmp.nStats).map((k) => CMP_STATS.find((s) => s.key === k)).filter(Boolean);
+  // righe di statistiche che non esistono in una delle stagioni scelte: nascoste del tutto
+  const stats = cmp.stats.slice(0, cmp.nStats).map((k) => CMP_STATS.find((s) => s.key === k)).filter(Boolean).filter(cmpExistsAll);
   const total = n * CP.cardW + (n - 1) * CP.gap;
   const x0 = W / 2 - total / 2;
   const cards = cmp.slots.slice(0, n).map((sl, i) => cmpCard(sl, x0 + i * (CP.cardW + CP.gap), stats)).join("");
@@ -2797,9 +2888,10 @@ function tsRow(ev, wk, x, y) {
     : T("at", "@", mid("at"), y + TS.atTop, "center", { scale: TS.atH / STYLES.at.ref[1], color: TS_BLUE }));
   // avversaria: cella colorata con logo e nome su due righe (come il calendario settimanale)
   const t = ev.opp, abbr = t.abbr, ox = x + C.opp[0], ow = C.opp[1];
-  const ink = DARK_TEXT.has(abbr) ? "#111111" : "#ffffff";
-  const logo = espnImg(abbr ? `https://a.espncdn.com/i/teamlogos/nfl/500-dark/${abbr.toLowerCase()}.png` : t.logo, 200);
-  html += `<div class="g-cell" style="left:${ox}px;top:${y}px;width:${ow}px;height:${TS.rowH}px;background:${TEAM_CELL[abbr] || t.color || "#333"}"></div>
+  const cur = ABBR_ALIAS[abbr] || abbr; // stagioni passate: OAK → LV, SD → LAC, STL → LAR (colori e loghi)
+  const ink = DARK_TEXT.has(cur) ? "#111111" : "#ffffff";
+  const logo = t.histLogo || espnImg(cur ? `https://a.espncdn.com/i/teamlogos/nfl/500-dark/${cur.toLowerCase()}.png` : t.logo, 200);
+  html += `<div class="g-cell" style="left:${ox}px;top:${y}px;width:${ow}px;height:${TS.rowH}px;background:${TEAM_CELL[cur] || t.color || "#333"}"></div>
     <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${ox + TS.logoCx - TS.logoBox / 2}px;top:${y + (TS.rowH - TS.logoBox) / 2}px;width:${TS.logoBox}px;height:${TS.logoBox}px">
     ${T("tsCity", (t.location || "").toUpperCase(), ox + TS.textX, y + TS.cap1, "left", { color: ink, maxW: ow - TS.textX - 12 })}
     ${T("tsNick", (t.nickname || t.short || "").toUpperCase(), ox + TS.textX, y + TS.cap2, "left", { color: ink, maxW: ow - TS.textX - 12 })}`;
@@ -2848,7 +2940,8 @@ function renderTeamStage(stage) {
   const { team, events } = teamSched;
   const year = sb.season.year;
   const byWeek = new Map(events.filter((e) => e.seasonType === 2 && e.week).map((e) => [e.week, e]));
-  const nWeeks = Math.max(18, ...byWeek.keys());
+  const season = teamSched.season || curSeason();
+  const nWeeks = Math.max(season >= 2021 ? 18 : 17, ...byWeek.keys()); // 18 settimane dal 2021, prima 17
   const half = Math.ceil(nWeeks / 2);
   let rows = "";
   for (let w = 1; w <= nWeeks; w++) {
@@ -2873,8 +2966,8 @@ function renderTeamStage(stage) {
       ${T("stInk", String(year), 1872, 67, "right", { scale: 1.04 })}
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${TS.brand[0]}px;top:${TS.brand[1]}px;width:${TS.brand[2]}px;height:${TS.brand[3]}px">
       ${T("tsName", name, left, nm.cap, "left", { scale: k })}
-      <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${team.abbr.toLowerCase()}.png`, 300)}" alt="" style="left:${left + nameW + nm.gap}px;top:${nm.logoCy - nm.logoBox / 2}px;width:${nm.logoBox}px;height:${nm.logoBox}px">
-      ${recordGroup(record, year)}
+      <img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(team, 300)}" alt="" style="left:${left + nameW + nm.gap}px;top:${nm.logoCy - nm.logoBox / 2}px;width:${nm.logoBox}px;height:${nm.logoBox}px">
+      ${recordGroup(record, season)}
       ${rows}
       ${T("tsFoot", ovr("foot", "TUTTI GLI ORARI IN ORA ITALIANA"), 45, 1026, "left", { color: TS_BLUE, maxW: 1500 })}
       ${rectBar([45, 1055, 25, 2.5], TS_BLUE)}
@@ -2892,21 +2985,35 @@ async function loadTeamSchedule({ quiet = false } = {}) {
     if (!teamList.some((t) => t.id === teamId)) teamId = teamList[0]?.id || "";
     teamSelect.value = teamId;
     if (!quiet) status.textContent = "Carico il calendario della squadra…";
-    // Sempre dati freschi da ESPN (risultati e orari aggiornati al minuto).
-    const res = await getSchedule(teamId, { force: true }, { seasonType: 2 });
-    const team = teamList.find((t) => t.id === teamId);
-    const sig = JSON.stringify(res.data.events.map((e) => [e.id, e.state, e.us, e.them, e.date, e.timeValid]));
+    if (!teamSeasonSel.options.length) { teamSeasonSel.innerHTML = seasonOptions(); teamSeasonSel.value = String(teamSeason || curSeason()); }
+    const season = teamSeason || curSeason(), past = !!seasonArg(season);
+    if (quiet && past) return; // le stagioni concluse non cambiano: niente aggiornamento automatico
+    // Stagione corrente: sempre dati freschi da ESPN (risultati e orari aggiornati al minuto).
+    const res = await getSchedule(teamId, { force: !past }, { seasonType: 2, season: seasonArg(season), past });
+    const team = await teamInSeason(teamList.find((t) => t.id === teamId), season);
+    if (past) {
+      // avversarie com'erano quell'anno (logo dell'epoca)
+      await Promise.all(res.data.events.map(async (e) => {
+        try { const h = (await getTeamHistory(e.opp.id, season)).data; e.opp = { ...e.opp, histLogo: h.logoDark }; } catch { /* logo attuale */ }
+      }));
+    }
+    const sig = JSON.stringify([season, ...res.data.events.map((e) => [e.id, e.state, e.us, e.them, e.date, e.timeValid])]);
     if (quiet && teamSched && teamSched.sig === sig && teamSched.team.id === teamId) return;
-    teamSched = { team, events: res.data.events, sig };
+    teamSched = { team, events: res.data.events, sig, season };
     syncUrl();
     renderAll();
-    status.textContent = `${team.name} · calendario ${sb.season.year} da ESPN · aggiornato alle ${fItTime.format(new Date())} (si aggiorna da solo ogni minuto)`;
+    status.textContent = past
+      ? `${team.name} · calendario ${season} da ESPN (stagione conclusa)`
+      : `${team.name} · calendario ${season} da ESPN · aggiornato alle ${fItTime.format(new Date())} (si aggiorna da solo ogni minuto)`;
   } catch (err) {
     console.error(err);
     if (!quiet) status.textContent = "Non riesco a caricare il calendario della squadra: riprova.";
   }
 }
 teamSelect.addEventListener("change", () => { teamId = teamSelect.value; loadTeamSchedule(); });
+const teamSeasonSel = document.getElementById("team-season");
+let teamSeason = 0;
+teamSeasonSel.addEventListener("change", () => { teamSeason = Number(teamSeasonSel.value); loadTeamSchedule(); });
 // aggiornamento automatico ogni minuto mentre è aperto questo template
 teamTimer = setInterval(() => { if (tpl === "team" && !document.hidden) loadTeamSchedule({ quiet: true }); }, 60 * 1000);
 
@@ -2942,7 +3049,7 @@ function renderSelect() {
   weekSelect.classList.toggle("is-current", selectedKey === currentKey);
   document.querySelectorAll(".tpl-name").forEach((el) => (el.textContent = tpl === "results" ? "Risultati settimanali" : "Calendario settimanale"));
   applyVisibility();
-  tplToggle.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tpl === tpl)));
+  tplToggle.value = tpl;
 }
 
 function syncUrl() {
@@ -2966,23 +3073,53 @@ weekSelect.addEventListener("change", () => {
   loadWeek();
 });
 
-document.getElementById("fmt-toggle").addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-fmt]");
-  if (!b || b.dataset.fmt === fmt) return;
-  fmt = b.dataset.fmt;
+// Selettori solo a tendina (regola del sito): grafica e formato.
+document.getElementById("fmt-select").addEventListener("change", (e) => {
+  if (e.target.value === fmt) return;
+  fmt = e.target.value;
   applyVisibility();
   syncUrl();
 });
 
-const tplToggle = document.getElementById("tpl-toggle");
-tplToggle.addEventListener("click", (e) => {
-  const b = e.target.closest("button[data-tpl]");
-  if (!b || b.dataset.tpl === tpl) return;
-  tpl = b.dataset.tpl;
+const tplToggle = document.getElementById("tpl-select");
+tplToggle.addEventListener("change", () => {
+  if (tplToggle.value === tpl) return;
+  tpl = tplToggle.value;
+  weeks = tpl === "player" && plWeeks ? plWeeks : curWeeks; // Giocatore: settimane della stagione scelta
   selectedKey = defaultKey();
   renderSelect();
   syncUrl();
   loadWeek();
+});
+
+// ---- Giocatore: stagione storica (settimane e partite dell'anno scelto, dati ESPN)
+let curWeeks = [];
+let plSeason = 0; // 0 = stagione corrente
+let plWeeks = null;
+const plSeasonSel = document.getElementById("pl-season");
+plSeasonSel.addEventListener("change", async () => {
+  const y = Number(plSeasonSel.value);
+  plSeason = y === curSeason() ? 0 : y;
+  status.textContent = `Carico le settimane della stagione ${y}…`;
+  try {
+    if (!plSeason) plWeeks = null;
+    else {
+      const res = await getScoreboard({ year: y, seasonType: 2, week: 1 }, { ttl: 30 * 24 * 3600e3 });
+      plWeeks = (res.data.calendar || []).filter((e) => e.seasonType === 2 || e.seasonType === 3);
+    }
+    weeks = plWeeks || curWeeks;
+    // stagione passata: si propone l'ultima settimana di regular season
+    const reg = weeks.filter((e) => e.seasonType === 2);
+    selectedKey = plSeason ? keyOf(reg[reg.length - 1] || weeks[0]) : gameKey;
+    selectedGame = "";
+    playerSel = null;
+    renderSelect();
+    syncUrl();
+    loadWeek();
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare quella stagione: riprova.";
+  }
 });
 
 async function loadWeek() {
@@ -2994,7 +3131,7 @@ async function loadWeek() {
   status.textContent = "Carico le partite…";
   if (isGameLike()) {
     try {
-      const res = await getWeek(entry, sb.season.year);
+      const res = await getWeek(entry, tpl === "player" ? plSeason || sb.season.year : sb.season.year);
       weekGames = res.data.games.filter((g) => g.state === "post");
       gameSelect.innerHTML = weekGames.length
         ? weekGames.map((g) => `<option value="${g.id}">${esc(g.away.team.short)} @ ${esc(g.home.team.short)} · ${g.away.score}-${g.home.score} · ${esc(fItDay.format(new Date(g.date)))}</option>`).join("")
@@ -3063,6 +3200,8 @@ async function init() {
   STYLES.tcRank.ls = Math.max(STYLES.tcRank.ls, 1.5); // il "°" non deve toccare le cifre (es. 11°)
   // Anno e settimane dalle API ESPN.
   weeks = sb.calendar.filter((e) => e.seasonType === 2 || e.seasonType === 3);
+  curWeeks = weeks;
+  plSeasonSel.innerHTML = seasonOptions();
   const idx = currentWeekIndex(sb);
   const cur = sb.calendar[idx];
   currentKey = cur && (cur.seasonType === 2 || cur.seasonType === 3) ? keyOf(cur) : cur?.seasonType === 1 ? keyOf(weeks[0]) : keyOf(weeks[weeks.length - 1] || {});
