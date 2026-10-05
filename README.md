@@ -289,6 +289,11 @@ h1-h4, sottotitolo delle pagine e della home). Nello Studio gli stili `week`, `t
 (titoli) e `sub`, `stSub`, `tsCal`, `cmpSub`, `pVs` (sottotitoli) hanno `natural: true`: stessa
 altezza delle maiuscole del master ma spaziatura propria del font. Nel lower third titolo Bold e
 seconda riga Thin, incorporati anche nell'export PNG/video.
+Nello Studio le tendine **Font titolo** (Archivo Bold, ExtraBold, Black, Barlow Condensed Bold,
+come i master) e **Font sottotitolo** (Archivo Thin, Light, Regular, Medium, Barlow Condensed
+Medium, come i master) cambiano titoli e sottotitoli di tutte le grafiche, anteprima e PNG; la
+scelta resta salvata nel browser (`5dwn:studio-fonts`). "Come i master" ripristina Archivo
+variabile espanso con la spaziatura misurata sui riferimenti (`MASTER_FONT`).
 
 ## 4. Provarlo sul tuo computer
 

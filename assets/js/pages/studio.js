@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610051918";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610051918";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610051946";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610051946";
 
 renderChrome("");
 
@@ -125,6 +125,49 @@ const STYLES = {
   gp: { cls: "gt-gp", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["GAME", 15.1, 41.0] },
 };
 
+// ---- font di titoli e sottotitoli, scelti dalle tendine "Font titolo" / "Font sottotitolo" (salvati nel browser)
+const TITLE_KEYS = ["week", "tsName", "pName"], SUB_KEYS = ["sub", "stSub", "tsCal", "cmpSub", "pVs"];
+// valori dei master (Archivo variabile, spaziatura misurata sul riferimento)
+const MASTER_FONT = {
+  week: { family: "Archivo", weight: 900, stretch: "expanded" }, tsName: { family: "Archivo", weight: 800, stretch: "normal" },
+  pName: { family: "Archivo", weight: 900, stretch: "condensed" }, pVs: { family: "Archivo", weight: 400, stretch: "normal" },
+  ...Object.fromEntries(["sub", "stSub", "tsCal", "cmpSub"].map((k) => [k, { family: "Archivo", weight: 500, stretch: "expanded" }])),
+};
+const FONT_CHOICES = {
+  title: [
+    ["archivo-bold", "Archivo Bold", { family: "Archivo Bold", weight: 700 }],
+    ["archivo-extrabold", "Archivo ExtraBold", { family: "Archivo", weight: 800 }],
+    ["archivo-black", "Archivo Black", { family: "Archivo", weight: 900 }],
+    ["barlow-cond", "Barlow Condensed Bold", { family: "Barlow Condensed", weight: 700 }],
+    ["master", "Come i master (Archivo espanso)", null],
+  ],
+  sub: [
+    ["archivo-thin", "Archivo Thin", { family: "Archivo Thin", weight: 100 }],
+    ["archivo-light", "Archivo Light", { family: "Archivo", weight: 300 }],
+    ["archivo-regular", "Archivo Regular", { family: "Archivo", weight: 400 }],
+    ["archivo-medium", "Archivo Medium", { family: "Archivo", weight: 500 }],
+    ["barlow-cond", "Barlow Condensed Medium", { family: "Barlow Condensed", weight: 500 }],
+    ["master", "Come i master (Archivo espanso)", null],
+  ],
+};
+const FONT_KEY = "5dwn:studio-fonts";
+const fontPick = (() => {
+  const def = { title: "archivo-bold", sub: "archivo-thin" };
+  try { return Object.assign(def, JSON.parse(localStorage.getItem(FONT_KEY) || "{}")); } catch { return def; }
+})();
+const STRETCH_PCT = { "ultra-condensed": 50, "extra-condensed": 62.5, condensed: 75, "semi-condensed": 87.5, normal: 100, "semi-expanded": 112.5, expanded: 125 };
+/** Applica la scelta ai relativi STYLES (va seguito da calibrate()). */
+function applyFonts() {
+  for (const [group, keys] of [["title", TITLE_KEYS], ["sub", SUB_KEYS]]) {
+    const ch = (FONT_CHOICES[group].find(([id]) => id === fontPick[group]) || FONT_CHOICES[group][0])[2];
+    for (const k of keys) {
+      // scelta libera: spaziatura propria del font (natural); master: spaziatura misurata sul riferimento
+      Object.assign(STYLES[k], ch ? { ...ch, stretch: "normal", natural: true } : { ...MASTER_FONT[k], natural: false }, { dyn: true });
+    }
+  }
+}
+applyFonts();
+
 const ctx = document.createElement("canvas").getContext("2d");
 const fontStr = (st, size) => `${st.italic ? "italic " : ""}${st.stretch && st.stretch !== "normal" ? `${st.stretch} ` : ""}${st.weight} ${size}px "${st.family}"`;
 
@@ -173,7 +216,8 @@ function T(style, text, x, capTop, align = "left", { color, maxW, scale = 1 } = 
   const top = capTop - ((size - (A + D)) / 2 + A - cap);
   const inkLeft = align === "center" ? x - ink / 2 : align === "right" ? x - ink : x;
   const left = inkLeft + m.actualBoundingBoxLeft;
-  return `<span class="gt ${st.cls}" style="left:${left.toFixed(2)}px;top:${top.toFixed(2)}px;font-size:${size.toFixed(3)}px;letter-spacing:${ls.toFixed(3)}px${color ? `;color:${color}` : ""}">${esc(text)}</span>`;
+  const font = st.dyn ? `;font-family:&quot;${st.family}&quot;;font-weight:${st.weight};font-stretch:${STRETCH_PCT[st.stretch] || 100}%` : "";
+  return `<span class="gt ${st.cls}" style="left:${left.toFixed(2)}px;top:${top.toFixed(2)}px;font-size:${size.toFixed(3)}px;letter-spacing:${ls.toFixed(3)}px${font}${color ? `;color:${color}` : ""}">${esc(text)}</span>`;
 }
 
 // ---------------------------------------------------------------------------- geometrie (riferimento 16:9)
@@ -579,6 +623,25 @@ function fitPreview(stage) {
   scaler.style.transform = `scale(${k})`;
   wrap.style.height = `${H * k}px`;
   root.dataset.scale = k;
+}
+
+/** Tendine "Font titolo" / "Font sottotitolo": cambiano titoli e sottotitoli di tutte le grafiche. */
+function initFontControls() {
+  for (const group of ["title", "sub"]) {
+    const el = document.getElementById(`font-${group}`);
+    if (!el) continue;
+    el.innerHTML = FONT_CHOICES[group].map(([id, label]) => `<option value="${id}">${esc(label)}</option>`).join("");
+    el.value = fontPick[group];
+    el.addEventListener("change", async () => {
+      fontPick[group] = el.value;
+      try { localStorage.setItem(FONT_KEY, JSON.stringify(fontPick)); } catch { /* storage bloccato: vale solo per questa visita */ }
+      applyFonts();
+      await Promise.all([...TITLE_KEYS, ...SUB_KEYS].map((k) => document.fonts.load(fontStr(STYLES[k], 40), STYLES[k].ref[0])));
+      calibrate();
+      STYLES.tcRank.ls = Math.max(STYLES.tcRank.ls, 1.5);
+      renderAll();
+    });
+  }
 }
 
 function renderAll() {
@@ -3227,6 +3290,7 @@ async function init() {
   }
   await document.fonts.ready;
   calibrate();
+  initFontControls();
   STYLES.tcRank.ls = Math.max(STYLES.tcRank.ls, 1.5); // il "°" non deve toccare le cifre (es. 11°)
   // Anno e settimane dalle API ESPN.
   weeks = sb.calendar.filter((e) => e.seasonType === 2 || e.seasonType === 3);
