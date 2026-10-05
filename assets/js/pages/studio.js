@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610051011";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610051011";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610051918";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610051918";
 
 renderChrome("");
 
@@ -57,8 +57,8 @@ const COUNTRY_IT = { England: "Regno Unito", "United Kingdom": "Regno Unito", UK
 // Corpo e spaziatura vengono ricavati a runtime misurando il font reale.
 const STYLES = {
   brand: { cls: "gt-brand", family: "Archivo", weight: 900, stretch: "semi-expanded", ref: ["5DWN", 26.3, 128.1] },
-  week: { cls: "gt-week", family: "Archivo", weight: 900, stretch: "expanded", ref: ["WEEK 4", 93.2, 640.0] },
-  sub: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["ORARI ITALIA", 22.5, 408.9] },
+  week: { cls: "gt-week", family: "Archivo Bold", weight: 700, stretch: "normal", natural: true, ref: ["WEEK 4", 93.2, 640.0] },
+  sub: { cls: "gt-sub", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["ORARI ITALIA", 22.5, 408.9] },
   day: { cls: "gt-day", family: "Archivo", weight: 700, stretch: "expanded", ref: ["DOMENICA 4 OTTOBRE", 20.2, 430.4] },
   side: { cls: "gt-side", family: "Archivo", weight: 600, stretch: "normal", ref: ["FOOTBALL", 12.9, 120.3] },
   year: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO DOWN", 12.9, 153.5] },
@@ -70,7 +70,7 @@ const STYLES = {
   band: { cls: "gt-band", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INTERNATIONAL GAME — LONDRA, REGNO UNITO", 15.6, 375.6] },
   score: { cls: "gt-score", family: "Archivo", weight: 900, stretch: "normal", ref: ["28", 23.9, 44.9] }, // misurato su "Risultati"
   // Template "Classifiche" (misurato su "NFL Standings-selection")
-  stSub: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["CLASSIFICA", 21.3, 359.7] },
+  stSub: { cls: "gt-sub", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["CLASSIFICA", 21.3, 359.7] },
   stDiv: { cls: "gt-day", family: "Archivo", weight: 700, stretch: "expanded", ref: ["AFC EAST", 21.2, 248.0] },
   stCol: { cls: "gt-st-col", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["PCT", 15.9, 32.0] },
   stNum: { cls: "gt-st-num", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["1.000", 20.8, 57.3] },
@@ -81,8 +81,8 @@ const STYLES = {
   stFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["AMERICAN FOOTBALL CONFERENCE", 13.5, 414.6] },
   // Template "Partita della settimana" (misurato su "NFL Game of the Week-selection (1).png")
   // Template Calendario squadra ("NFL Team Schedule-selection.png", 10984×6180 → 1920×1080)
-  tsName: { cls: "gt-ts-name", family: "Archivo", weight: 800, stretch: "normal", ref: ["MIAMI DOLPHINS", 84, 1051] },
-  tsCal: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["CALENDARIO 2026", 21, 519] },
+  tsName: { cls: "gt-ts-name", family: "Archivo Bold", weight: 700, stretch: "normal", natural: true, ref: ["MIAMI DOLPHINS", 84, 1051] },
+  tsCal: { cls: "gt-sub", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["CALENDARIO 2026", 21, 519] },
   tsWeek: { cls: "gt-ts-week", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["W10", 20, 42] },
   tsDate: { cls: "gt-ts-date", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["DOM 13/09", 18, 91] },
   tsCity: { cls: "gt-ts-city", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INDIANAPOLIS", 17, 114] },
@@ -110,11 +110,11 @@ const STYLES = {
   cmpLabel: { cls: "gt-cmp-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["COMP/ATT", 20, 92] },
   cmpVal: { cls: "gt-cmp-val", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["32/54", 33, 99] },
   cmpNote: { cls: "gt-cmp-note", family: "Barlow", weight: 400, stretch: "normal", italic: true, ref: ["* 3 fumble, tutti recuperati dall'attacco (0 persi)", 12.5, 318] },
-  cmpSub: { cls: "gt-sub", family: "Archivo", weight: 500, stretch: "expanded", ref: ["STATISTICHE AGGREGATE", 21, 680] },
+  cmpSub: { cls: "gt-sub", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["STATISTICHE AGGREGATE", 21, 680] },
   cmpFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["NFL 2026 REGULAR SEASON", 13, 272] },
   // Template Giocatore ("NFL Player Performance-selection.png", 11064×6224 → 1920×1080)
-  pName: { cls: "gt-p-name", family: "Archivo", weight: 900, stretch: "condensed", ref: ["JA'MARR CHASE", 111, 1113] },
-  pVs: { cls: "gt-p-vs", family: "Archivo", weight: 400, stretch: "normal", ref: ["contro i Texans", 27, 262] },
+  pName: { cls: "gt-p-name", family: "Archivo Bold", weight: 700, stretch: "normal", natural: true, ref: ["JA'MARR CHASE", 111, 1113] },
+  pVs: { cls: "gt-p-vs", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["contro i Texans", 27, 262] },
   pVal: { cls: "gt-p-val", family: "Archivo", weight: 800, stretch: "semi-condensed", ref: ["75", 93, 139], ink: true },
   pLabel: { cls: "gt-p-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["TD su ricezione", 25, 208] },
   pRes: { cls: "gt-p-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["Vittoria Bengals 20-6", 28, 314] },
@@ -139,7 +139,8 @@ function calibrate() {
     const t = ctx.measureText(text);
     const natural = t.actualBoundingBoxLeft + t.actualBoundingBoxRight;
     const n = [...text].length;
-    st.ls = n > 1 ? (ink - natural) / (n - 1) : 0;
+    // natural: titoli (Archivo Bold) e sottotitoli (Archivo Thin) con la spaziatura del font, stessa altezza del master
+    st.ls = n > 1 && !st.natural ? (ink - natural) / (n - 1) : 0;
     const h = ctx.measureText("H");
     st.cap = h.actualBoundingBoxAscent;
     st.A = t.fontBoundingBoxAscent;

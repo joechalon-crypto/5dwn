@@ -59,8 +59,8 @@
 /* Testi posizionati per altezza delle maiuscole (vedi studio.js) */
 .gt { position: absolute; white-space: nowrap; line-height: 1; }
 .gt-brand { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 112.5%; }
-.gt-week { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 125%; }
-.gt-sub { font-family: "Archivo", sans-serif; font-weight: 500; font-stretch: 125%; }
+.gt-week { font-family: "Archivo Bold", sans-serif; font-weight: 700; font-stretch: 100%; }
+.gt-sub { font-family: "Archivo Thin", sans-serif; font-weight: 100; font-stretch: 100%; }
 .gt-day { font-family: "Archivo", sans-serif; font-weight: 700; font-stretch: 125%; color: var(--g-dark); }
 .gt-side { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-side); }
 .gt-year { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-ink); }
@@ -94,7 +94,7 @@
 .g-photo-empty { position: absolute; background: #f5f5f5; border: 1px dashed #b5b8bd; display: flex; align-items: center; justify-content: center; font: 600 16px "Archivo", sans-serif; color: #5e6574; }
 .g-tape { position: absolute; background: rgba(206, 206, 206, 0.75); transform-origin: center; }
 /* Template Calendario squadra */
-.gt-ts-name { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
+.gt-ts-name { font-family: "Archivo Bold", sans-serif; font-weight: 700; font-stretch: 100%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
 .gt-ts-week { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
 .gt-ts-date { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: #111111; }
 .gt-ts-city { font-family: "Barlow Condensed", sans-serif; font-weight: 600; }
@@ -114,8 +114,8 @@
 .g-clip img { max-width: none; }
 .g-cover { object-fit: cover; }
 /* Template Giocatore */
-.gt-p-name { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 75%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
-.gt-p-vs { font-family: "Archivo", sans-serif; font-weight: 400; font-stretch: 100%; }
+.gt-p-name { font-family: "Archivo Bold", sans-serif; font-weight: 700; font-stretch: 100%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
+.gt-p-vs { font-family: "Archivo Thin", sans-serif; font-weight: 100; font-stretch: 100%; }
 .gt-p-val { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 87.5%; }
 .gt-p-label { font-family: "Barlow Condensed", sans-serif; font-weight: 500; }
 .gt-gp { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-blue); }

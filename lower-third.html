@@ -17,6 +17,9 @@
     /* La pagina non deve mai muoversi: niente rimbalzo elastico di Chrome/macOS e, su schermi larghi,
        nessuno scorrimento della pagina (scorre solo l'editor). Prima la pagina era alta quanto la finestra
        più una frazione di pixel: ogni scroll faceva rimbalzare stage e banner. */
+    /* Archivo statico: Bold per il titolo, Thin per la seconda riga (come sito e Studio) */
+    @font-face { font-family: "Archivo Bold"; src: url("assets/fonts/Archivo-Bold.ttf") format("truetype"); font-weight: 700; }
+    @font-face { font-family: "Archivo Thin"; src: url("assets/fonts/Archivo-Thin.ttf") format("truetype"); font-weight: 100; }
     html, body { overscroll-behavior: none; scrollbar-gutter: stable; }
     body { margin: 0; background: #D5D9E0; font-family: "Archivo", sans-serif; color: #111; }
     a { color: #2A50BC; } a:hover { color: #1A3486; }
@@ -57,8 +60,8 @@
 
     .lt-logo-right { position: absolute; width: auto; display: block; }
     .lt-head { position: absolute; top: 0; height: 152px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
-    .lt-title { font-weight: 800; font-stretch: 90%; line-height: 1; letter-spacing: -.01em; white-space: nowrap; width: max-content; }
-    .lt-sub { font-weight: 600; font-stretch: 90%; line-height: 1; white-space: nowrap; width: max-content; }
+    .lt-title { font-family: "Archivo Bold", "Archivo", sans-serif; font-weight: 700; font-stretch: 100%; line-height: 1; letter-spacing: -.01em; white-space: nowrap; width: max-content; }
+    .lt-sub { font-family: "Archivo Thin", "Archivo", sans-serif; font-weight: 100; font-stretch: 100%; line-height: 1; white-space: nowrap; width: max-content; }
 
     /* Riquadri immagine: trascina un file o clicca per caricarlo; rotella = zoom, trascinamento = sposta */
     .img-slot { position: absolute; inset: 0; overflow: hidden; cursor: pointer; }
@@ -216,6 +219,6 @@
       <div class="ed-note">Per "Giocatore" scegli il nome dal menu (foto profilo ESPN) oppure trascina un PNG scontornato sul riquadro (oppure clicca per sceglierlo). Rotella: zoom · trascina: sposta · doppio clic: rimuovi. Export PNG trasparente.</div>
     </aside>
   </div>
-  <script type="module" src="lower-third.js?v=202610051011"></script>
+  <script type="module" src="lower-third.js?v=202610051918"></script>
 </body>
 </html>

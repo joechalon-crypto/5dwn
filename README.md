@@ -282,6 +282,14 @@ Colori, misure e font sono in `assets/js/pages/studio.js` (oggetti `TEAM_CELL`,
 `STYLES`, `G`) e `assets/css/studio.css`: sono stati misurati sul riferimento,
 quindi vanno cambiati solo se cambia il template.
 
+**Font titoli e sottotitoli** (sito, Studio, lower third): `assets/fonts/Archivo-Bold.ttf`
+(famiglia "Archivo Bold", titoli) e `assets/fonts/Archivo-Thin.ttf` ("Archivo Thin",
+sottotitoli), dichiarati in `assets/css/style.css` (variabili `--font-title` e `--font-sub`:
+h1-h4, sottotitolo delle pagine e della home). Nello Studio gli stili `week`, `tsName`, `pName`
+(titoli) e `sub`, `stSub`, `tsCal`, `cmpSub`, `pVs` (sottotitoli) hanno `natural: true`: stessa
+altezza delle maiuscole del master ma spaziatura propria del font. Nel lower third titolo Bold e
+seconda riga Thin, incorporati anche nell'export PNG/video.
+
 ## 4. Provarlo sul tuo computer
 
 Serve un piccolo server locale (aprendo i file con doppio clic gli script non partono):

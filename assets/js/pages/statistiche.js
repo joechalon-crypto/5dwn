@@ -1,5 +1,5 @@
-import { renderChrome, loading, showError, staleNotice, updatedLine, teamLogo, teamHref, playerHref, espnImg, every, esc } from "../ui.js?v=202610051011";
-import { getAthleteRanking, getTeamStats, getRedZone } from "../api.js?v=202610051011";
+import { renderChrome, loading, showError, staleNotice, updatedLine, teamLogo, teamHref, playerHref, espnImg, every, esc } from "../ui.js?v=202610051918";
+import { getAthleteRanking, getTeamStats, getRedZone } from "../api.js?v=202610051918";
 
 window.__5dwnStatsStarted = true;
 renderChrome("statistiche");

@@ -609,6 +609,12 @@ function fontEmbedCss() {
       const dataUrl = await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
       out = out.split(u).join(dataUrl);
     }
+    // Archivo statico locale (titolo Bold, seconda riga Thin), incorporato come data URL
+    for (const [fam, file, w] of [["Archivo Bold", "Archivo-Bold.ttf", 700], ["Archivo Thin", "Archivo-Thin.ttf", 100]]) {
+      const blob = await (await fetch(`assets/fonts/${file}`)).blob();
+      const dataUrl = await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
+      out += `\n@font-face { font-family: "${fam}"; src: url(${dataUrl}) format("truetype"); font-weight: ${w}; }`;
+    }
     return out;
   })().catch((err) => { fontCssPromise = null; throw err; });
   return fontCssPromise;
