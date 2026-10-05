@@ -201,6 +201,8 @@ ultima partita / ultime 2…10 partite: si sommano le statistiche partita per pa
 (API core, proprie e degli avversari) e si ricalcolano percentuali e medie; il rank usa le
 stesse ultime N partite di tutte le 32 squadre (la prima volta servono alcuni secondi, i dati
 restano in memoria finché la pagina è aperta). Il **record** nel box segue lo stesso periodo.
+Etichetta del periodo nelle card (anche in Confronto giocatori): "STAGIONE 2026" solo con
+l'intera stagione, "ULTIME N PARTITE" da 2 partite in su, "WEEK X VS NOME SQUADRA" con l'ultima partita.
 **1 squadra = Focus squadra** (riferimento "NFL Team Focus"): titolo = nome della squadra
 (sostituibile), sottotitolo obbligatorio (es. "BILANCIO WEEK 1-4") con il box RECORD del
 periodo, tabella centrale con dato/rank e due card laterali: per ognuna si sceglie la

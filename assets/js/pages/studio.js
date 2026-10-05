@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610050951";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610050951";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610051011";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610051011";
 
 renderChrome("");
 
@@ -1798,7 +1798,7 @@ const TC_LISTS = TC_STATS.map(([g, list]) => [g, list.flatMap((st) => (st.count
   ? [{ ...st, perGame: false }, { ...st, key: `${st.key}G`, label: `${st.label}/PARTITA`, perGame: true }]
   : [st]))]);
 const TC_ALL = TC_LISTS.flatMap(([, list]) => list);
-const tc = { n: 2, nStats: 6, show: "both", period: "season", seasons: [0, 0, 0], seasonPools: {}, pools: [], box: [], info: [], periodCache: {}, peopleByKey: {}, focusByKey: {}, teams: [], anon: [false, false, false], stats: ["ptsG", "ydsG", "passYdsG", "rushYdsG", "third", "give", "tdG"], data: {}, records: {}, loaded: false };
+const tc = { n: 2, nStats: 6, show: "both", period: "season", seasons: [0, 0, 0], seasonPools: {}, pools: [], box: [], info: [], periodCache: {}, peopleByKey: {}, focusByKey: {}, teams: [], anon: [false, false, false], periodInfo: [], stats: ["ptsG", "ydsG", "passYdsG", "rushYdsG", "third", "give", "tdG"], data: {}, records: {}, loaded: false };
 const tcEls = {
   seasons: [0, 1, 2].map((i) => document.getElementById(`tc-season${i}`)),
   n: document.getElementById("tc-n"), nStats: document.getElementById("tc-nstats"), show: document.getElementById("tc-show"), period: document.getElementById("tc-period"),
@@ -1810,6 +1810,20 @@ const TC_WHITE_LOGO = new Set(["LAR"]);
 const TC_QMARK = 150; // altezza del "?" che sostituisce il logo (squadra anonima)
 const tcAnon = (i) => tc.n > 1 && !!tc.anon[i]; // nel Focus (1 squadra) l'anonimo non si applica
 const tcAnonName = (i) => `SQUADRA ${"ABC"[i]}`;
+/**
+ * Etichetta del periodo nelle card dei confronti: "STAGIONE 2026" (intera stagione), "ULTIME 3 PARTITE",
+ * oppure con una sola partita "WEEK 4 VS CHIEFS". games = partite davvero usate, last = l'ultima (week, opp).
+ */
+function periodLabel(period, season, games, last) {
+  if (period === "season") return `STAGIONE ${season}`;
+  const n = Math.min(period, games ?? period);
+  if (n >= 2) return `ULTIME ${n} PARTITE`;
+  if (!last) return "ULTIMA PARTITA";
+  // il gamelog dei giocatori ha solo la sigla dell'avversario: nome dalla lista squadre
+  const full = last.opp?.nickname ? last.opp : teamList.find((t) => t.abbr === last.opp?.abbr || t.id === last.opp?.id) || last.opp || {};
+  const opp = (full.nickname || full.short || full.abbr || "").toUpperCase();
+  return `${last.week ? `WEEK ${last.week}` : "ULTIMA PARTITA"}${opp ? ` VS ${opp}` : ""}`;
+}
 
 /** Valore numerico (per il rank): le voci "/PARTITA" dividono il totale per le partite giocate. */
 function tcNum(st, d) {
@@ -1868,9 +1882,10 @@ async function loadTCompare() {
       tc.info[i] = await teamInSeason(teamList.find((t) => t.id === id), season);
       try {
         const games = await tcLastGames(id, season);
+        tc.periodInfo[i] = { games: games.length, last: games[0] || null };
         const w = games.filter((e) => e.result === "W").length, l = games.filter((e) => e.result === "L").length, t = games.length - w - l;
         tc.records[i] = `${w}-${l}${t ? `-${t}` : ""}`;
-      } catch { tc.records[i] = ""; }
+      } catch { tc.records[i] = ""; tc.periodInfo[i] = null; }
     }));
     // statistiche: per ogni stagione presente, tutte le squadre di quell'anno (per il rank) o solo quelle scelte
     for (const season of [...new Set(boxes.map((b) => b.season))]) {
@@ -1986,7 +2001,7 @@ function tcCard(bi, x, w, stats) {
     ${T("tcNick", anon ? "ABC"[bi] : (t.nickname || "").toUpperCase(), x + TC.textX, TC.nickCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
     ${rec ? `<div class="g-bar" style="left:${x + TC.textX - 2}px;top:${TC.rec.top}px;width:${recW}px;height:${TC.rec.h}px;background:#ffffff"></div>
     ${T("tcRec", rec, x + TC.textX - 2 + recW / 2, TC.rec.cap, "center", { color: "#0f1e3f" })}` : ""}
-    ${T("tcHdr", `STAGIONE ${tc.seasons[bi] || curSeason()}`, x + TC.textX - 2 + (rec ? recW + 14 : 0), TC.rec.cap + 1, "left", { color: ink, scale: 14 / STYLES.tcHdr.ref[1] })}
+    ${T("tcHdr", periodLabel(tc.period, tc.seasons[bi] || curSeason(), tc.periodInfo[bi]?.games, tc.periodInfo[bi]?.last), x + TC.textX - 2 + (rec ? recW + 14 : 0), TC.rec.cap + 1, "left", { color: ink, scale: 14 / STYLES.tcHdr.ref[1], maxW: w - TC.textX - 20 - (rec ? recW + 14 : 0) })}
     ${hdr}${rows}
     <div class="g-bar" style="left:${x}px;top:${TC.rowsBot}px;width:${w}px;height:${TC.barH}px;background:${col}"></div>`;
 }
@@ -2518,6 +2533,8 @@ function aggregateGamelog(gl, n) {
     .sort((a, b) => new Date(gl.events[b.eventId].date) - new Date(gl.events[a.eventId].date));
   const used = n === "season" ? rows : rows.slice(0, n);
   const agg = { games: used.length };
+  // ultima partita usata (week e avversario per l'etichetta del periodo), non enumerabile: non è una statistica
+  Object.defineProperty(agg, "lastEvent", { value: used[0] ? gl.events[used[0].eventId] : null, enumerable: false });
   const sums = {}, cnt = {};
   for (const r of used) {
     r.stats.forEach((raw, idx) => {
@@ -2788,7 +2805,7 @@ function cmpCard(sl, x, stats) {
       : `<img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 400, true)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
     ${T("cmpFirst", first, x + CP.nameX, CP.firstCap, "left", { color: ink, maxW: CP.nameMaxW })}
     ${T("cmpLast", last, x + CP.nameX, CP.lastCap, "left", { color: ink, maxW: CP.nameMaxW })}`}
-    ${T("tcHdr", `STAGIONE ${sl.season || curSeason()}`, x + CP.nameX, CP.seasonCap, "left", { color: anon ? "#ffffff" : ink, maxW: CP.nameMaxW })}
+    ${T("tcHdr", periodLabel(cmp.period, sl.season || curSeason(), sl.agg?.games, sl.agg?.lastEvent), x + CP.nameX, CP.seasonCap, "left", { color: anon ? "#ffffff" : ink, maxW: CP.nameMaxW })}
     ${rows}
     <div class="g-bar" style="left:${x}px;top:${CP.rowsBot}px;width:${CP.cardW}px;height:${CP.barH}px;background:${col}"></div>`;
 }
