@@ -192,6 +192,9 @@ calcolato confrontando le statistiche stagionali ESPN di tutte le 32 squadre (ES
 espone), nella direzione giusta per ogni statistica (es. punti concessi: meno = meglio);
 colori: top 10 verde, 11-22 grigio, bottom 10 rosso. Titolo e sottotitolo obbligatori.
 Non disponibili in ESPN: QB hit, safety, goal-to-go %.
+**Squadra anonima** (casella sotto ogni squadra, solo con 2-3 squadre): box in grigio neutro,
+"?" al posto del logo, "SQUADRA / A·B·C" al posto di città e nome, anche nel titolo automatico
+e nel nome del file; dati, rank, record e stagione restano visibili.
 **Periodo** (vale anche per 2-3 squadre): intera stagione (statistiche stagionali ESPN) oppure
 ultima partita / ultime 2…10 partite: si sommano le statistiche partita per partita ESPN
 (API core, proprie e degli avversari) e si ricalcolano percentuali e medie; il rank usa le

@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610031926";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610031926";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610050950";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610050950";
 
 renderChrome("");
 
@@ -844,7 +844,7 @@ document.getElementById("dl-tcompare").addEventListener("click", () => {
     ovInputs.sub.focus();
     return;
   }
-  const slug = tc.info.slice(0, tc.n).map((t, i) => `${t.abbr.toLowerCase()}${tc.seasons[i] || ""}`).join("-vs-");
+  const slug = tc.info.slice(0, tc.n).map((t, i) => `${tcAnon(i) ? `anonima${"abc"[i]}` : t.abbr.toLowerCase()}${tc.seasons[i] || ""}`).join("-vs-");
   exportPng(stages.tcompare, `5dwn-confronto-squadre-${slug}-${sb.season.year}.png`);
 });
 document.getElementById("dl-compare").addEventListener("click", () => {
@@ -1798,12 +1798,16 @@ const TC_LISTS = TC_STATS.map(([g, list]) => [g, list.flatMap((st) => (st.count
   ? [{ ...st, perGame: false }, { ...st, key: `${st.key}G`, label: `${st.label}/PARTITA`, perGame: true }]
   : [st]))]);
 const TC_ALL = TC_LISTS.flatMap(([, list]) => list);
-const tc = { n: 2, nStats: 6, show: "both", period: "season", seasons: [0, 0, 0], seasonPools: {}, pools: [], box: [], info: [], periodCache: {}, peopleByKey: {}, focusByKey: {}, teams: [], stats: ["ptsG", "ydsG", "passYdsG", "rushYdsG", "third", "give", "tdG"], data: {}, records: {}, loaded: false };
+const tc = { n: 2, nStats: 6, show: "both", period: "season", seasons: [0, 0, 0], seasonPools: {}, pools: [], box: [], info: [], periodCache: {}, peopleByKey: {}, focusByKey: {}, teams: [], anon: [false, false, false], stats: ["ptsG", "ydsG", "passYdsG", "rushYdsG", "third", "give", "tdG"], data: {}, records: {}, loaded: false };
 const tcEls = {
   seasons: [0, 1, 2].map((i) => document.getElementById(`tc-season${i}`)),
   n: document.getElementById("tc-n"), nStats: document.getElementById("tc-nstats"), show: document.getElementById("tc-show"), period: document.getElementById("tc-period"),
   teams: [0, 1, 2].map((i) => document.getElementById(`tc-team${i}`)), stats: [...document.querySelectorAll(".tc-stat")],
+  anon: [0, 1, 2].map((i) => document.getElementById(`tc-anon${i}`)),
 };
+const TC_QMARK = 150; // altezza del "?" che sostituisce il logo (squadra anonima)
+const tcAnon = (i) => tc.n > 1 && !!tc.anon[i]; // nel Focus (1 squadra) l'anonimo non si applica
+const tcAnonName = (i) => `SQUADRA ${"ABC"[i]}`;
 
 /** Valore numerico (per il rank): le voci "/PARTITA" dividono il totale per le partite giocate. */
 function tcNum(st, d) {
@@ -1905,6 +1909,7 @@ async function loadTCompare() {
 }
 function tcRenderControls() {
   tcEls.teams.forEach((el, i) => { el.closest(".select-field").hidden = i >= tc.n; el.value = tc.teams[i] || ""; tcEls.seasons[i].value = String(tc.seasons[i] || curSeason()); });
+  tcEls.anon.forEach((el, i) => { el.checked = !!tc.anon[i]; el.closest(".tc-anon").hidden = tc.n === 1; });
   if (tc.n === 1) tfRenderControls();
   // solo le statistiche disponibili in tutte le stagioni scelte (niente valori vuoti o zero inventati)
   const avail = TC_LISTS.map(([g, list]) => [g, list.filter(tcExistsAll)]).filter(([, l]) => l.length);
@@ -1936,12 +1941,14 @@ tcEls.period.addEventListener("change", () => { tc.period = tcEls.period.value =
 tcEls.stats.forEach((el, i) => el.addEventListener("change", () => { tc.stats[i] = el.value; renderAll(); }));
 tcEls.teams.forEach((el, i) => el.addEventListener("change", () => { tc.teams[i] = el.value; loadTCompare(); }));
 tcEls.seasons.forEach((el, i) => el.addEventListener("change", () => { tc.seasons[i] = Number(el.value); loadTCompare(); }));
+tcEls.anon.forEach((el, i) => el.addEventListener("change", () => { tc.anon[i] = el.checked; renderAll(); }));
 for (const k of ["title", "sub"]) ovInputs[k].addEventListener("input", () => { if (tpl === "tcompare" && tc.loaded) tcStatus(); });
 
 function tcCard(bi, x, w, stats) {
   const t = tc.info[bi], d = tc.box[bi];
-  const col = cellColor(t);
-  const ink = DARK_TEXT.has(ABBR_ALIAS[t.abbr] || t.abbr) ? "#111111" : "#ffffff";
+  const anon = tcAnon(bi); // anonima: colore neutro, "?" al posto del logo, "SQUADRA A/B/C" al posto del nome
+  const col = anon ? CMP_ANON : cellColor(t);
+  const ink = !anon && DARK_TEXT.has(ABBR_ALIAS[t.abbr] || t.abbr) ? "#111111" : "#ffffff";
   const showV = tc.show !== "rank", showR = tc.show !== "value";
   const rankCx = w - 76, valCx = showR ? w - 230 : w - 110;
   const rCx = showV ? rankCx : w - 110;
@@ -1970,9 +1977,11 @@ function tcCard(bi, x, w, stats) {
     ${showV ? T("tcHdr", "VALORE", x + valCx, TC.hdrCap, "center", { color: "#ffffff" }) : ""}
     ${showR ? T("tcHdr", "RANK NFL", x + rCx, TC.hdrCap, "center", { color: "#ffffff" }) : ""}`;
   return `<div class="g-cell" style="left:${x}px;top:${TC.panelTop}px;width:${w}px;height:${TC.hdrTop - TC.panelTop}px;background:${col}"></div>
-    <img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 400)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
-    ${T("tcCity", (t.location || "").toUpperCase(), x + TC.textX, TC.cityCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
-    ${T("tcNick", (t.nickname || "").toUpperCase(), x + TC.textX, TC.nickCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
+    ${anon
+      ? T("cmpLast", "?", x + lg.cx, lg.cy - TC_QMARK / 2, "center", { color: "#ffffff", scale: TC_QMARK / STYLES.cmpLast.ref[1] })
+      : `<img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 400)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">`}
+    ${T("tcCity", anon ? "SQUADRA" : (t.location || "").toUpperCase(), x + TC.textX, TC.cityCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
+    ${T("tcNick", anon ? "ABC"[bi] : (t.nickname || "").toUpperCase(), x + TC.textX, TC.nickCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
     ${rec ? `<div class="g-bar" style="left:${x + TC.textX - 2}px;top:${TC.rec.top}px;width:${recW}px;height:${TC.rec.h}px;background:#ffffff"></div>
     ${T("tcRec", rec, x + TC.textX - 2 + recW / 2, TC.rec.cap, "center", { color: "#0f1e3f" })}` : ""}
     ${T("tcHdr", `STAGIONE ${tc.seasons[bi] || curSeason()}`, x + TC.textX - 2 + (rec ? recW + 14 : 0), TC.rec.cap + 1, "left", { color: ink, scale: 14 / STYLES.tcHdr.ref[1] })}
@@ -2265,7 +2274,7 @@ function renderTCompareStage(stage) {
   const legend = tc.show === "value" ? "" : [["top", "TOP 10", 0, 20], ["mid", "11-22", 86, 105], ["low", "BOTTOM 10", 156, 177]]
     .map(([c, txt, sx, tx]) => `<div class="g-bar" style="left:${x0 + sx}px;top:${L.y}px;width:${L.sq}px;height:${L.sq}px;background:${RANK_COL[c]}"></div>
       ${T("tcLeg", txt, x0 + tx, L.cap, "left", { color: "#4b5058" })}`).join("");
-  const autoTitle = tc.info.slice(0, n).map((t, i) => `${(t.nickname || t.name || "").toUpperCase()} ${tc.seasons[i] || curSeason()}`).join(" VS ");
+  const autoTitle = tc.info.slice(0, n).map((t, i) => `${tcAnon(i) ? tcAnonName(i) : (t.nickname || t.name || "").toUpperCase()} ${tc.seasons[i] || curSeason()}`).join(" VS ");
   const title = ovr("title", autoTitle), sub = ovr("sub", "");
   const seasonLabel = "REGULAR SEASON"; // statistiche e rank sono sempre di regular season
   root.style.width = `${W}px`;
