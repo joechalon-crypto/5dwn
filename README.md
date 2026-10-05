@@ -195,6 +195,7 @@ Non disponibili in ESPN: QB hit, safety, goal-to-go %.
 **Squadra anonima** (casella sotto ogni squadra, solo con 2-3 squadre): box in grigio neutro,
 "?" al posto del logo, "SQUADRA / A·B·C" al posto di città e nome, anche nel titolo automatico
 e nel nome del file; dati, rank, record e stagione restano visibili.
+Rams: logo bianco (variante ESPN "500-dark") sul box blu (`TC_WHITE_LOGO`).
 **Periodo** (vale anche per 2-3 squadre): intera stagione (statistiche stagionali ESPN) oppure
 ultima partita / ultime 2…10 partite: si sommano le statistiche partita per partita ESPN
 (API core, proprie e degli avversari) e si ricalcolano percentuali e medie; il rank usa le

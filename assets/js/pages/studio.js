@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610050950";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610050950";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610050951";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610050951";
 
 renderChrome("");
 
@@ -1805,6 +1805,8 @@ const tcEls = {
   teams: [0, 1, 2].map((i) => document.getElementById(`tc-team${i}`)), stats: [...document.querySelectorAll(".tc-stat")],
   anon: [0, 1, 2].map((i) => document.getElementById(`tc-anon${i}`)),
 };
+// loghi dello stesso colore del box squadra: si usa la variante ESPN "500-dark" (bianca)
+const TC_WHITE_LOGO = new Set(["LAR"]);
 const TC_QMARK = 150; // altezza del "?" che sostituisce il logo (squadra anonima)
 const tcAnon = (i) => tc.n > 1 && !!tc.anon[i]; // nel Focus (1 squadra) l'anonimo non si applica
 const tcAnonName = (i) => `SQUADRA ${"ABC"[i]}`;
@@ -1979,7 +1981,7 @@ function tcCard(bi, x, w, stats) {
   return `<div class="g-cell" style="left:${x}px;top:${TC.panelTop}px;width:${w}px;height:${TC.hdrTop - TC.panelTop}px;background:${col}"></div>
     ${anon
       ? T("cmpLast", "?", x + lg.cx, lg.cy - TC_QMARK / 2, "center", { color: "#ffffff", scale: TC_QMARK / STYLES.cmpLast.ref[1] })
-      : `<img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 400)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">`}
+      : `<img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 400, TC_WHITE_LOGO.has(ABBR_ALIAS[t.abbr] || t.abbr))}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">`}
     ${T("tcCity", anon ? "SQUADRA" : (t.location || "").toUpperCase(), x + TC.textX, TC.cityCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
     ${T("tcNick", anon ? "ABC"[bi] : (t.nickname || "").toUpperCase(), x + TC.textX, TC.nickCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
     ${rec ? `<div class="g-bar" style="left:${x + TC.textX - 2}px;top:${TC.rec.top}px;width:${recW}px;height:${TC.rec.h}px;background:#ffffff"></div>
