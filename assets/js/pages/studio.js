@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610061310";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610061310";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610061317";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610061317";
 
 renderChrome("");
 
@@ -152,12 +152,22 @@ const FONT_CHOICES = {
 };
 const FONT_KEY = "5dwn:studio-fonts";
 const fontPick = (() => {
-  const def = { title: "archivo-bold", sub: "archivo-thin" };
+  const def = { title: "archivo-bold", sub: "archivo-thin", data: "archivo" };
   try { return Object.assign(def, JSON.parse(localStorage.getItem(FONT_KEY) || "{}")); } catch { return def; }
 })();
 const STRETCH_PCT = { "ultra-condensed": 50, "extra-condensed": 62.5, condensed: 75, "semi-condensed": 87.5, normal: 100, "semi-expanded": 112.5, expanded: 125 };
 /** Applica la scelta ai relativi STYLES (va seguito da calibrate()). */
+// "Font dati": nomi, etichette, valori e rank (nei master in Barlow Condensed). Spaziatura sempre tarata sul master.
+const DATA_KEYS = Object.keys(STYLES).filter((k) => STYLES[k].stretch === "extra-condensed");
+const DATA_FONTS = {
+  archivo: { cond: { family: "Archivo", stretch: "extra-condensed" }, note: { family: "Archivo" } },
+  barlow: { cond: { family: "Barlow Condensed", stretch: "normal" }, note: { family: "Barlow" } },
+};
+FONT_CHOICES.data = [["archivo", "Archivo condensato (come il banner)", null], ["barlow", "Barlow Condensed (come i master)", null]];
 function applyFonts() {
+  const df = DATA_FONTS[fontPick.data] || DATA_FONTS.archivo;
+  for (const k of DATA_KEYS) Object.assign(STYLES[k], df.cond, { natural: false, dyn: true });
+  Object.assign(STYLES.cmpNote, df.note, { stretch: "normal", natural: false, dyn: true });
   for (const [group, keys] of [["title", TITLE_KEYS], ["sub", SUB_KEYS]]) {
     const ch = (FONT_CHOICES[group].find(([id]) => id === fontPick[group]) || FONT_CHOICES[group][0])[2];
     for (const k of keys) {
@@ -677,7 +687,7 @@ function fitPreview(stage) {
 
 /** Tendine "Font titolo" / "Font sottotitolo": cambiano titoli e sottotitoli di tutte le grafiche. */
 function initFontControls() {
-  for (const group of ["title", "sub"]) {
+  for (const group of ["title", "sub", "data"]) {
     const el = document.getElementById(`font-${group}`);
     if (!el) continue;
     el.innerHTML = FONT_CHOICES[group].map(([id, label]) => `<option value="${id}">${esc(label)}</option>`).join("");
@@ -686,7 +696,7 @@ function initFontControls() {
       fontPick[group] = el.value;
       try { localStorage.setItem(FONT_KEY, JSON.stringify(fontPick)); } catch { /* storage bloccato: vale solo per questa visita */ }
       applyFonts();
-      await Promise.all([...TITLE_KEYS, ...SUB_KEYS].map((k) => document.fonts.load(fontStr(STYLES[k], 40), STYLES[k].ref[0])));
+      await Promise.all([...TITLE_KEYS, ...SUB_KEYS, ...DATA_KEYS, "cmpNote"].map((k) => document.fonts.load(fontStr(STYLES[k], 40), STYLES[k].ref[0])));
       calibrate();
       STYLES.tcRank.ls = Math.max(STYLES.tcRank.ls, 1.5);
       renderAll();

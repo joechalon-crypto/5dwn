@@ -305,6 +305,9 @@ Come nel lower third, tutte le scritte delle grafiche sono in Archivo: quelle ch
 erano in Barlow Condensed (nomi squadra, statistiche, valori, rank, etichette) usano Archivo
 extra-condensed (62,5%) con lo stesso peso, larghezza tarata sul master ma mai con lettere
 più strette del font; la nota in corsivo usa Archivo italic.
+La tendina **Font dati** dello Studio sceglie il font di nomi, etichette, valori e rank: "Archivo
+condensato (come il banner)" (predefinito) o "Barlow Condensed (come i master)"; salvata insieme
+agli altri font (`5dwn:studio-fonts`), vale per anteprima e PNG di tutti i template.
 
 ## 4. Provarlo sul tuo computer
 
