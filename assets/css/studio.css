@@ -21,6 +21,9 @@
 .cmp-photo { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .cmp-photo .text-input { flex: 1 1 160px; padding: 8px 10px; font-size: 0.9rem; }
 .cmp-photo .btn { padding: 8px 12px; }
+/* periodo "Week a scelta": dalla week / alla week, affiancate */
+.cmp-range { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cmp-range[hidden] { display: none !important; }
 .cmp-anon { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer; }
 .cmp-anon input { accent-color: var(--orange); width: 16px; height: 16px; }
 .g-sil { filter: brightness(0); opacity: 0.85; }

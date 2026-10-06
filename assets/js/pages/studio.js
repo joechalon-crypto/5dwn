@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610061243";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610061243";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610061306";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610061306";
 
 renderChrome("");
 
@@ -1912,24 +1912,59 @@ const TC_LISTS = TC_STATS.map(([g, list]) => [g, list.flatMap((st) => (st.count
   ? [{ ...st, perGame: false }, { ...st, key: `${st.key}G`, label: `${st.label}/PARTITA`, perGame: true }]
   : [st]))]);
 const TC_ALL = TC_LISTS.flatMap(([, list]) => list);
-const tc = { n: 2, nStats: 6, show: "both", period: "season", seasons: [0, 0, 0], seasonPools: {}, pools: [], box: [], info: [], periodCache: {}, peopleByKey: {}, focusByKey: {}, teams: [], anon: [false, false, false], periodInfo: [], stats: ["ptsG", "ydsG", "passYdsG", "rushYdsG", "third", "give", "tdG"], data: {}, records: {}, loaded: false };
+const tc = { n: 2, nStats: 6, show: "both", period: "season", seasons: [0, 0, 0], seasonPools: {}, pools: [], box: [], info: [], periodCache: {}, peopleByKey: {}, focusByKey: {}, teams: [], anon: [false, false, false], ranges: [], periodInfo: [], stats: ["ptsG", "ydsG", "passYdsG", "rushYdsG", "third", "give", "tdG"], data: {}, records: {}, loaded: false };
 const tcEls = {
   seasons: [0, 1, 2].map((i) => document.getElementById(`tc-season${i}`)),
   n: document.getElementById("tc-n"), nStats: document.getElementById("tc-nstats"), show: document.getElementById("tc-show"), period: document.getElementById("tc-period"),
   teams: [0, 1, 2].map((i) => document.getElementById(`tc-team${i}`)), stats: [...document.querySelectorAll(".tc-stat")],
   anon: [0, 1, 2].map((i) => document.getElementById(`tc-anon${i}`)),
+  from: [0, 1, 2].map((i) => document.getElementById(`tc-from${i}`)), to: [0, 1, 2].map((i) => document.getElementById(`tc-to${i}`)),
 };
+const tcPer = (i) => boxPeriod(tc.period, tc.ranges[i]);
 // loghi dello stesso colore del box squadra: si usa la variante ESPN "500-dark" (bianca)
 const TC_WHITE_LOGO = new Set(["LAR"]);
 const TC_QMARK = 150; // altezza del "?" che sostituisce il logo (squadra anonima)
 const tcAnon = (i) => tc.n > 1 && !!tc.anon[i]; // nel Focus (1 squadra) l'anonimo non si applica
 const tcAnonName = (i) => `SQUADRA ${"ABC"[i]}`;
+// ---- periodo per box: "season" | N (ultime N partite) | "w1-3" (dalla week 1 alla 3, scelto per ciascun box)
+const WEEKS_MAX = 18;
+const periodWeeks = (p) => { const m = /^w(\d+)-(\d+)$/.exec(p); return m ? { from: +m[1], to: +m[2] } : null; };
+/** Periodo effettivo di un box: con "Week a scelta" vale l'intervallo del box (default: tutta la regular season). */
+const boxPeriod = (global, range) => (global === "weeks" ? range || "season" : global); // week 1-18 = intera stagione
+/** Partite del periodo da una lista ordinata dalla più recente; weekOf legge la week di ogni elemento. */
+function pickPeriod(list, period, weekOf) {
+  const r = periodWeeks(period);
+  if (r) return list.filter((x) => { const w = Number(weekOf(x)); return w >= r.from && w <= r.to; });
+  return period === "season" ? list : list.slice(0, period);
+}
+/** Descrizione del periodo per la riga di stato. */
+/** Nel titolo automatico: "W4" / "W1-3" con le week scelte, altrimenti l'anno. */
+const titleWhen = (p, season) => { const r = periodWeeks(p); return r ? `W${r.from}${r.to !== r.from ? `-${r.to}` : ""}` : String(season); };
+const periodText = (p) => { const r = periodWeeks(p); return r ? (r.from === r.to ? `week ${r.from}` : `week ${r.from}-${r.to}`) : p === "season" ? "intera stagione" : p === 1 ? "ultima partita" : `ultime ${p} partite`; };
+const weekOptions = () => Array.from({ length: WEEKS_MAX }, (_, i) => `<option value="${i + 1}">Week ${i + 1}</option>`).join("");
+/** Tendine "dalla week / alla week" di un box → intervallo "wA-B" (ordinato). */
+function readRange(fromEl, toEl) {
+  let a = Number(fromEl.value) || 1, b = Number(toEl.value) || WEEKS_MAX;
+  if (a > b) [a, b] = [b, a];
+  fromEl.value = String(a); toEl.value = String(b);
+  return a === 1 && b === WEEKS_MAX ? "season" : `w${a}-${b}`;
+}
+function setRange(fromEl, toEl, range) {
+  if (!fromEl.options.length) { fromEl.innerHTML = weekOptions(); toEl.innerHTML = weekOptions(); }
+  const r = periodWeeks(range) || { from: 1, to: WEEKS_MAX };
+  fromEl.value = String(r.from); toEl.value = String(r.to);
+}
+
 /**
  * Etichetta del periodo nelle card dei confronti: "STAGIONE 2026" (intera stagione), "ULTIME 3 PARTITE",
  * oppure con una sola partita "WEEK 4 VS CHIEFS". games = partite davvero usate, last = l'ultima (week, opp).
  */
 function periodLabel(period, season, games, last) {
   if (period === "season") return `STAGIONE ${season}`;
+  const r = periodWeeks(period);
+  if (r && r.from !== r.to) return `WEEK ${r.from}-${r.to}`;
+  if (r && !last) return `WEEK ${r.from}`;
+  if (r) period = 1; // una sola week: "WEEK X VS SQUADRA"
   const n = Math.min(period, games ?? period);
   if (n >= 2) return `ULTIME ${n} PARTITE`;
   if (!last) return "ULTIMA PARTITA";
@@ -1990,22 +2025,24 @@ async function loadTCompare() {
       tc.teams = [byAbbr("BUF"), byAbbr("KC"), byAbbr("PHI")].map((id, i) => id || teamList[i].id);
     }
     tc.seasons = tc.seasons.map((y) => y || curSeason());
-    const boxes = tc.teams.slice(0, tc.n).map((id, i) => ({ i, id, season: tc.seasons[i] }));
+    const boxes = tc.teams.slice(0, tc.n).map((id, i) => ({ i, id, season: tc.seasons[i], per: tcPer(i) }));
     // squadra com'era in quella stagione + record nel periodo scelto (intera stagione o ultime N partite)
-    await Promise.all(boxes.map(async ({ i, id, season }) => {
+    await Promise.all(boxes.map(async ({ i, id, season, per }) => {
       tc.info[i] = await teamInSeason(teamList.find((t) => t.id === id), season);
       try {
-        const games = await tcLastGames(id, season);
+        const games = await tcLastGames(id, season, per);
         tc.periodInfo[i] = { games: games.length, last: games[0] || null };
         const w = games.filter((e) => e.result === "W").length, l = games.filter((e) => e.result === "L").length, t = games.length - w - l;
         tc.records[i] = `${w}-${l}${t ? `-${t}` : ""}`;
       } catch { tc.records[i] = ""; tc.periodInfo[i] = null; }
     }));
-    // statistiche: per ogni stagione presente, tutte le squadre di quell'anno (per il rank) o solo quelle scelte
-    for (const season of [...new Set(boxes.map((b) => b.season))]) {
-      const mine = boxes.filter((b) => b.season === season).map((b) => b.id);
+    // statistiche: per ogni stagione + periodo presenti, tutte le squadre (per il rank) o solo quelle scelte
+    for (const gk of [...new Set(boxes.map((b) => `${b.season}|${b.per}`))]) {
+      const group = boxes.filter((b) => `${b.season}|${b.per}` === gk);
+      const { season, per } = group[0];
+      const mine = group.map((b) => b.id);
       let pool;
-      if (tc.period === "season") {
+      if (per === "season") {
         const ids = tc.show === "value" ? mine : teamList.map((t) => t.id);
         const cache = (tc.seasonPools[season] ||= {});
         const todo = ids.filter((id) => !cache[id]);
@@ -2020,9 +2057,9 @@ async function loadTCompare() {
         pool = Object.fromEntries(ids.map((id) => [id, cache[id]]).filter(([, d]) => d));
       } else {
         const ids = tc.show === "value" ? mine : teamList.map((t) => t.id);
-        pool = await tcPeriodData(tc.period, ids, season);
+        pool = await tcPeriodData(per, ids, season);
       }
-      boxes.filter((b) => b.season === season).forEach((b) => { tc.pools[b.i] = pool; tc.box[b.i] = pool[b.id]; });
+      group.forEach((b) => { tc.pools[b.i] = pool; tc.box[b.i] = pool[b.id]; });
     }
     tc.data = tc.pools[0] || {};
     if (tc.n === 1) {
@@ -2041,6 +2078,7 @@ async function loadTCompare() {
 function tcRenderControls() {
   tcEls.teams.forEach((el, i) => { el.closest(".select-field").hidden = i >= tc.n; el.value = tc.teams[i] || ""; tcEls.seasons[i].value = String(tc.seasons[i] || curSeason()); });
   tcEls.anon.forEach((el, i) => { el.checked = !!tc.anon[i]; el.closest(".tc-anon").hidden = tc.n === 1; });
+  tcEls.from.forEach((el, i) => { setRange(el, tcEls.to[i], tc.ranges[i]); el.closest(".cmp-range").hidden = tc.period !== "weeks"; });
   if (tc.n === 1) tfRenderControls();
   // solo le statistiche disponibili in tutte le stagioni scelte (niente valori vuoti o zero inventati)
   const avail = TC_LISTS.map(([g, list]) => [g, list.filter(tcExistsAll)]).filter(([, l]) => l.length);
@@ -2056,7 +2094,7 @@ function tcRenderControls() {
 function tcStatus() {
   const o = overrides.tcompare || {};
   const n = Object.keys(tc.data).length;
-  const per = tc.period === "season" ? "intera stagione" : tc.period === 1 ? "ultima partita" : `ultime ${tc.period} partite`;
+  const per = [...new Set(tc.teams.slice(0, tc.n).map((_, i) => periodText(tcPer(i))))].join(" / ");
   const yrs = [...new Set(tc.seasons.slice(0, tc.n))].join(", ");
   status.textContent = `Statistiche ESPN · stagione ${yrs} · ${per} · ${tc.show === "value" ? "senza rank" : `rank calcolato tra le ${n} squadre della stessa stagione`}${!o.sub?.trim() ? ' · scrivi il sottotitolo in "Testi personalizzati"' : ""}`;
 }
@@ -2068,7 +2106,8 @@ tcEls.n.addEventListener("change", async () => {
 });
 tcEls.nStats.addEventListener("change", () => { tc.nStats = Number(tcEls.nStats.value); tcRenderControls(); renderAll(); });
 tcEls.show.addEventListener("change", () => { tc.show = tcEls.show.value; if (tc.period === "season") renderAll(); else loadTCompare(); });
-tcEls.period.addEventListener("change", () => { tc.period = tcEls.period.value === "season" ? "season" : Number(tcEls.period.value); loadTCompare(); });
+tcEls.period.addEventListener("change", () => { const v = tcEls.period.value; tc.period = v === "season" || v === "weeks" ? v : Number(v); tcRenderControls(); loadTCompare(); });
+[0, 1, 2].forEach((i) => [tcEls.from[i], tcEls.to[i]].forEach((el) => el.addEventListener("change", () => { tc.ranges[i] = readRange(tcEls.from[i], tcEls.to[i]); loadTCompare(); })));
 tcEls.stats.forEach((el, i) => el.addEventListener("change", () => { tc.stats[i] = el.value; renderAll(); }));
 tcEls.teams.forEach((el, i) => el.addEventListener("change", () => { tc.teams[i] = el.value; loadTCompare(); }));
 tcEls.seasons.forEach((el, i) => el.addEventListener("change", () => { tc.seasons[i] = Number(el.value); loadTCompare(); }));
@@ -2115,17 +2154,17 @@ function tcCard(bi, x, w, stats) {
     ${T("tcNick", anon ? "ABC"[bi] : (t.nickname || "").toUpperCase(), x + TC.textX, TC.nickCap, "left", { color: ink, maxW: w - TC.textX - 20 })}
     ${rec ? `<div class="g-bar" style="left:${x + TC.textX - 2}px;top:${TC.rec.top}px;width:${recW}px;height:${TC.rec.h}px;background:#ffffff"></div>
     ${T("tcRec", rec, x + TC.textX - 2 + recW / 2, TC.rec.cap, "center", { color: "#0f1e3f" })}` : ""}
-    ${T("tcHdr", periodLabel(tc.period, tc.seasons[bi] || curSeason(), tc.periodInfo[bi]?.games, tc.periodInfo[bi]?.last), x + TC.textX - 2 + (rec ? recW + 14 : 0), TC.rec.cap + 1, "left", { color: ink, scale: 14 / STYLES.tcHdr.ref[1], maxW: w - TC.textX - 20 - (rec ? recW + 14 : 0) })}
+    ${T("tcHdr", periodLabel(tcPer(bi), tc.seasons[bi] || curSeason(), tc.periodInfo[bi]?.games, tc.periodInfo[bi]?.last), x + TC.textX - 2 + (rec ? recW + 14 : 0), TC.rec.cap + 1, "left", { color: ink, scale: 14 / STYLES.tcHdr.ref[1], maxW: w - TC.textX - 20 - (rec ? recW + 14 : 0) })}
     ${hdr}${rows}
     <div class="g-bar" style="left:${x}px;top:${TC.rowsBot}px;width:${w}px;height:${TC.barH}px;background:${col}"></div>`;
 }
 
 // ---- periodo "ultime N partite" per le squadre: somma delle statistiche partita per partita (API core ESPN)
-async function tcLastGames(id, season = curSeason()) {
+async function tcLastGames(id, season = curSeason(), period = tc.period) {
   const ev = (await getSchedule(id, {}, { seasonType: 2, season: seasonArg(season), past: !!seasonArg(season) })).data.events
     .filter((e) => e.state === "post")
     .sort((a, b) => new Date(b.date) - new Date(a.date));
-  return tc.period === "season" ? ev : ev.slice(0, tc.period);
+  return pickPeriod(ev, period, (e) => e.week);
 }
 function tcSumMaps(maps) {
   const out = {};
@@ -2159,7 +2198,7 @@ async function tcPeriodData(N, ids, season = curSeason()) {
   const cache = (tc.periodCache[key] ||= {});
   const todo = ids.filter((id) => !cache[id]);
   if (todo.length) {
-    const lists = await Promise.all(todo.map(async (id) => [id, await tcLastGames(id, season)]));
+    const lists = await Promise.all(todo.map(async (id) => [id, await tcLastGames(id, season, N)]));
     const jobs = [];
     for (const [id, games] of lists) for (const g of games) jobs.push([g.id, id], [g.id, g.opp.id]);
     const uniq = [...new Map(jobs.map((j) => [j.join(":"), j])).values()];
@@ -2170,7 +2209,7 @@ async function tcPeriodData(N, ids, season = curSeason()) {
         const [eid, tid] = queue.shift();
         try { await getEventTeamStats(eid, tid); } catch { /* partita senza dati: esclusa */ }
         done += 1;
-        if (done % 8 === 0) status.textContent = `Calcolo le ultime ${N} partite di ${todo.length} squadre: ${done}/${uniq.length} statistiche partita…`;
+        if (done % 8 === 0) status.textContent = `Calcolo ${periodText(N)} di ${todo.length} squadre: ${done}/${uniq.length} statistiche partita…`;
       }
     };
     await Promise.all(Array.from({ length: 8 }, worker));
@@ -2405,7 +2444,7 @@ function renderTCompareStage(stage) {
   const legend = tc.show === "value" ? "" : [["top", "TOP 10", 0, 20], ["mid", "11-22", 86, 105], ["low", "BOTTOM 10", 156, 177]]
     .map(([c, txt, sx, tx]) => `<div class="g-bar" style="left:${x0 + sx}px;top:${L.y}px;width:${L.sq}px;height:${L.sq}px;background:${RANK_COL[c]}"></div>
       ${T("tcLeg", txt, x0 + tx, L.cap, "left", { color: "#4b5058" })}`).join("");
-  const autoTitle = tc.info.slice(0, n).map((t, i) => `${tcAnon(i) ? tcAnonName(i) : (t.nickname || t.name || "").toUpperCase()} ${tc.seasons[i] || curSeason()}`).join(" VS ");
+  const autoTitle = tc.info.slice(0, n).map((t, i) => `${tcAnon(i) ? tcAnonName(i) : (t.nickname || t.name || "").toUpperCase()} ${titleWhen(tcPer(i), tc.seasons[i] || curSeason())}`).join(" VS ");
   const title = ovr("title", autoTitle), sub = ovr("sub", "");
   const seasonLabel = "REGULAR SEASON"; // statistiche e rank sono sempre di regular season
   root.style.width = `${W}px`;
@@ -2583,7 +2622,7 @@ async function ensureRankData(withLogs = true) {
       cmpRankData.qualified[k] = qualifyPool(p, cmpRankData.raw[k]);
     }
   }
-  if (!withLogs || cmp.period === "season") return;
+  if (!withLogs || cmp.slots.slice(0, cmp.nPlayers).every((sl) => cmpPer(sl) === "season")) return;
   const ids = [...new Set(seasons.flatMap((y) => pools.flatMap((p) => cmpRankData.qualified[`${y}|${p}`].slice(0, POOL_LAST_N).map((q) => `${y}|${q.id}`))))].filter((k) => !(k in cmpRankData.logs));
   let done = 0;
   const queue = ids.slice();
@@ -2597,24 +2636,24 @@ async function ensureRankData(withLogs = true) {
         cmpRankData.logs[key] = res.data;
       } catch { cmpRankData.logs[key] = null; }
       done += 1;
-      if (done % 10 === 0) status.textContent = `Calcolo i rank NFL sulle ultime ${cmp.period} partite: ${done}/${ids.length} giocatori…`;
+      if (done % 10 === 0) status.textContent = `Calcolo i rank NFL sullo stesso periodo: ${done}/${ids.length} giocatori…`;
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
 }
 /** Rank del giocatore nella stat (1 = migliore); "NQ" se non è tra i qualificati del ruolo. */
 function cmpRank(st, sl) {
-  const pools = poolsOf(st), y = sl.season || curSeason(); // rank dentro la stagione del box
+  const pools = poolsOf(st), y = sl.season || curSeason(), per = cmpPer(sl); // rank dentro stagione e periodo del box
   if (!pools.every((p) => cmpRankData.qualified[`${y}|${p}`])) return null;
   const members = new Map();
   for (const p of pools) {
     const list = cmpRankData.qualified[`${y}|${p}`];
-    (cmp.period === "season" ? list : list.slice(0, POOL_LAST_N)).forEach((q) => members.set(q.id, q));
+    (per === "season" ? list : list.slice(0, POOL_LAST_N)).forEach((q) => members.set(q.id, q));
   }
   const pid = String(sl.player?.id);
   if (!members.has(pid)) return { nq: true };
-  const aggOf = (q) => (cmp.period === "season" ? seasonAgg(q.stats) : cmpRankData.logs[`${y}|${q.id}`] ? aggregateGamelog(cmpRankData.logs[`${y}|${q.id}`], cmp.period) : null);
-  const vals = [...members.values()].map((q) => ({ id: q.id, v: cmpNum(st, q.id === pid && cmp.period !== "season" ? sl.agg : aggOf(q)) })).filter((x) => x.v != null);
+  const aggOf = (q) => (per === "season" ? seasonAgg(q.stats) : cmpRankData.logs[`${y}|${q.id}`] ? aggregateGamelog(cmpRankData.logs[`${y}|${q.id}`], per) : null);
+  const vals = [...members.values()].map((q) => ({ id: q.id, v: cmpNum(st, q.id === pid && per !== "season" ? sl.agg : aggOf(q)) })).filter((x) => x.v != null);
   const mine = vals.find((x) => x.id === pid)?.v;
   if (mine == null) return null;
   const low = CMP_LOW.has(st.key);
@@ -2633,6 +2672,7 @@ async function cmpRefresh() {
   renderAll();
   cmpStatus();
 }
+const cmpPer = (sl) => boxPeriod(cmp.period, sl.range);
 const cmpReady = () => cmp.loaded && cmp.slots.slice(0, cmp.nPlayers).every((sl) => sl.player && sl.team);
 
 /** Somma le ultime n partite (o tutta la stagione) dal gamelog; medie e percentuali ricalcolate. */
@@ -2645,7 +2685,7 @@ function aggregateGamelog(gl, n) {
   const rows = (regular.length ? regular : gl.blocks).flatMap((b) => b.rows)
     .filter((r) => gl.events[r.eventId])
     .sort((a, b) => new Date(gl.events[b.eventId].date) - new Date(gl.events[a.eventId].date));
-  const used = n === "season" ? rows : rows.slice(0, n);
+  const used = pickPeriod(rows, n, (r) => gl.events[r.eventId].week);
   const agg = { games: used.length };
   // ultima partita usata (week e avversario per l'etichetta del periodo), non enumerabile: non è una statistica
   Object.defineProperty(agg, "lastEvent", { value: used[0] ? gl.events[used[0].eventId] : null, enumerable: false });
@@ -2690,7 +2730,7 @@ const cmpEls = {
   nStats: document.getElementById("cmp-nstats"),
   show: document.getElementById("cmp-show"),
   note: document.getElementById("cmp-note"),
-  slots: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`cmp-p${i}`), season: document.getElementById(`cmp-season${i}`), photoUrl: document.getElementById(`cmp-photourl${i}`), photoFile: document.getElementById(`cmp-photofile${i}`), photoReset: document.getElementById(`cmp-photoreset${i}`), team: document.getElementById(`cmp-team${i}`), player: document.getElementById(`cmp-player${i}`), anon: document.getElementById(`cmp-anon${i}`) })),
+  slots: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`cmp-p${i}`), season: document.getElementById(`cmp-season${i}`), photoUrl: document.getElementById(`cmp-photourl${i}`), photoFile: document.getElementById(`cmp-photofile${i}`), photoReset: document.getElementById(`cmp-photoreset${i}`), team: document.getElementById(`cmp-team${i}`), player: document.getElementById(`cmp-player${i}`), anon: document.getElementById(`cmp-anon${i}`), from: document.getElementById(`cmp-from${i}`), to: document.getElementById(`cmp-to${i}`) })),
   stats: [...document.querySelectorAll(".cmp-stat")],
 };
 
@@ -2723,7 +2763,7 @@ async function loadSlotStats(i) {
   let res = await getGamelog(sl.player.id, {}, sa);
   if (!res.data.keys || res.data.groups.some((g) => !g.name)) res = await getGamelog(sl.player.id, { force: true }, sa); // cache precedente senza nomi categoria
   sl.gamelog = res.data;
-  sl.agg = aggregateGamelog(res.data, cmp.period);
+  sl.agg = aggregateGamelog(res.data, cmpPer(sl));
 }
 function cmpAvailable() {
   const aggs = cmp.slots.slice(0, cmp.nPlayers).map((sl) => sl.agg);
@@ -2786,18 +2826,31 @@ async function loadCompare() {
   }
 }
 function cmpStatus() {
-  const per = cmp.period === "season" ? "intera stagione" : cmp.period === 1 ? "ultima partita" : `ultime ${cmp.period} partite`;
+  const per = [...new Set(cmp.slots.slice(0, cmp.nPlayers).map((sl) => periodText(cmpPer(sl))))].join(" / ");
   const games = cmp.slots.slice(0, cmp.nPlayers).map((sl) => `${sl.player?.name}: ${sl.agg?.games ?? 0} partite`).join(" · ");
   const o = overrides.compare || {};
-  const rk = cmp.show === "value" ? "" : ` · rank NFL tra i qualificati ESPN del ruolo${cmp.period === "season" ? "" : ` (primi ${POOL_LAST_N} del ruolo, stesse ultime ${cmp.period} partite)`}`;
+  const rk = cmp.show === "value" ? "" : ` · rank NFL tra i qualificati ESPN del ruolo${cmp.period === "season" ? "" : ` (primi ${POOL_LAST_N} del ruolo, stesso periodo)`}`;
   status.textContent = `Statistiche ESPN, ${per} · ${games}${rk}${!o.sub?.trim() ? " · scrivi il sottotitolo in \"Testi personalizzati\"" : ""}`;
 }
 
 cmpEls.period.addEventListener("change", () => {
-  cmp.period = cmpEls.period.value === "season" ? "season" : Number(cmpEls.period.value);
-  cmp.slots.forEach((sl) => { if (sl.gamelog) sl.agg = aggregateGamelog(sl.gamelog, cmp.period); });
+  const v = cmpEls.period.value;
+  cmp.period = v === "season" || v === "weeks" ? v : Number(v);
+  cmp.slots.forEach((sl) => { if (sl.gamelog) sl.agg = aggregateGamelog(sl.gamelog, cmpPer(sl)); });
+  renderCmpRanges();
   cmpRefresh();
 });
+/** Tendine "dalla week / alla week" dei giocatori (solo con "Week a scelta"). */
+function renderCmpRanges() {
+  cmpEls.slots.forEach((el, i) => { setRange(el.from, el.to, cmp.slots[i].range); el.from.closest(".cmp-range").hidden = cmp.period !== "weeks"; });
+}
+renderCmpRanges();
+cmpEls.slots.forEach((el, i) => [el.from, el.to].forEach((sel) => sel.addEventListener("change", () => {
+  const sl = cmp.slots[i];
+  sl.range = readRange(el.from, el.to);
+  if (sl.gamelog) sl.agg = aggregateGamelog(sl.gamelog, cmpPer(sl));
+  cmpRefresh();
+})));
 cmpEls.nPlayers.addEventListener("change", async () => {
   cmp.nPlayers = Number(cmpEls.nPlayers.value);
   renderCmpSlotsVisibility();
@@ -2919,7 +2972,7 @@ function cmpCard(sl, x, stats) {
       : `<img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 400, true)}" alt="" style="left:${x + lg.cx - lg.box / 2}px;top:${lg.cy - lg.box / 2}px;width:${lg.box}px;height:${lg.box}px">
     ${T("cmpFirst", first, x + CP.nameX, CP.firstCap, "left", { color: ink, maxW: CP.nameMaxW })}
     ${T("cmpLast", last, x + CP.nameX, CP.lastCap, "left", { color: ink, maxW: CP.nameMaxW })}`}
-    ${T("tcHdr", periodLabel(cmp.period, sl.season || curSeason(), sl.agg?.games, sl.agg?.lastEvent), x + CP.nameX, CP.seasonCap, "left", { color: anon ? "#ffffff" : ink, maxW: CP.nameMaxW })}
+    ${T("tcHdr", periodLabel(cmpPer(sl), sl.season || curSeason(), sl.agg?.games, sl.agg?.lastEvent), x + CP.nameX, CP.seasonCap, "left", { color: anon ? "#ffffff" : ink, maxW: CP.nameMaxW })}
     ${rows}
     <div class="g-bar" style="left:${x}px;top:${CP.rowsBot}px;width:${CP.cardW}px;height:${CP.barH}px;background:${col}"></div>`;
 }
@@ -2962,7 +3015,7 @@ function renderCompareStage(stage) {
   const x0 = W / 2 - total / 2;
   const cards = cmp.slots.slice(0, n).map((sl, i) => cmpCard(sl, x0 + i * (CP.cardW + CP.gap), stats)).join("");
   // titolo automatico con la stagione di ogni box (es. "MAHOMES 2023 VS BRADY 2010"), sostituibile
-  const autoTitle = cmp.slots.slice(0, n).map((sl) => `${sl.anon ? "???" : (sl.player?.last || sl.player?.name?.split(" ").slice(1).join(" ") || "").toUpperCase()} ${sl.season || curSeason()}`).join(" VS ");
+  const autoTitle = cmp.slots.slice(0, n).map((sl) => `${sl.anon ? "???" : (sl.player?.last || sl.player?.name?.split(" ").slice(1).join(" ") || "").toUpperCase()} ${titleWhen(cmpPer(sl), sl.season || curSeason())}`).join(" VS ");
   const title = ovr("title", autoTitle), sub = ovr("sub", "");
   const seasonLabel = "REGULAR SEASON"; // statistiche e rank sono sempre di regular season
   root.style.width = `${W}px`;

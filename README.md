@@ -205,6 +205,11 @@ stesse ultime N partite di tutte le 32 squadre (la prima volta servono alcuni se
 restano in memoria finché la pagina è aperta). Il **record** nel box segue lo stesso periodo.
 Etichetta del periodo nelle card (anche in Confronto giocatori): "STAGIONE 2026" solo con
 l'intera stagione, "ULTIME N PARTITE" da 2 partite in su, "WEEK X VS NOME SQUADRA" con l'ultima partita.
+**Week a scelta (per ciascuno)** (voce di Periodo in Confronto squadre e Confronto giocatori): ogni
+box ha le tendine "dalla week / alla week" (es. Maye W4 contro Maye W1-3, anche stesso giocatore o
+stessa squadra due volte). Si sommano solo le partite di quelle week (regular season); il rank usa le
+stesse week per tutti (32 squadre, o i primi qualificati del ruolo). Etichetta "WEEK 1-3" oppure
+"WEEK 4 VS SQUADRA"; titolo automatico "MAYE W4 VS MAYE W1-3". Week 1-18 = intera stagione.
 **1 squadra = Focus squadra** (riferimento "NFL Team Focus"): titolo = nome della squadra
 (sostituibile), sottotitolo obbligatorio (es. "BILANCIO WEEK 1-4") con il box RECORD del
 periodo, tabella centrale con dato/rank e due card laterali: per ognuna si sceglie la
