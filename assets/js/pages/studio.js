@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610051946";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610051946";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610061127";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610061127";
 
 renderChrome("");
 
@@ -616,8 +616,57 @@ function renderStage(stage, wide) {
   fitPreview(stage);
 }
 
+// ---- loghi con contorno: Broncos (cresta arancione su box arancione) con bordo blu, in anteprima e nel PNG
+const OUTLINE_LOGOS = { den: { color: "#0a2a6b", width: 0.03 } }; // width: spessore in frazione del lato del logo
+const outlinedLogo = {}; // sigla → data URL del logo con contorno
+async function prepareOutlinedLogos() {
+  await Promise.all(Object.entries(OUTLINE_LOGOS).map(async ([abbr, { color, width }]) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`;
+      await img.decode();
+      const S = img.naturalWidth, pad = Math.ceil(S * width) + 2, r = S * width;
+      // sagoma del logo nel colore del bordo
+      const sil = document.createElement("canvas");
+      sil.width = S; sil.height = S;
+      const sc = sil.getContext("2d");
+      sc.drawImage(img, 0, 0);
+      sc.globalCompositeOperation = "source-in";
+      sc.fillStyle = color;
+      sc.fillRect(0, 0, S, S);
+      // contorno = sagoma ripetuta tutto intorno, poi il logo sopra (stesso centro, lato aumentato di 2×pad)
+      const out = document.createElement("canvas");
+      out.width = S + 2 * pad; out.height = S + 2 * pad;
+      const oc = out.getContext("2d");
+      for (let a = 0; a < 360; a += 10) oc.drawImage(sil, pad + r * Math.cos((a * Math.PI) / 180), pad + r * Math.sin((a * Math.PI) / 180));
+      oc.drawImage(sil, pad, pad);
+      oc.drawImage(img, pad, pad);
+      outlinedLogo[abbr] = { url: out.toDataURL("image/png"), k: out.width / S };
+    } catch (err) { console.warn("contorno logo", abbr, err); } // senza contorno: resta il logo ESPN
+  }));
+}
+/** Sostituisce nei loghi della grafica le squadre con contorno (il riquadro si allarga del bordo, centro invariato). */
+function applyOutlinedLogos(root) {
+  for (const im of root.querySelectorAll("img.g-logo")) {
+    const m = (im.getAttribute("src") || "").match(/teamlogos\/nfl\/500(?:-dark)?\/(\w+)\.png/);
+    const o = m && outlinedLogo[m[1]];
+    if (!o || im.dataset.outlined) continue;
+    const w = parseFloat(im.style.width), h = parseFloat(im.style.height);
+    const l = parseFloat(im.style.left), t = parseFloat(im.style.top);
+    im.dataset.outlined = "1";
+    im.removeAttribute("crossorigin");
+    im.src = o.url;
+    if ([w, h, l, t].every(Number.isFinite)) { // il logo resta della stessa misura: si aggiunge solo il bordo
+      im.style.width = `${w * o.k}px`; im.style.height = `${h * o.k}px`;
+      im.style.left = `${l - (w * (o.k - 1)) / 2}px`; im.style.top = `${t - (h * (o.k - 1)) / 2}px`;
+    }
+  }
+}
+
 function fitPreview(stage) {
   const { wrap, root, W, H } = stage;
+  applyOutlinedLogos(root);
   const scaler = wrap.querySelector(".gfx-scaler");
   const k = wrap.clientWidth / W;
   scaler.style.transform = `scale(${k})`;
@@ -3280,7 +3329,7 @@ async function init() {
   status.textContent = "Carico calendario e font…";
   try {
     const fontsToLoad = Object.values(STYLES).map((st) => document.fonts.load(fontStr(st, 40), st.ref[0]));
-    const [scoreboard] = await Promise.all([getScoreboard(), ...fontsToLoad]);
+    const [scoreboard] = await Promise.all([getScoreboard(), ...fontsToLoad, prepareOutlinedLogos()]);
     sb = scoreboard.data;
     setCurrentSeason(sb.season.year);
   } catch (err) {
