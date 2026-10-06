@@ -65,17 +65,17 @@
 .gt-side { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-side); }
 .gt-year { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-ink); }
 .gt-foot { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-blue); }
-.gt-team { font-family: "Barlow Condensed", sans-serif; font-weight: 600; text-transform: uppercase; }
+.gt-team { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 600; text-transform: uppercase; }
 .gt-time { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-dark); }
 .gt-at { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: var(--g-blue); }
 .gt-vs { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: var(--g-blue); }
-.gt-band { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: var(--g-band-ink); }
+.gt-band { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 600; color: var(--g-band-ink); }
 .gt-score { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 100%; }
 /* Template Classifiche */
-.gt-st-col { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-dark); }
-.gt-st-num { font-family: "Barlow Condensed", sans-serif; font-weight: 500; color: var(--g-dark); }
-.gt-st-t1 { font-family: "Barlow Condensed", sans-serif; font-weight: 500; }
-.gt-st-t2 { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
+.gt-st-col { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; color: var(--g-dark); }
+.gt-st-num { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 500; color: var(--g-dark); }
+.gt-st-t1 { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 500; }
+.gt-st-t2 { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; }
 .gt-st-side { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 100%; color: #8a8f98; }
 /* Template Partita della settimana */
 .gt-g-city { font-family: "Archivo", sans-serif; font-weight: 600; font-stretch: 125%; color: var(--g-dark); }
@@ -95,30 +95,30 @@
 .g-tape { position: absolute; background: rgba(206, 206, 206, 0.75); transform-origin: center; }
 /* Template Calendario squadra */
 .gt-ts-name { font-family: "Archivo Bold", sans-serif; font-weight: 700; font-stretch: 100%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
-.gt-ts-week { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
-.gt-ts-date { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: #111111; }
-.gt-ts-city { font-family: "Barlow Condensed", sans-serif; font-weight: 600; }
-.gt-ts-nick { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
+.gt-ts-week { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; }
+.gt-ts-date { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 600; color: #111111; }
+.gt-ts-city { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 600; }
+.gt-ts-nick { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; }
 .gt-ts-score { font-family: "Archivo", sans-serif; font-weight: 700; font-stretch: 87.5%; }
 .gt-ts-time { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; color: #111111; }
-.gt-ts-bye { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: #1a1a1a; }
-.gt-ts-rec { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
+.gt-ts-bye { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; color: #1a1a1a; }
+.gt-ts-rec { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; }
 .gt-ts-recv { font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 100%; }
 .gt-ts-badge { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%; }
 /* Template Confronto giocatori */
-.gt-cmp-first { font-family: "Barlow Condensed", sans-serif; font-weight: 500; }
-.gt-cmp-last { font-family: "Barlow Condensed", sans-serif; font-weight: 700; }
-.gt-cmp-label { font-family: "Barlow Condensed", sans-serif; font-weight: 500; color: #111111; }
-.gt-cmp-val { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: #111111; }
-.gt-cmp-note { font-family: "Barlow", sans-serif; font-weight: 400; font-style: italic; }
+.gt-cmp-first { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 500; }
+.gt-cmp-last { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; }
+.gt-cmp-label { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 500; color: #111111; }
+.gt-cmp-val { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; color: #111111; }
+.gt-cmp-note { font-family: "Archivo", sans-serif; font-stretch: 100%; font-weight: 400; font-style: italic; }
 .g-clip img { max-width: none; }
 .g-cover { object-fit: cover; }
 /* Template Giocatore */
 .gt-p-name { font-family: "Archivo Bold", sans-serif; font-weight: 700; font-stretch: 100%; color: #111111; text-shadow: 0 0 28px rgba(255, 255, 255, 0.9); }
 .gt-p-vs { font-family: "Archivo Thin", sans-serif; font-weight: 100; font-stretch: 100%; }
 .gt-p-val { font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 87.5%; }
-.gt-p-label { font-family: "Barlow Condensed", sans-serif; font-weight: 500; }
-.gt-gp { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--g-blue); }
+.gt-p-label { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 500; }
+.gt-gp { font-family: "Archivo", sans-serif; font-stretch: 62.5%; font-weight: 700; color: var(--g-blue); }
 
 .g-bar { position: absolute; background: var(--g-blue); }
 .g-sep { position: absolute; height: 1.5px; background: var(--g-sep); }

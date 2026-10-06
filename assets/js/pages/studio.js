@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610061127";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610061127";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610061243";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610061243";
 
 renderChrome("");
 
@@ -63,19 +63,19 @@ const STYLES = {
   side: { cls: "gt-side", family: "Archivo", weight: 600, stretch: "normal", ref: ["FOOTBALL", 12.9, 120.3] },
   year: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO DOWN", 12.9, 153.5] },
   foot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["TUTTI GLI ORARI IN ORA ITALIANA (CEST)", 12.1, 398.9] },
-  team: { cls: "gt-team", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["PITTSBURGH", 15.6, 95.3] },
+  team: { cls: "gt-team", family: "Archivo", weight: 600, stretch: "extra-condensed", ref: ["PITTSBURGH", 15.6, 95.3] },
   time: { cls: "gt-time", family: "Archivo", weight: 600, stretch: "normal", ref: ["02:15", 17.3, 64.3] },
   at: { cls: "gt-at", family: "Archivo", weight: 600, stretch: "normal", ref: ["@", 17.2, 18.9], ink: true }, // altezza del simbolo
   vs: { cls: "gt-vs", family: "Archivo", weight: 800, stretch: "normal", ref: ["VS", 14.3, 28.5] },
-  band: { cls: "gt-band", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INTERNATIONAL GAME — LONDRA, REGNO UNITO", 15.6, 375.6] },
+  band: { cls: "gt-band", family: "Archivo", weight: 600, stretch: "extra-condensed", ref: ["INTERNATIONAL GAME — LONDRA, REGNO UNITO", 15.6, 375.6] },
   score: { cls: "gt-score", family: "Archivo", weight: 900, stretch: "normal", ref: ["28", 23.9, 44.9] }, // misurato su "Risultati"
   // Template "Classifiche" (misurato su "NFL Standings-selection")
   stSub: { cls: "gt-sub", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["CLASSIFICA", 21.3, 359.7] },
   stDiv: { cls: "gt-day", family: "Archivo", weight: 700, stretch: "expanded", ref: ["AFC EAST", 21.2, 248.0] },
-  stCol: { cls: "gt-st-col", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["PCT", 15.9, 32.0] },
-  stNum: { cls: "gt-st-num", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["1.000", 20.8, 57.3] },
-  stT1: { cls: "gt-st-t1", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["BUFFALO", 16.8, 69.1] },
-  stT2: { cls: "gt-st-t2", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["BILLS", 18.8, 51.5] },
+  stCol: { cls: "gt-st-col", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["PCT", 15.9, 32.0] },
+  stNum: { cls: "gt-st-num", family: "Archivo", weight: 500, stretch: "extra-condensed", ref: ["1.000", 20.8, 57.3] },
+  stT1: { cls: "gt-st-t1", family: "Archivo", weight: 500, stretch: "extra-condensed", ref: ["BUFFALO", 16.8, 69.1] },
+  stT2: { cls: "gt-st-t2", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["BILLS", 18.8, 51.5] },
   stSide: { cls: "gt-st-side", family: "Archivo", weight: 600, stretch: "normal", ref: ["FOOTBALL", 12.3, 116.2] },
   stInk: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO", 13.5, 78.2] },
   stFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["AMERICAN FOOTBALL CONFERENCE", 13.5, 414.6] },
@@ -83,46 +83,46 @@ const STYLES = {
   // Template Calendario squadra ("NFL Team Schedule-selection.png", 10984×6180 → 1920×1080)
   tsName: { cls: "gt-ts-name", family: "Archivo Bold", weight: 700, stretch: "normal", natural: true, ref: ["MIAMI DOLPHINS", 84, 1051] },
   tsCal: { cls: "gt-sub", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["CALENDARIO 2026", 21, 519] },
-  tsWeek: { cls: "gt-ts-week", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["W10", 20, 42] },
-  tsDate: { cls: "gt-ts-date", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["DOM 13/09", 18, 91] },
-  tsCity: { cls: "gt-ts-city", family: "Barlow Condensed", weight: 600, stretch: "normal", ref: ["INDIANAPOLIS", 17, 114] },
-  tsNick: { cls: "gt-ts-nick", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["RAIDERS", 20, 83] },
+  tsWeek: { cls: "gt-ts-week", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["W10", 20, 42] },
+  tsDate: { cls: "gt-ts-date", family: "Archivo", weight: 600, stretch: "extra-condensed", ref: ["DOM 13/09", 18, 91] },
+  tsCity: { cls: "gt-ts-city", family: "Archivo", weight: 600, stretch: "extra-condensed", ref: ["INDIANAPOLIS", 17, 114] },
+  tsNick: { cls: "gt-ts-nick", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["RAIDERS", 20, 83] },
   tsScore: { cls: "gt-ts-score", family: "Archivo", weight: 700, stretch: "semi-condensed", ref: ["27", 21, 30] },
   tsTime: { cls: "gt-ts-time", family: "Archivo", weight: 800, stretch: "normal", ref: ["22:05", 22, 86] },
-  tsBye: { cls: "gt-ts-bye", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["BYE", 19.5, 43] },
+  tsBye: { cls: "gt-ts-bye", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["BYE", 19.5, 43] },
   tsBadge: { cls: "gt-ts-badge", family: "Archivo", weight: 800, stretch: "normal", ref: ["L", 18.5, 10] },
   tsFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["TUTTI GLI ORARI IN ORA ITALIANA", 12, 328] },
   tsQd: { cls: "gt-year", family: "Archivo", weight: 600, stretch: "normal", ref: ["QUINTO DOWN 2026", 12.5, 212] },
-  tsRecL: { cls: "gt-ts-rec", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["RECORD", 14, 68] },
+  tsRecL: { cls: "gt-ts-rec", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["RECORD", 14, 68] },
   tsRecV: { cls: "gt-ts-recv", family: "Archivo", weight: 900, stretch: "normal", ref: ["0-3", 18, 42] },
   // Template Confronto squadre ("NFL Team Comparison-selection.png", 7640×4296 → 1920×1080)
-  tcCity: { cls: "gt-cmp-first", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["BUFFALO", 24, 98] },
-  tcNick: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["BILLS", 39, 107] },
-  tcRec: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["3-1", 15, 24] },
-  tcHdr: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["STATISTICA", 12, 88] },
-  tcLabel: { cls: "gt-cmp-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["PUNTI A PARTITA", 21, 163] },
-  tcVal: { cls: "gt-cmp-val", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["29.5", 28, 60] },
-  tcRank: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["4°", 22, 23] },
-  tcLeg: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["TOP 10", 11.5, 43] },
+  tcCity: { cls: "gt-cmp-first", family: "Archivo", weight: 500, stretch: "extra-condensed", ref: ["BUFFALO", 24, 98] },
+  tcNick: { cls: "gt-cmp-last", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["BILLS", 39, 107] },
+  tcRec: { cls: "gt-cmp-last", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["3-1", 15, 24] },
+  tcHdr: { cls: "gt-cmp-last", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["STATISTICA", 12, 88] },
+  tcLabel: { cls: "gt-cmp-label", family: "Archivo", weight: 500, stretch: "extra-condensed", ref: ["PUNTI A PARTITA", 21, 163] },
+  tcVal: { cls: "gt-cmp-val", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["29.5", 28, 60] },
+  tcRank: { cls: "gt-cmp-last", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["4°", 22, 23] },
+  tcLeg: { cls: "gt-cmp-last", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["TOP 10", 11.5, 43] },
   // Template Confronto giocatori ("NFL Player Comparison-selection.png", 10984×6180 → 1920×1080)
-  cmpFirst: { cls: "gt-cmp-first", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["JUSTIN", 22, 76] },
-  cmpLast: { cls: "gt-cmp-last", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["HERBERT", 28, 132] },
-  cmpLabel: { cls: "gt-cmp-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["COMP/ATT", 20, 92] },
-  cmpVal: { cls: "gt-cmp-val", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["32/54", 33, 99] },
-  cmpNote: { cls: "gt-cmp-note", family: "Barlow", weight: 400, stretch: "normal", italic: true, ref: ["* 3 fumble, tutti recuperati dall'attacco (0 persi)", 12.5, 318] },
+  cmpFirst: { cls: "gt-cmp-first", family: "Archivo", weight: 500, stretch: "extra-condensed", ref: ["JUSTIN", 22, 76] },
+  cmpLast: { cls: "gt-cmp-last", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["HERBERT", 28, 132] },
+  cmpLabel: { cls: "gt-cmp-label", family: "Archivo", weight: 500, stretch: "extra-condensed", ref: ["COMP/ATT", 20, 92] },
+  cmpVal: { cls: "gt-cmp-val", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["32/54", 33, 99] },
+  cmpNote: { cls: "gt-cmp-note", family: "Archivo", weight: 400, stretch: "normal", italic: true, ref: ["* 3 fumble, tutti recuperati dall'attacco (0 persi)", 12.5, 318] },
   cmpSub: { cls: "gt-sub", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["STATISTICHE AGGREGATE", 21, 680] },
   cmpFoot: { cls: "gt-foot", family: "Archivo", weight: 600, stretch: "normal", ref: ["NFL 2026 REGULAR SEASON", 13, 272] },
   // Template Giocatore ("NFL Player Performance-selection.png", 11064×6224 → 1920×1080)
   pName: { cls: "gt-p-name", family: "Archivo Bold", weight: 700, stretch: "normal", natural: true, ref: ["JA'MARR CHASE", 111, 1113] },
   pVs: { cls: "gt-p-vs", family: "Archivo Thin", weight: 100, stretch: "normal", natural: true, ref: ["contro i Texans", 27, 262] },
   pVal: { cls: "gt-p-val", family: "Archivo", weight: 800, stretch: "semi-condensed", ref: ["75", 93, 139], ink: true },
-  pLabel: { cls: "gt-p-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["TD su ricezione", 25, 208] },
-  pRes: { cls: "gt-p-label", family: "Barlow Condensed", weight: 500, stretch: "normal", ref: ["Vittoria Bengals 20-6", 28, 314] },
+  pLabel: { cls: "gt-p-label", family: "Archivo", weight: 500, stretch: "extra-condensed", ref: ["TD su ricezione", 25, 208] },
+  pRes: { cls: "gt-p-label", family: "Archivo", weight: 500, stretch: "extra-condensed", ref: ["Vittoria Bengals 20-6", 28, 314] },
   gCity: { cls: "gt-g-city", family: "Archivo", weight: 600, stretch: "expanded", ref: ["NEW ORLEANS", 13.5, 229.6] },
   gScore: { cls: "gt-g-score", family: "Archivo", weight: 800, stretch: "condensed", ref: ["24", 157.5, 207.4] },
   gVal: { cls: "gt-g-val", family: "Archivo", weight: 700, stretch: "normal", ref: ["298", 18.4, 43.8] },
   gLabel: { cls: "gt-g-label", family: "Archivo", weight: 600, stretch: "normal", ref: ["Yard totali", 14.4, 93.3] },
-  gp: { cls: "gt-gp", family: "Barlow Condensed", weight: 700, stretch: "normal", ref: ["GAME", 15.1, 41.0] },
+  gp: { cls: "gt-gp", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["GAME", 15.1, 41.0] },
 };
 
 // ---- font di titoli e sottotitoli, scelti dalle tendine "Font titolo" / "Font sottotitolo" (salvati nel browser)
@@ -138,7 +138,7 @@ const FONT_CHOICES = {
     ["archivo-bold", "Archivo Bold", { family: "Archivo Bold", weight: 700 }],
     ["archivo-extrabold", "Archivo ExtraBold", { family: "Archivo", weight: 800 }],
     ["archivo-black", "Archivo Black", { family: "Archivo", weight: 900 }],
-    ["barlow-cond", "Barlow Condensed Bold", { family: "Barlow Condensed", weight: 700 }],
+    ["archivo-cond", "Archivo Condensed Bold", { family: "Archivo", weight: 700, stretch: "condensed" }],
     ["master", "Come i master (Archivo espanso)", null],
   ],
   sub: [
@@ -146,7 +146,7 @@ const FONT_CHOICES = {
     ["archivo-light", "Archivo Light", { family: "Archivo", weight: 300 }],
     ["archivo-regular", "Archivo Regular", { family: "Archivo", weight: 400 }],
     ["archivo-medium", "Archivo Medium", { family: "Archivo", weight: 500 }],
-    ["barlow-cond", "Barlow Condensed Medium", { family: "Barlow Condensed", weight: 500 }],
+    ["archivo-cond", "Archivo Condensed Medium", { family: "Archivo", weight: 500, stretch: "condensed" }],
     ["master", "Come i master (Archivo espanso)", null],
   ],
 };
@@ -162,7 +162,7 @@ function applyFonts() {
     const ch = (FONT_CHOICES[group].find(([id]) => id === fontPick[group]) || FONT_CHOICES[group][0])[2];
     for (const k of keys) {
       // scelta libera: spaziatura propria del font (natural); master: spaziatura misurata sul riferimento
-      Object.assign(STYLES[k], ch ? { ...ch, stretch: "normal", natural: true } : { ...MASTER_FONT[k], natural: false }, { dyn: true });
+      Object.assign(STYLES[k], ch ? { stretch: "normal", ...ch, natural: true } : { ...MASTER_FONT[k], natural: false }, { dyn: true });
     }
   }
 }
@@ -184,6 +184,7 @@ function calibrate() {
     const n = [...text].length;
     // natural: titoli (Archivo Bold) e sottotitoli (Archivo Thin) con la spaziatura del font, stessa altezza del master
     st.ls = n > 1 && !st.natural ? (ink - natural) / (n - 1) : 0;
+    if (st.stretch === "extra-condensed") st.ls = Math.max(st.ls, 0); // Archivo condensato: mai lettere (e spazi) più strette del font
     const h = ctx.measureText("H");
     st.cap = h.actualBoundingBoxAscent;
     st.A = t.fontBoundingBoxAscent;

@@ -296,6 +296,10 @@ come i master) e **Font sottotitolo** (Archivo Thin, Light, Regular, Medium, Bar
 Medium, come i master) cambiano titoli e sottotitoli di tutte le grafiche, anteprima e PNG; la
 scelta resta salvata nel browser (`5dwn:studio-fonts`). "Come i master" ripristina Archivo
 variabile espanso con la spaziatura misurata sui riferimenti (`MASTER_FONT`).
+Come nel lower third, tutte le scritte delle grafiche sono in Archivo: quelle che nei master
+erano in Barlow Condensed (nomi squadra, statistiche, valori, rank, etichette) usano Archivo
+extra-condensed (62,5%) con lo stesso peso, larghezza tarata sul master ma mai con lettere
+più strette del font; la nota in corsivo usa Archivo italic.
 
 ## 4. Provarlo sul tuo computer
 
