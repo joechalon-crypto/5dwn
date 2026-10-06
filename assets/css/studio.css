@@ -22,12 +22,14 @@
 .cmp-photo .text-input { flex: 1 1 160px; padding: 8px 10px; font-size: 0.9rem; }
 .cmp-photo .btn { padding: 8px 12px; }
 /* periodo "Week a scelta": dalla week / alla week, affiancate */
-.cmp-range { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cmp-range { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; min-width: 0; }
+.cmp-range .select { min-width: 0; width: 100%; } /* le due tendine restano nella colonna del box (niente 260px fissi) */
 .cmp-range[hidden] { display: none !important; }
 .cmp-anon { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text-muted); cursor: pointer; }
 .cmp-anon input { accent-color: var(--orange); width: 16px; height: 16px; }
 .g-sil { filter: brightness(0); opacity: 0.85; }
-.cmp-player .select, .cmp-stats .select { width: 100%; }
+.cmp-player .select, .cmp-stats .select { width: 100%; min-width: 0; } /* restano nella colonna: niente sovrapposizioni tra box */
+.cmp-player, .cmp-stats .select-field { min-width: 0; }
 .cmp-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 16px; }
 .cmp-stats .select-field { display: grid; }
 .studio-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; margin: -8px 0 24px; }
