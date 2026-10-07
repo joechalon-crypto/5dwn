@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610071048";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610071048";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610071055";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610071055";
 
 renderChrome("");
 
@@ -3088,7 +3088,7 @@ const SP = {
 };
 const SP_NAVY = "#13224a", SP_GREY_VAL = "#a9afba";
 const SP_LABELS = {
-  cmpatt: "Completati/tentati", "passing.completionPct": "% completamenti", "passing.passingYards": "Yard su passaggio",
+  cmpatt: "Completati/tentati", "passing.completionPct": "% completi", "passing.passingYards": "Yard su passaggio",
   passYdsG: "Yard su passaggio a partita", "passing.yardsPerPassAttempt": "Yard per tentativo", "passing.passingTouchdowns": "TD su passaggio",
   "passing.interceptions": "Intercetti lanciati", "passing.QBRating": "Passer rating", "passing.adjQBR": "QBR", "passing.sacks": "Sack subiti",
   "passing.longPassing": "Passaggio più lungo", "rushing.rushingAttempts": "Portate", "rushing.rushingYards": "Yard su corsa",
