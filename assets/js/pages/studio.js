@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610061317";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610061317";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610071048";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610071048";
 
 renderChrome("");
 
@@ -26,6 +26,7 @@ const stages = {
   compare: { root: document.getElementById("gfx-compare"), wrap: document.getElementById("preview-compare"), W: 1920, H: 1080 },
   team: { root: document.getElementById("gfx-team"), wrap: document.getElementById("preview-team"), W: 1920, H: 1080 },
   player: { root: document.getElementById("gfx-player"), wrap: document.getElementById("preview-player"), W: 1920, H: 1080 },
+  statsplit: { root: document.getElementById("gfx-statsplit"), wrap: document.getElementById("preview-statsplit"), W: 1920, H: 1080 },
 };
 
 // ---------------------------------------------------------------------------- palette del riferimento
@@ -122,6 +123,13 @@ const STYLES = {
   gScore: { cls: "gt-g-score", family: "Archivo", weight: 800, stretch: "condensed", ref: ["24", 157.5, 207.4] },
   gVal: { cls: "gt-g-val", family: "Archivo", weight: 700, stretch: "normal", ref: ["298", 18.4, 43.8] },
   gLabel: { cls: "gt-g-label", family: "Archivo", weight: 600, stretch: "normal", ref: ["Yard totali", 14.4, 93.3] },
+  // Template Confronto stat player (riferimento 2000×1125 → 1920×1080): Archivo, spaziatura del font (+ track in em)
+  spTeam: { cls: "gt-sp", family: "Archivo", weight: 400, stretch: "semi-expanded", natural: true, dyn: true, track: 0.06, ref: ["H", 22, 0] },
+  spHdr: { cls: "gt-sp", family: "Archivo", weight: 700, stretch: "normal", natural: true, dyn: true, track: 0.2, ref: ["H", 15, 0] },
+  spBadge: { cls: "gt-sp", family: "Archivo", weight: 800, stretch: "normal", natural: true, dyn: true, ref: ["H", 20, 0] },
+  spSmall: { cls: "gt-sp", family: "Archivo", weight: 400, stretch: "normal", natural: true, dyn: true, ref: ["H", 15.5, 0] },
+  spLabel: { cls: "gt-sp", family: "Archivo", weight: 400, stretch: "normal", natural: true, dyn: true, ref: ["H", 22.5, 0] },
+  spVal: { cls: "gt-sp", family: "Archivo", weight: 900, stretch: "normal", natural: true, dyn: true, ref: ["H", 33, 0] },
   gp: { cls: "gt-gp", family: "Archivo", weight: 700, stretch: "extra-condensed", ref: ["GAME", 15.1, 41.0] },
 };
 
@@ -194,7 +202,8 @@ function calibrate() {
     const n = [...text].length;
     // natural: titoli (Archivo Bold) e sottotitoli (Archivo Thin) con la spaziatura del font, stessa altezza del master
     st.ls = n > 1 && !st.natural ? (ink - natural) / (n - 1) : 0;
-    if (st.stretch === "extra-condensed") st.ls = Math.max(st.ls, 0); // Archivo condensato: mai lettere (e spazi) più strette del font
+    if (st.stretch === "extra-condensed") st.ls = Math.max(st.ls, 0);
+    if (st.track) st.ls = st.track * st.size; // spaziatura fissa in em (es. "STATISTICA") // Archivo condensato: mai lettere (e spazi) più strette del font
     const h = ctx.measureText("H");
     st.cap = h.actualBoundingBoxAscent;
     st.A = t.fontBoundingBoxAscent;
@@ -267,7 +276,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -288,6 +297,7 @@ const OV_FIELDS = {
   player: { title: true, sub: true },
   compare: { title: true, sub: true, foot: true },
   tcompare: { title: true, sub: true, foot: true },
+  statsplit: { title: true, sub: true },
   game: {},
 };
 // Testi senza valore automatico: vanno sempre scritti (Confronto giocatori).
@@ -336,6 +346,7 @@ function applyVisibility() {
     else if (el.classList.contains("tpl-player")) ok = tpl === "player"; // per ora solo 16:9
     else if (el.classList.contains("tpl-team")) ok = tpl === "team"; // per ora solo 16:9
     else if (el.classList.contains("tpl-compare")) ok = tpl === "compare"; // per ora solo 16:9
+    else if (el.classList.contains("tpl-statsplit")) ok = tpl === "statsplit";
     else if (el.classList.contains("tpl-tcompare")) ok = tpl === "tcompare" && tc.n > 1; // per ora solo 16:9
     else if (el.classList.contains("tpl-tfocus")) ok = tpl === "tcompare" && tc.n === 1;
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
@@ -343,12 +354,13 @@ function applyVisibility() {
   });
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
   document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
-  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare"].includes(tpl);
+  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare", "statsplit"].includes(tpl);
+  document.querySelectorAll(".statsplit-only").forEach((el) => (el.hidden = tpl !== "statsplit"));
   document.querySelectorAll(".tcompare-only").forEach((el) => (el.hidden = tpl !== "tcompare"));
   document.querySelectorAll(".tfocus-only").forEach((el) => (el.hidden = !(tpl === "tcompare" && tc.n === 1)));
   document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
   document.querySelectorAll(".compare-only").forEach((el) => (el.hidden = tpl !== "compare"));
-  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare"].includes(tpl);
+  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit"].includes(tpl);
   if (tpl === "compare" || tpl === "tcompare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
   syncOverrideFields();
   document.getElementById("fmt-select").value = fmt;
@@ -635,8 +647,13 @@ async function prepareOutlinedLogos() {
     try {
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`;
-      await img.decode();
+      // onload con tempo massimo: un'immagine che non arriva non deve bloccare lo Studio
+      await new Promise((res, rej) => {
+        const timer = setTimeout(() => rej(new Error("timeout")), 6000);
+        img.onload = () => { clearTimeout(timer); res(); };
+        img.onerror = () => { clearTimeout(timer); rej(new Error("errore")); };
+        img.src = `https://a.espncdn.com/i/teamlogos/nfl/500/${abbr}.png`;
+      });
       const S = img.naturalWidth, pad = Math.ceil(S * width) + 2, r = S * width;
       // sagoma del logo nel colore del bordo
       const sil = document.createElement("canvas");
@@ -713,6 +730,10 @@ function syncOverridePlaceholders() {
   for (const k of OV_KEYS) if (fields[k]) ovInputs[k].placeholder = ovPlaceholder(k);
 }
 function renderAllInner() {
+  if (tpl === "statsplit") {
+    if (sp.loaded) renderStatSplitStage(stages.statsplit);
+    return;
+  }
   if (tpl === "tcompare") {
     if (tc.loaded) (tc.n === 1 ? renderFocusStage(stages.tfocus) : renderTCompareStage(stages.tcompare));
     return;
@@ -3052,6 +3073,306 @@ function renderCompareStage(stage) {
 // titolo/sottotitolo: aggiorna anche l'avviso nello stato
 for (const k of ["title", "sub"]) ovInputs[k].addEventListener("input", () => { if (tpl === "compare" && cmp.loaded) cmpStatus(); });
 
+// ---------------------------------------------------------------------------- template Confronto stat player
+// Stesso giocatore in split diversi (es. Maye W1-3 contro Maye W4, anche stagioni passate). Riferimento 2000×1125 → 1920×1080.
+const SP = {
+  panel: { top: 560, mid: 545, bot: 400, red: 36, band: 148 }, // bordo curvo del pannello squadra (x in alto / a metà / in fondo)
+  brand: { x: 50, y: 52, h: 72 }, // logo 5DWN (pallone) in alto a sinistra
+  teamLine: { x: 643, logoW: 50, cap: 83, textX: 715 },
+  title: { x: 640, cap: 154, h: 101, maxW: 1200 },
+  sub: { x: 728, cap: 291, h: 26, rule: [640, 302, 70, 4] },
+  year: { right: 1870, cap: 72, rule: [1832, 55, 38, 2.5] },
+  card: { x: 640, y: 372, w: 1220, bot: 1037, hdrBot: 480, rule: 3 },
+  colArea: [1040, 1860], labelX: 670, hdrCap: 447,
+  badge: { top: 390, h: 42, pad: 17, cap: 401 }, capCap: 444,
+};
+const SP_NAVY = "#13224a", SP_GREY_VAL = "#a9afba";
+const SP_LABELS = {
+  cmpatt: "Completati/tentati", "passing.completionPct": "% completamenti", "passing.passingYards": "Yard su passaggio",
+  passYdsG: "Yard su passaggio a partita", "passing.yardsPerPassAttempt": "Yard per tentativo", "passing.passingTouchdowns": "TD su passaggio",
+  "passing.interceptions": "Intercetti lanciati", "passing.QBRating": "Passer rating", "passing.adjQBR": "QBR", "passing.sacks": "Sack subiti",
+  "passing.longPassing": "Passaggio più lungo", "rushing.rushingAttempts": "Portate", "rushing.rushingYards": "Yard su corsa",
+  "rushing.yardsPerRushAttempt": "Yard per portata", "rushing.rushingTouchdowns": "TD su corsa", "rushing.longRushing": "Corsa più lunga",
+  "receiving.receptions": "Ricezioni", "receiving.receivingTargets": "Target", rectgt: "Ricezioni/target", "receiving.receivingYards": "Yard su ricezione",
+  "receiving.yardsPerReception": "Yard per ricezione", "receiving.receivingTouchdowns": "TD su ricezione", "receiving.longReception": "Ricezione più lunga",
+  scrimYds: "Yard totali", totTd: "TD totali", "tackles.totalTackles": "Tackle", "tackles.soloTackles": "Tackle solo", "tackles.assistTackles": "Tackle assistiti",
+  "tackles.sacks": "Sack", "tackles.stuffs": "Stuff", "interceptions.interceptions": "Intercetti", "interceptions.passesDefended": "Passaggi deviati",
+  "interceptions.interceptionTouchdowns": "TD su intercetto", "fumbles.fumbles": "Fumble", "fumbles.fumblesLost": "Fumble persi",
+  "fumbles.fumblesForced": "Fumble forzati", "fumbles.fumblesRecovered": "Fumble recuperati",
+};
+const sp = { nSplits: 2, nStats: 7, mode: "avg", highlight: "best", season: 0, team: null, teamInfo: null, player: null, splits: [], stats: [], logs: {}, loaded: false, photoUrl: null, photoUpload: null };
+const spEls = {
+  nSplits: document.getElementById("sp-nsplits"), nStats: document.getElementById("sp-nstats"), mode: document.getElementById("sp-mode"), highlight: document.getElementById("sp-highlight"),
+  season: document.getElementById("sp-season"), team: document.getElementById("sp-team"), player: document.getElementById("sp-player"),
+  photoUrl: document.getElementById("sp-photourl"), photoFile: document.getElementById("sp-photofile"), photoReset: document.getElementById("sp-photoreset"),
+  splits: [0, 1, 2].map((i) => ({ wrap: document.getElementById(`sp-s${i}`), season: document.getElementById(`sp-sseason${i}`), from: document.getElementById(`sp-from${i}`), to: document.getElementById(`sp-to${i}`) })),
+  stats: [...document.querySelectorAll(".sp-stat")],
+};
+const spNum = (v) => String(v).replace(".", ","); // decimali all'italiana
+/** Valore di una statistica in uno split: "avg" divide i conteggi per le partite (medie e percentuali restano tali). */
+function spValue(st, agg) {
+  if (!agg || !agg.games) return null;
+  const g = agg.games, avg = sp.mode === "avg" && g > 1;
+  const fmt = (v) => (v == null || Number.isNaN(v) ? null : Number.isInteger(+v.toFixed(1)) ? String(Math.round(v)) : spNum(v.toFixed(1)));
+  if (st.key === "cmpatt" || st.key === "rectgt") {
+    const [a, b] = st.key === "cmpatt" ? ["passing.completions", "passing.passingAttempts"] : ["receiving.receptions", "receiving.receivingTargets"];
+    if (agg[b] == null) return null;
+    const d1 = (v) => spNum(v.toFixed(1));
+    return { text: avg ? `${d1((agg[a] || 0) / g)}/${d1(agg[b] / g)}` : `${agg[a] ?? 0}/${agg[b]}`, n: agg[b] ? +(((agg[a] || 0) / agg[b]) * 100).toFixed(1) : null };
+  }
+  const raw = st.num ? st.num(agg) : agg[st.key];
+  if (raw == null || Number.isNaN(raw)) return null;
+  const isRate = st.dec || st.key === "passYdsG" || /long/i.test(st.key); // medie, percentuali, record: niente divisione
+  const v = avg && !isRate ? raw / g : raw;
+  return { text: st.dec ? spNum(v.toFixed(st.dec)) : fmt(v), n: +v.toFixed(st.dec || 1) }; // confronto sul valore mostrato (pari = entrambi evidenziati)
+}
+const spAgg = (s) => { const gl = sp.logs[s.season]; return gl ? aggregateGamelog(gl, `w${s.from}-${s.to}`) : null; };
+const spWhole = (s) => s.from === 1 && s.to >= 17;
+const spWeeks = (s) => (spWhole(s) ? "STAGIONE" : s.from === s.to ? `WEEK ${s.from}` : `WEEK ${s.from}/${s.to}`);
+/** Etichetta della colonna (l'anno, se le stagioni sono diverse, va nella riga sotto). */
+function spBadge(s, agg, withYear = false) {
+  const yr = withYear ? ` · ${s.season}` : "";
+  if (s.from === s.to) return `WEEK ${s.from}${yr}`;
+  const span = spWhole(s) ? "STAGIONE" : `W${s.from}–${s.to}`;
+  return `${sp.mode === "avg" && (agg?.games || 0) > 1 ? "MEDIA" : "TOTALE"} ${span}${yr}`;
+}
+function spAvailable() {
+  const aggs = sp.splits.slice(0, sp.nSplits).map(spAgg);
+  return CMP_STATS.filter((st) => aggs.some((a) => spValue(st, a) != null));
+}
+function spRenderStatSelects() {
+  const avail = spAvailable();
+  const opts = avail.map((st) => `<option value="${st.key}">${esc(SP_LABELS[st.key] || st.label)}</option>`).join("");
+  spEls.stats.forEach((sel, i) => { sel.closest(".select-field").hidden = i >= sp.nStats; sel.innerHTML = opts; sel.value = sp.stats[i] || ""; });
+}
+const SP_DEFAULTS = { ...CMP_DEFAULTS, QB: ["passing.QBRating", "passing.passingYards", "passing.passingTouchdowns", "passing.interceptions", "passing.completionPct", "passing.yardsPerPassAttempt", "passing.sacks", "rushing.rushingYards"] };
+function spDefaultStats() {
+  const wanted = SP_DEFAULTS[posGroup(sp.player?.pos || "QB")];
+  const keys = new Set(spAvailable().map((s) => s.key));
+  const out = wanted.filter((k) => keys.has(k));
+  for (const k of keys) if (out.length < 8 && !out.includes(k)) out.push(k);
+  sp.stats = out.slice(0, 8);
+}
+async function spLoadLog(season) {
+  if (sp.logs[season]) return;
+  const sa = seasonArg(season);
+  let res = await getGamelog(sp.player.id, {}, sa);
+  if (!res.data.keys || res.data.groups.some((g) => !g.name)) res = await getGamelog(sp.player.id, { force: true }, sa);
+  sp.logs[season] = res.data;
+}
+/** Split proposti: dalla prima alla penultima week giocata contro l'ultima (es. W1-3 contro W4). */
+function spDefaultSplits() {
+  const y = sp.season || curSeason(), gl = sp.logs[y];
+  const weeksPlayed = gl ? [...new Set(Object.values(gl.events).map((e) => Number(e.week)).filter((w) => w >= 1 && w <= WEEKS_MAX))].sort((a, b) => a - b) : [];
+  const last = weeksPlayed[weeksPlayed.length - 1] || 1, prev = weeksPlayed[weeksPlayed.length - 2] || last;
+  sp.splits = [{ season: y, from: weeksPlayed[0] || 1, to: prev }, { season: y, from: last, to: last }, { season: y, from: 1, to: WEEKS_MAX }];
+}
+async function spFillRoster() {
+  const { groups } = await seasonRosterGroups(sp.team.id, sp.season || curSeason());
+  sp.teamInfo = await teamInSeason(sp.team, sp.season || curSeason());
+  spEls.player.innerHTML = groups.map((g) => `<optgroup label="${esc(g.label)}">${g.players
+    .slice().sort((a, b) => ["QB", "RB", "WR", "TE"].indexOf(a.pos) - ["QB", "RB", "WR", "TE"].indexOf(b.pos) || a.name.localeCompare(b.name))
+    .map((p) => `<option value="${p.id}" data-pos="${esc(p.pos || "")}">${esc(p.name)}${p.pos ? ` · ${esc(p.pos)}` : ""}</option>`).join("")}</optgroup>`).join("");
+  sp.roster = groups.flatMap((g) => g.players);
+  if (sp.player && sp.roster.some((p) => String(p.id) === String(sp.player.id))) spEls.player.value = sp.player.id;
+  else { const p = sp.roster[0]; sp.player = p ? { ...p } : null; if (p) spEls.player.value = p.id; }
+}
+function spRenderControls() {
+  spEls.splits.forEach((el, i) => {
+    el.wrap.hidden = i >= sp.nSplits;
+    if (!el.season.options.length) el.season.innerHTML = seasonOptions();
+    const s = sp.splits[i];
+    el.season.value = String(s.season);
+    setRange(el.from, el.to, `w${s.from}-${s.to}`);
+  });
+  spEls.nSplits.value = String(sp.nSplits); spEls.nStats.value = String(sp.nStats);
+  spRenderStatSelects();
+}
+let spSeq = 0;
+async function spRefresh({ newPlayer = false } = {}) {
+  const seq = ++spSeq;
+  try {
+    status.textContent = "Carico le partite del giocatore…";
+    if (newPlayer) { sp.logs = {}; await spLoadLog(sp.season || curSeason()); spDefaultSplits(); }
+    await Promise.all(sp.splits.slice(0, sp.nSplits).map((s) => spLoadLog(s.season)));
+    if (seq !== spSeq) return;
+    if (newPlayer || !sp.stats.length) spDefaultStats();
+    sp.loaded = true;
+    spRenderControls();
+    renderAll();
+    const games = sp.splits.slice(0, sp.nSplits).map((s) => `${spBadge(s, spAgg(s), true)}: ${spAgg(s)?.games ?? 0} ${spAgg(s)?.games === 1 ? "partita" : "partite"}`).join(" · ");
+    status.textContent = `Statistiche ESPN regular season · ${sp.player?.name} · ${games}`;
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare le partite del giocatore: riprova.";
+  }
+}
+async function loadStatSplit() {
+  try {
+    status.textContent = "Carico squadre e giocatori…";
+    if (!teamList.length) teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+    if (!spEls.team.options.length) spEls.team.innerHTML = teamList.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+    if (!spEls.season.options.length) spEls.season.innerHTML = seasonOptions();
+    if (!sp.team) {
+      // proposto: il leader stagionale in yard su passaggio
+      const r = (await getAthleteRanking({ category: "offense:passing", group: "passing", field: "passingYards" })).data.rows[0];
+      sp.team = teamList.find((t) => t.id === r?.team?.id) || teamList[0];
+      sp.player = r ? { id: r.id, name: r.name, pos: r.pos || "QB" } : null;
+      sp.season = curSeason();
+    }
+    spEls.team.value = sp.team.id;
+    spEls.season.value = String(sp.season || curSeason());
+    await spFillRoster();
+    await spRefresh({ newPlayer: !sp.loaded });
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare il confronto stat: riprova.";
+  }
+}
+spEls.season.addEventListener("change", async () => { sp.season = Number(spEls.season.value); await spFillRoster(); spRefresh({ newPlayer: true }); });
+spEls.team.addEventListener("change", async () => { sp.team = teamList.find((t) => t.id === spEls.team.value); await spFillRoster(); spRefresh({ newPlayer: true }); });
+spEls.player.addEventListener("change", () => {
+  const p = sp.roster.find((x) => String(x.id) === spEls.player.value);
+  sp.player = p ? { ...p } : null;
+  spRefresh({ newPlayer: true });
+});
+spEls.nSplits.addEventListener("change", () => { sp.nSplits = Number(spEls.nSplits.value); spRefresh(); });
+spEls.nStats.addEventListener("change", () => { sp.nStats = Number(spEls.nStats.value); spRenderStatSelects(); renderAll(); });
+spEls.mode.addEventListener("change", () => { sp.mode = spEls.mode.value; spRenderControls(); renderAll(); });
+spEls.highlight.addEventListener("change", () => { sp.highlight = spEls.highlight.value; renderAll(); });
+spEls.stats.forEach((sel, i) => sel.addEventListener("change", () => { sp.stats[i] = sel.value; renderAll(); }));
+spEls.splits.forEach((el, i) => {
+  el.season.addEventListener("change", () => { sp.splits[i].season = Number(el.season.value); spRefresh(); });
+  [el.from, el.to].forEach((sel) => sel.addEventListener("change", () => {
+    const r = periodWeeks(readRange(el.from, el.to)) || { from: 1, to: WEEKS_MAX };
+    Object.assign(sp.splits[i], r);
+    spRefresh();
+  }));
+});
+spEls.photoUrl.addEventListener("change", async () => {
+  const url = spEls.photoUrl.value.trim();
+  if (!url) { sp.photoUrl = null; renderAll(); return; }
+  if (await customPhotoOk(url)) { sp.photoUrl = url; renderAll(); }
+  else status.textContent = "Questa immagine non si può usare nel PNG (il sito che la ospita non lo permette): scaricala e caricala con \"File\".";
+});
+spEls.photoFile.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (sp.photoUpload) URL.revokeObjectURL(sp.photoUpload);
+  sp.photoUpload = URL.createObjectURL(file);
+  e.target.value = "";
+  renderAll();
+});
+spEls.photoReset.addEventListener("click", () => {
+  if (sp.photoUpload) URL.revokeObjectURL(sp.photoUpload);
+  sp.photoUpload = null; sp.photoUrl = null; spEls.photoUrl.value = "";
+  renderAll();
+});
+
+/** Bordo curvo del pannello squadra: x del bordo alle quote 0 / H. */
+function spCurve(H, dx = 0) {
+  const P = SP.panel;
+  return `M${P.top + dx},0 C${P.top + dx},${H * 0.45} ${P.mid + dx},${H * 0.78} ${P.bot + dx},${H}`;
+}
+function renderStatSplitStage(stage) {
+  const { W, H, root } = stage;
+  const t = sp.teamInfo || sp.team, p = sp.player;
+  if (!t || !p) return;
+  const col = cellColor(t), alt = t.alt && !/^#?f{3,6}$/i.test(t.alt) ? t.alt : "#c8102e";
+  const P = SP.panel, n = sp.nSplits, splits = sp.splits.slice(0, n);
+  const aggs = splits.map(spAgg);
+  const multiSeason = new Set(splits.map((s) => s.season)).size > 1;
+  // sfondo: chiaro del sito + pannello squadra a sinistra (bordo curvo) + ombra della tabella
+  const C = SP.card;
+  const extra = `<path d="${spCurve(H)} L0,${H} L0,0 Z" fill="${col}"/>
+      <rect x="0" y="0" width="${P.top + P.red + 4}" height="${P.band}" fill="#000000" opacity="0.18"/>
+      <defs><filter id="sp-sh" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur stdDeviation="14"/></filter></defs>
+      <rect x="${C.x}" y="${C.y + 10}" width="${C.w}" height="${C.bot - C.y}" fill="#0f1e4a" opacity="0.16" filter="url(#sp-sh)"/>`;
+  const bg = background(W, H, true).replace(/<\/svg>\s*$/, `${extra}</svg>`);
+  // sopra la foto: zona chiara a destra del bordo + striscia colorata (immagine, così il PNG la ritaglia uguale)
+  const right = `M${P.top + P.red},0 L${W},0 L${W},${H} L${P.bot + P.red},${H} C${P.mid + P.red},${H * 0.78} ${P.top + P.red},${H * 0.45} ${P.top + P.red},0 Z`;
+  const over = background(W, H, true)
+    .replace('class="gfx-bg" ', `width="${W}" height="${H}" `)
+    .replace(/(<svg[^>]*>)/, `$1<defs><clipPath id="sp-r"><path d="${right}"/></clipPath></defs><g clip-path="url(#sp-r)">`)
+    .replace(/<\/svg>\s*$/, `</g><path d="${spCurve(H)} L${P.bot + P.red},${H} C${P.mid + P.red},${H * 0.78} ${P.top + P.red},${H * 0.45} ${P.top + P.red},0 Z" fill="${alt}"/></svg>`);
+  const overlay = `<img class="g-logo" alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(over)}" style="left:0;top:0;width:${W}px;height:${H}px">`;
+  // foto: caricata/URL (riempie il pannello) oppure foto profilo ESPN grande, appoggiata in fondo
+  const custom = sp.photoUpload || sp.photoUrl;
+  const photo = custom
+    ? `<img class="g-logo g-cover" ${sp.photoUpload ? "" : 'crossorigin="anonymous"'} src="${esc(custom)}" alt="" style="left:0;top:${P.band}px;width:${P.top + P.red}px;height:${H - P.band}px">`
+    : `<div class="g-clip" style="position:absolute;overflow:hidden;left:0;top:${P.band}px;width:${P.top + P.red}px;height:${H - P.band}px">
+        <img class="g-logo" crossorigin="anonymous" src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="" onerror="this.remove()" style="left:-150px;top:${H - P.band - 640}px;width:${640 * (600 / 436)}px;height:640px"></div>`;
+  // testi
+  const name = (p.name || "").toUpperCase();
+  const pos = p.pos || sp.player?.pos || "";
+  const teamLine = `${(t.name || "").toUpperCase()}${pos ? ` · ${pos}` : ""}`;
+  const autoSub = splits.map((s) => `${spWeeks(s)}${multiSeason || spWhole(s) ? ` ${s.season}` : ""}`).join(" vs ");
+  const title = ovr("title", name), sub = ovr("sub", autoSub);
+  const year = Math.max(...splits.map((s) => s.season));
+  // tabella
+  const stats = sp.stats.slice(0, sp.nStats).map((k) => CMP_STATS.find((s) => s.key === k)).filter(Boolean);
+  const [a0, a1] = SP.colArea, cw = (a1 - a0) / n, cx = (i) => a0 + cw * (i + 0.5);
+  let hdr = `<div class="g-cell" style="left:${C.x}px;top:${C.y}px;width:${C.w}px;height:${C.hdrBot - C.y}px;background:#ffffff"></div>
+    ${T("spHdr", "STATISTICA", SP.labelX, SP.hdrCap, "left", { color: "#8a909a" })}`;
+  splits.forEach((s, i) => {
+    const agg = aggs[i], label = spBadge(s, agg);
+    const tw = Math.min(inkWidth("spBadge", label), cw - 24 - 2 * SP.badge.pad), bw = tw + 2 * SP.badge.pad;
+    const yr = multiSeason ? ` · ${s.season}` : "";
+    hdr += `<div class="g-cell" style="left:${cx(i) - bw / 2}px;top:${SP.badge.top}px;width:${bw}px;height:${SP.badge.h}px;background:${SP_NAVY}"></div>
+      ${T("spBadge", label, cx(i), SP.badge.cap, "center", { color: "#ffffff", maxW: tw })}`;
+    const g = agg?.games || 0;
+    if (s.from === s.to && agg?.lastEvent) {
+      const ev = agg.lastEvent, full = ev.opp?.nickname ? ev.opp : teamList.find((x) => x.abbr === ev.opp?.abbr || x.id === ev.opp?.id) || ev.opp || {};
+      const txt = `${ev.atVs === "@" ? "@" : "vs"} ${full.nickname || full.short || full.abbr || ""}${yr}`;
+      const tw = inkWidth("spSmall", txt), lw = 30, gap = 8, x0 = cx(i) - (tw + gap + lw) / 2;
+      hdr += `${T("spSmall", txt, x0, SP.capCap, "left", { color: "#3a3f48" })}
+        <img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(full.abbr ? full : { abbr: full.abbr || "" }, 80)}" alt="" style="left:${x0 + tw + gap}px;top:${SP.capCap - 8}px;width:${lw}px;height:${lw}px">`;
+    } else {
+      hdr += T("spSmall", `${g === 0 ? "nessuna partita" : g === 1 ? "1 partita" : `${g} partite`}${yr}`, cx(i), SP.capCap, "center", { color: "#3a3f48", maxW: cw - 20 });
+    }
+  });
+  hdr += `<div class="g-bar" style="left:${C.x}px;top:${C.hdrBot}px;width:${C.w}px;height:${C.rule}px;background:${SP_NAVY}"></div>`;
+  const rowsTop = C.hdrBot + C.rule, pitch = (C.bot - rowsTop) / Math.max(1, stats.length);
+  const kt = Math.min(1, pitch / 79);
+  let rows = "";
+  stats.forEach((st, r) => {
+    const y = rowsTop + r * pitch;
+    rows += `<div class="g-cell" style="left:${C.x}px;top:${y}px;width:${C.w}px;height:${pitch + 0.5}px;background:${r % 2 ? "#f3f4f6" : "#ffffff"}"></div>
+      ${T("spLabel", SP_LABELS[st.key] || st.label, SP.labelX, y + (pitch - STYLES.spLabel.ref[1] * kt) / 2, "left", { color: "#1d2026", scale: kt, maxW: a0 - SP.labelX - 40 })}`;
+    const vals = aggs.map((a) => spValue(st, a));
+    const nums = vals.map((v) => v?.n).filter((v) => v != null);
+    const low = CMP_LOW.has(st.key);
+    const best = nums.length > 1 ? (low ? Math.min(...nums) : Math.max(...nums)) : null;
+    vals.forEach((v, i) => {
+      const txt = v ? v.text : "N/D";
+      const strong = sp.highlight === "none" || best == null || (v && Math.abs(v.n - best) < 1e-9);
+      rows += T("spVal", txt, cx(i), y + (pitch - STYLES.spVal.ref[1] * kt) / 2, "center", { color: !v ? "#8a9097" : strong ? SP_NAVY : SP_GREY_VAL, scale: kt, maxW: cw - 30 });
+    });
+  });
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${bg}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      <img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 500)}" alt="" style="left:1180px;top:60px;width:760px;height:760px;opacity:0.07">
+      ${photo}
+      ${overlay}
+      <img class="g-logo" src="assets/5dwn-logo-light.png" alt="5DWN" style="left:${SP.brand.x}px;top:${SP.brand.y}px;width:${SP.brand.h * (678 / 576)}px;height:${SP.brand.h}px">
+      <img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 120)}" alt="" style="left:${SP.teamLine.x}px;top:${SP.teamLine.cap + 11 - SP.teamLine.logoW / 2}px;width:${SP.teamLine.logoW}px;height:${SP.teamLine.logoW}px">
+      ${T("spTeam", teamLine, SP.teamLine.textX, SP.teamLine.cap, "left", { color: SP_NAVY, maxW: 1100 })}
+      ${rectBar(SP.year.rule, SP_NAVY)}
+      ${T("stInk", String(year), SP.year.right, SP.year.cap, "right", { scale: 1.1 })}
+      ${title ? T("week", title, SP.title.x, SP.title.cap, "left", { color: SP_NAVY, scale: SP.title.h / STYLES.week.ref[1], maxW: SP.title.maxW }) : ""}
+      ${sub ? `${rectBar(SP.sub.rule, SP_NAVY)}${T("cmpSub", sub, SP.sub.x, SP.sub.cap, "left", { color: SP_NAVY, scale: SP.sub.h / STYLES.cmpSub.ref[1], maxW: 1130 })}` : ""}
+      ${hdr}${rows}
+    </div>`;
+  fitPreview(stage);
+}
+document.getElementById("dl-statsplit").addEventListener("click", () => {
+  if (!sp.loaded || !sp.player) return;
+  const slug = `${(sp.player.name || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-")}-${sp.splits.slice(0, sp.nSplits).map((s) => `${s.season}w${s.from}-${s.to}`).join("-vs-")}`;
+  exportPng(stages.statsplit, `5dwn-confronto-stat-${slug}.png`);
+});
+
 // ---------------------------------------------------------------------------- template Calendario squadra
 // Misurato su "NFL Team Schedule-selection.png" (10984×6180 → 1920×1080). Solo 16:9.
 const TS = {
@@ -3260,7 +3581,7 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat" }[tpl] || "calendario");
   if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
   if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
@@ -3331,6 +3652,7 @@ plSeasonSel.addEventListener("change", async () => {
 async function loadWeek() {
   if (tpl === "team") return loadTeamSchedule();
   if (tpl === "compare") return loadCompare();
+  if (tpl === "statsplit") return loadStatSplit();
   if (tpl === "tcompare") return loadTCompare();
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
@@ -3393,7 +3715,9 @@ async function init() {
   status.textContent = "Carico calendario e font…";
   try {
     const fontsToLoad = Object.values(STYLES).map((st) => document.fonts.load(fontStr(st, 40), st.ref[0]));
-    const [scoreboard] = await Promise.all([getScoreboard(), ...fontsToLoad, prepareOutlinedLogos()]);
+    // loghi con contorno in parallelo, senza bloccare l'avvio: quando sono pronti si ridisegna
+    prepareOutlinedLogos().then(() => renderAll());
+    const [scoreboard] = await Promise.all([getScoreboard(), ...fontsToLoad]);
     sb = scoreboard.data;
     setCurrentSeason(sb.season.year);
   } catch (err) {

@@ -181,6 +181,18 @@ Ogni giocatore ha la spunta **Anonimo**: la foto diventa la sua sagoma scura, il
 della squadra è sostituito da un "?", il nome sparisce e card e barra usano un grigio
 neutro (le statistiche restano).
 
+**Template 9 — Confronto stat player** (riferimento "Drake Maye week 1/3 vs week 4", solo 16:9):
+voce **Confronto stat player** (`?t=confronto-stat`). Lo stesso giocatore in 2 o 3 split: per ogni
+split stagione (anche passate) e "dalla week / alla week" (regular season, gamelog ESPN). Proposti:
+dalla prima alla penultima week giocata contro l'ultima. **Valori**: media a partita (i conteggi si
+dividono per le partite; percentuali, medie, rating e record restano tali) o totale. **Evidenzia**:
+il migliore in blu e gli altri in grigio (meno = meglio per intercetti, sack subiti, fumble; pari =
+entrambi in blu) oppure nessuno. 3-8 statistiche da tendina, con etichette in italiano. Colonne:
+"MEDIA W1–3" / "TOTALE …" / "WEEK 4" / "MEDIA STAGIONE"; sotto, numero di partite oppure
+avversario con logo (una sola week), più l'anno se le stagioni sono diverse. Pannello a sinistra
+nei colori della squadra con bordo curvo e striscia del colore secondario; foto profilo ESPN o foto
+da URL/file. Titolo = nome (sostituibile), sottotitolo automatico "WEEK 1/3 vs WEEK 4" (sostituibile).
+
 **Template 8 — Confronto squadre** (riferimento "NFL Team Comparison", solo 16:9): voce
 **Confronto squadre**. 2 o 3 squadre, 5-7 statistiche scelte da tendine divise in
 ATTACCO / DIFESA / SPECIAL TEAMS (incluse le efficienze yard/giocata, yard/tentativo,

@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <link rel="preconnect" href="https://site.api.espn.com" crossorigin>
   <link rel="preconnect" href="https://a.espncdn.com">
-  <link rel="stylesheet" href="assets/css/style.css?v=202610061317">
-  <link rel="stylesheet" href="assets/css/studio.css?v=202610061317">
+  <link rel="stylesheet" href="assets/css/style.css?v=202610071048">
+  <link rel="stylesheet" href="assets/css/studio.css?v=202610071048">
 </head>
 <body>
   <header id="site-header" class="site-header">
@@ -48,6 +48,7 @@
             <option value="player">Giocatore</option>
             <option value="compare">Confronto giocatori</option>
             <option value="tcompare">Confronto squadre</option>
+            <option value="statsplit">Confronto stat player</option>
             <option value="lowerthird">Lower third (video) ↗</option>
           </select></span>
         </label>
@@ -107,6 +108,52 @@
         </div>
         <span class="studio-hint game-only" id="photo-links" hidden></span>
         <span class="studio-status" id="studio-status" role="status"></span>
+      </div>
+      <div class="studio-compare statsplit-only" hidden>
+        <div class="cmp-row">
+          <label class="select-field"><span class="select-label">Split</span><span class="select-wrap"><select id="sp-nsplits" class="select" aria-label="Split" autocomplete="off"><option value="2" selected>2</option><option value="3">3</option></select></span></label>
+          <label class="select-field"><span class="select-label">Statistiche</span><span class="select-wrap"><select id="sp-nstats" class="select" aria-label="Statistiche" autocomplete="off"><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7" selected>7</option><option value="8">8</option></select></span></label>
+          <label class="select-field"><span class="select-label">Valori</span><span class="select-wrap"><select id="sp-mode" class="select" aria-label="Valori" autocomplete="off"><option value="avg" selected>Media a partita</option><option value="tot">Totale</option></select></span></label>
+          <label class="select-field"><span class="select-label">Evidenzia</span><span class="select-wrap"><select id="sp-highlight" class="select" aria-label="Evidenzia" autocomplete="off"><option value="best" selected>Il migliore</option><option value="none">Nessuno</option></select></span></label>
+        </div>
+        <div class="cmp-players">
+          <div class="cmp-player">
+            <span class="select-label">Giocatore</span>
+            <span class="select-wrap"><select id="sp-season" class="select" aria-label="Stagione del roster" autocomplete="off"></select></span>
+            <span class="select-wrap"><select id="sp-team" class="select" aria-label="Squadra" autocomplete="off"></select></span>
+            <span class="select-wrap"><select id="sp-player" class="select" aria-label="Giocatore" autocomplete="off"></select></span>
+            <div class="cmp-photo">
+              <input type="url" id="sp-photourl" class="text-input" placeholder="Foto: incolla un URL (facoltativo)" autocomplete="off">
+              <label class="btn" style="cursor:pointer">File<input type="file" id="sp-photofile" accept="image/*" hidden></label>
+              <button type="button" class="btn" id="sp-photoreset">Foto automatica</button>
+            </div>
+          </div>
+          <div class="cmp-player" id="sp-s0">
+            <span class="select-label">Split 1</span>
+            <span class="select-wrap"><select id="sp-sseason0" class="select" aria-label="Stagione split 1" autocomplete="off"></select></span>
+            <div class="cmp-range"><span class="select-wrap"><select id="sp-from0" class="select" aria-label="Dalla week, split 1" autocomplete="off"></select></span><span class="select-wrap"><select id="sp-to0" class="select" aria-label="Alla week, split 1" autocomplete="off"></select></span></div>
+          </div>
+          <div class="cmp-player" id="sp-s1">
+            <span class="select-label">Split 2</span>
+            <span class="select-wrap"><select id="sp-sseason1" class="select" aria-label="Stagione split 2" autocomplete="off"></select></span>
+            <div class="cmp-range"><span class="select-wrap"><select id="sp-from1" class="select" aria-label="Dalla week, split 2" autocomplete="off"></select></span><span class="select-wrap"><select id="sp-to1" class="select" aria-label="Alla week, split 2" autocomplete="off"></select></span></div>
+          </div>
+          <div class="cmp-player" id="sp-s2" hidden>
+            <span class="select-label">Split 3</span>
+            <span class="select-wrap"><select id="sp-sseason2" class="select" aria-label="Stagione split 3" autocomplete="off"></select></span>
+            <div class="cmp-range"><span class="select-wrap"><select id="sp-from2" class="select" aria-label="Dalla week, split 3" autocomplete="off"></select></span><span class="select-wrap"><select id="sp-to2" class="select" aria-label="Alla week, split 3" autocomplete="off"></select></span></div>
+          </div>
+        </div>
+        <div class="cmp-stats">
+          <label class="select-field"><span class="select-label">Statistica 1</span><span class="select-wrap"><select class="select sp-stat" aria-label="Statistica 1" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 2</span><span class="select-wrap"><select class="select sp-stat" aria-label="Statistica 2" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 3</span><span class="select-wrap"><select class="select sp-stat" aria-label="Statistica 3" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 4</span><span class="select-wrap"><select class="select sp-stat" aria-label="Statistica 4" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 5</span><span class="select-wrap"><select class="select sp-stat" aria-label="Statistica 5" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 6</span><span class="select-wrap"><select class="select sp-stat" aria-label="Statistica 6" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 7</span><span class="select-wrap"><select class="select sp-stat" aria-label="Statistica 7" autocomplete="off"></select></span></label>
+          <label class="select-field"><span class="select-label">Statistica 8</span><span class="select-wrap"><select class="select sp-stat" aria-label="Statistica 8" autocomplete="off"></select></span></label>
+        </div>
       </div>
       <div class="studio-compare compare-only" hidden>
         <div class="cmp-row">
@@ -304,6 +351,13 @@
         </div>
         <div class="gfx-preview" id="preview-compare"><div class="gfx-scaler"><div class="gfx" id="gfx-compare"></div></div></div>
       </section>
+      <section data-fmt="wide" class="studio-block tpl-statsplit" hidden>
+        <div class="section-head">
+          <div><span class="eyebrow">Confronto stat player</span><h2>16:9 · 1920 × 1080</h2></div>
+          <div class="studio-actions"><button type="button" class="btn btn-primary" id="dl-statsplit">Scarica PNG confronto stat</button></div>
+        </div>
+        <div class="gfx-preview" id="preview-statsplit"><div class="gfx-scaler"><div class="gfx" id="gfx-statsplit"></div></div></div>
+      </section>
       <section data-fmt="wide" class="studio-block tpl-team" hidden>
         <div class="section-head">
           <div><span class="eyebrow">Calendario squadra individuale</span><h2>16:9 · 1920 × 1080</h2></div>
@@ -322,6 +376,6 @@
   </main>
 
   <footer id="site-footer" class="site-footer"></footer>
-  <script type="module" src="assets/js/pages/studio.js?v=202610061317"></script>
+  <script type="module" src="assets/js/pages/studio.js?v=202610071048"></script>
 </body>
 </html>
