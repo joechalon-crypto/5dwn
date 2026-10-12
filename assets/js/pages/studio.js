@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610071055";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610071055";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610122332";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610122332";
 
 renderChrome("");
 
@@ -1036,7 +1036,8 @@ const SG = {
   blocks: [[116.2, 247.6], [1010.3, 247.6], [116.2, 608.5], [1010.3, 608.5]], // x, cap top intestazione
   order: ["East", "North", "South", "West"],
   hdrToRow: 35.6, pitch: 72.97, rowH: 70.6,
-  cells: { team: [0, 466.5], w: [469.0, 95.8], l: [566.8, 86.3], pct: [654.7, 139.1] },
+  // colonna P (pareggi) come nel master aggiornato: box squadra più stretto, PCT dov'era
+  cells: { team: [0, 423.3], w: [426.2, 78.7], l: [507.8, 70.1], t: [581.8, 70.1], pct: [654.7, 139.1] },
   logoCx: 92.5, logoBox: 70, textX: 185.4, t1: 13.5, t2: 40.5, numCap: 26.6, colCap: 9.0,
 };
 
@@ -1096,7 +1097,7 @@ function stdBlock(div, x, capTop, g = SG) {
   const rowTop = capTop + SG_.hdrToRow;
   const c = SG_.cells;
   let html = T("stDiv", `${div.conf} ${div.short}`.toUpperCase(), x, capTop, "left", { scale: ts });
-  for (const [k, label] of [["w", "W"], ["l", "L"], ["pct", "PCT"]]) {
+  for (const [k, label] of [["w", "W"], ["l", "L"], ["t", "P"], ["pct", "PCT"]]) {
     html += T("stCol", label, x + c[k][0] + c[k][1] / 2, capTop + SG_.colCap, "center", { scale: ts });
   }
   div.teams.slice(0, 4).forEach((r, i) => {
@@ -1108,8 +1109,8 @@ function stdBlock(div, x, capTop, g = SG) {
       <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${x + SG_.logoCx - SG_.logoBox / 2}px;top:${y + (SG_.rowH - SG_.logoBox) / 2}px;width:${SG_.logoBox}px;height:${SG_.logoBox}px">
       ${T("stT1", (t.location || "").toUpperCase(), x + SG_.textX, y + SG_.t1, "left", { color: ink, scale: ts })}
       ${T("stT2", (t.nickname || t.short || "").toUpperCase(), x + SG_.textX, y + SG_.t2, "left", { color: ink, scale: ts })}`;
-    const vals = { w: String(r.w), l: String(r.l), pct: pctOf(r).toFixed(3) };
-    for (const k of ["w", "l", "pct"]) {
+    const vals = { w: String(r.w), l: String(r.l), t: String(r.t || 0), pct: pctOf(r).toFixed(3) };
+    for (const k of ["w", "l", "t", "pct"]) {
       html += `<div class="g-cell g-white" style="left:${x + c[k][0]}px;top:${y}px;width:${c[k][1]}px;height:${SG_.rowH}px"></div>
         ${T("stNum", vals[k], x + c[k][0] + c[k][1] / 2, y + SG_.numCap, "center", { scale: ts })}`;
     }
@@ -1170,7 +1171,7 @@ function renderStandingsStage(stage, conf) {
 const SG_TALL = {
   x: 48.3, firstCap: 389.4, maxBottom: 1690, blockGap: 40,
   hdrToRow: 35.6, colCap: 9.0,
-  cells: { team: [0, 588], w: [590, 112], l: [704, 112], pct: [818, 166] },
+  cells: { team: [0, 500], w: [502, 112], l: [616, 112], t: [730, 112], pct: [844, 140] },
 };
 
 function standingsTallGeometry() {
