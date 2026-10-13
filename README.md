@@ -115,7 +115,7 @@ I punteggi arrivano da ESPN tramite il sito, come tutti gli altri dati.
 
 **Template 3 — Classifiche** (riferimenti "NFL Standings"): una grafica per
 l'**AFC** e una per l'**NFC**, ciascuna in 16:9 e in 9:16 per le storie IG
-(stesso sfondo e impianto del calendario storie, division una sotto l'altra), con le 4 division (W, L, P = pareggi, PCT con il pareggio contato mezza vittoria), logo della
+(stesso sfondo e impianto del calendario storie, division una sotto l'altra), con le 4 division (W, L, T = tie, pareggi, PCT con il pareggio contato mezza vittoria), logo della
 conference e i colori ufficiali delle squadre. Si generano **settimana per
 settimana**: per la settimana in corso si usa la classifica ufficiale ESPN; per le
 settimane passate vittorie/sconfitte/percentuale vengono ricalcolate dai risultati

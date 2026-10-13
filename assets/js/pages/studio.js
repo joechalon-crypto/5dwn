@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610122332";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610122332";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610131014";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610131014";
 
 renderChrome("");
 
@@ -1097,7 +1097,7 @@ function stdBlock(div, x, capTop, g = SG) {
   const rowTop = capTop + SG_.hdrToRow;
   const c = SG_.cells;
   let html = T("stDiv", `${div.conf} ${div.short}`.toUpperCase(), x, capTop, "left", { scale: ts });
-  for (const [k, label] of [["w", "W"], ["l", "L"], ["t", "P"], ["pct", "PCT"]]) {
+  for (const [k, label] of [["w", "W"], ["l", "L"], ["t", "T"], ["pct", "PCT"]]) {
     html += T("stCol", label, x + c[k][0] + c[k][1] / 2, capTop + SG_.colCap, "center", { scale: ts });
   }
   div.teams.slice(0, 4).forEach((r, i) => {
