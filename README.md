@@ -194,7 +194,7 @@ nei colori della squadra con bordo curvo e striscia del colore secondario; foto 
 da URL/file. Titolo = nome (sostituibile), sottotitolo automatico "WEEK 1/3 vs WEEK 4" (sostituibile).
 
 **Template 8 — Confronto squadre** (riferimento "NFL Team Comparison", solo 16:9): voce
-**Confronto squadre**. 2 o 3 squadre, 5-7 statistiche scelte da tendine divise in
+**Confronto squadre**. 2, 3 o 4 squadre (con 4 card più strette: logo, colonne e rank compattati), 5-7 statistiche scelte da tendine divise in
 ATTACCO / DIFESA / SPECIAL TEAMS (incluse le efficienze yard/giocata, yard/tentativo,
 yard/portata e le versioni concesse, e il PASSER RATING AGAINST calcolato con la formula
 NFL sui totali concessi). Ogni conteggio è nella lista due volte, totale e "/PARTITA"
