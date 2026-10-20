@@ -181,6 +181,13 @@ Ogni giocatore ha la spunta **Anonimo**: la foto diventa la sua sagoma scura, il
 della squadra è sostituito da un "?", il nome sparisce e card e barra usano un grigio
 neutro (le statistiche restano).
 
+**Template 10 — Playoff picture** (riferimento "Playoff picture", solo 16:9): voce **Playoff
+picture** (`?t=playoff-picture`). AFC a sinistra e NFC a destra con i seed ufficiali ESPN della
+classifica aggiornata: 1-4 (vincitrici di division) e, sotto "WILD CARD", 5-7; badge della division,
+record (con i pareggi se ci sono) e, sotto "IN CORSA", i seed 8-11 in riquadri con logo e record.
+Sottotitolo automatico "DOPO LA WEEK X" (oppure "WEEK X IN CORSO" se la giornata è a metà);
+titolo, sottotitolo e footer sostituibili.
+
 **Template 9 — Confronto stat player** (riferimento "Drake Maye week 1/3 vs week 4", solo 16:9):
 voce **Confronto stat player** (`?t=confronto-stat`). Lo stesso giocatore in 2 o 3 split: per ogni
 split stagione (anche passate) e "dalla week / alla week" (regular season, gamelog ESPN). Proposti:
