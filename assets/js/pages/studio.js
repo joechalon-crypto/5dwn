@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610271637";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610271637";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610271645";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610271645";
 
 renderChrome("");
 
@@ -200,7 +200,10 @@ const ctx = document.createElement("canvas").getContext("2d");
 const fontStr = (st, size) => `${st.italic ? "italic " : ""}${st.stretch && st.stretch !== "normal" ? `${st.stretch} ` : ""}${st.weight} ${size}px "${st.family}"`;
 
 function calibrate() {
-  for (const st of Object.values(STYLES)) {
+  for (const st of Object.values(STYLES)) calibrateOne(st);
+}
+function calibrateOne(st) {
+  {
     const [text, cap, ink] = st.ref;
     ctx.font = fontStr(st, 100);
     const g = ctx.measureText(st.ink ? text : "H");
@@ -3517,9 +3520,16 @@ const flDefault = () => ({
   table: { cols: 2, headers: ["SQUADRA", "VALORE", "", "", ""], highlight: 0,
     rows: [{ team: "BUF", label: "", vals: ["", "", "", ""] }, { team: "KC", label: "", vals: ["", "", "", ""] }, { team: "PHI", label: "", vals: ["", "", "", ""] }] },
   list: { items: [{ team: "BUF", player: "", name: "", sub: "", val: "" }, { team: "KC", player: "", name: "", sub: "", val: "" }, { team: "PHI", player: "", name: "", sub: "", val: "" }] },
-  quote: { team: "", text: "Scrivi qui il testo in evidenza", author: "", photoUrl: "" },
+  quote: { team: "", text: "Scrivi qui il testo in evidenza", author: "", photoUrl: "",
+    photoSize: "l", fit: "cover", font: "archivo", weight: 700, size: "auto", align: "left", color: "navy", upper: "no", leading: "normal", valign: "top", bar: "yes" },
 });
-const fl = (() => { try { return Object.assign(flDefault(), JSON.parse(localStorage.getItem(FL_KEY) || "{}")); } catch { return flDefault(); } })();
+const fl = (() => {
+  const d = flDefault();
+  try {
+    const saved = JSON.parse(localStorage.getItem(FL_KEY) || "{}");
+    return Object.assign(d, saved, { quote: { ...d.quote, ...(saved.quote || {}) } }); // nuove opzioni con il loro default
+  } catch { return d; }
+})();
 let flPhotoUpload = null; // foto caricata da file (solo per questa visita)
 const flRosters = {}; // sigla → giocatori (roster attuale ESPN)
 function flSave() { try { localStorage.setItem(FL_KEY, JSON.stringify(fl)); } catch { /* storage non disponibile */ } }
@@ -3561,14 +3571,29 @@ function flRenderControls() {
         ${flInput(`data-fl="ival" data-i="${i}"`, it.val, "Valore (es. 312 YDS)")}</div>`).join("")}</div>`;
   } else {
     const Q = fl.quote;
+    const o = (pairs, v) => pairs.map(([k, l]) => `<option value="${k}"${String(k) === String(v) ? " selected" : ""}>${l}</option>`).join("");
     html += `<div class="cmp-players"><div class="cmp-player"><span class="select-label">Testo</span>
-        <textarea class="text-input" data-fl="qtext" rows="4" placeholder="Testo in evidenza (a capo con Invio)">${esc(Q.text)}</textarea>
+        <textarea class="text-input" data-fl="qtext" rows="6" placeholder="Testo in evidenza (a capo con Invio)">${esc(Q.text)}</textarea>
+        <span class="fl-hint"><b># </b>a inizio riga = riga in evidenza · <b>- </b>a inizio riga = elenco puntato · <b>**parole**</b> = grassetto</span>
         ${flInput('data-fl="qauthor"', Q.author, "Firma o fonte (facoltativa)")}</div>
-      <div class="cmp-player"><span class="select-label">Squadra e foto</span>
+      <div class="cmp-player"><span class="select-label">Squadra e immagine</span>
         <span class="select-wrap"><select class="select" data-fl="qteam" autocomplete="off">${flTeamOpts(Q.team, "Nessuna squadra (colori 5DWN)")}</select></span>
+        <div class="cmp-range"><span class="select-wrap"><select class="select" data-fl="qphotoSize" aria-label="Riquadro immagine" autocomplete="off">${o([["l", "Immagine grande"], ["m", "Immagine media"], ["s", "Immagine piccola"], ["none", "Nessuna immagine"]], Q.photoSize)}</select></span>
+          <span class="select-wrap"><select class="select" data-fl="qfit" aria-label="Adattamento foto" autocomplete="off">${o([["cover", "Foto: riempi il riquadro"], ["contain", "Foto: intera"]], Q.fit)}</select></span></div>
         <div class="cmp-photo">${flInput('data-fl="qurl" type="url"', Q.photoUrl, "Foto: incolla un URL")}
           <label class="btn" style="cursor:pointer">File<input type="file" data-fl="qfile" accept="image/*" hidden></label>
-          <button type="button" class="btn" data-fl="qreset">Togli foto</button></div></div></div>`;
+          <button type="button" class="btn" data-fl="qreset">Togli foto</button></div></div></div>
+      <div class="cmp-stats">
+        ${flSel('data-fl="qfont"', o([["archivo", "Archivo"], ["archivo-cond", "Archivo condensato"], ["barlow", "Barlow Condensed"], ["archivo-bold", "Archivo Bold (titoli)"], ["archivo-thin", "Archivo Thin (sottotitoli)"]], Q.font), "Font del testo")}
+        ${flSel('data-fl="qweight"', o([[300, "Light"], [400, "Regular"], [700, "Bold"], [900, "Black"]], Q.weight), "Peso")}
+        ${flSel('data-fl="qsize"', o([["auto", "Automatica (riempie)"], ["s", "Piccola"], ["m", "Media"], ["l", "Grande"], ["xl", "Molto grande"]], Q.size), "Dimensione")}
+        ${flSel('data-fl="qalign"', o([["left", "Sinistra"], ["center", "Centro"], ["right", "Destra"]], Q.align), "Allineamento")}
+        ${flSel('data-fl="qcolor"', o([["navy", "Blu notte"], ["blue", "Blu 5DWN"], ["orange", "Arancio 5DWN"], ["black", "Nero"], ["team", "Colore squadra"]], Q.color), "Colore")}
+        ${flSel('data-fl="qupper"', o([["no", "Come scritto"], ["yes", "Tutto maiuscolo"]], Q.upper), "Maiuscole")}
+        ${flSel('data-fl="qleading"', o([["tight", "Stretta"], ["normal", "Normale"], ["loose", "Ampia"]], Q.leading), "Interlinea")}
+        ${flSel('data-fl="qvalign"', o([["top", "In alto"], ["middle", "Al centro"]], Q.valign), "Posizione")}
+        ${flSel('data-fl="qbar"', o([["yes", "Sì"], ["no", "No"]], Q.bar), "Linea colorata")}
+      </div>`;
   }
   box.innerHTML = html;
   if (fl.mode === "list") fl.list.items.forEach((it, i) => flFillPlayers(i));
@@ -3603,6 +3628,9 @@ function flChange(e, live) {
     case "qtext": Q.text = v; break;
     case "qauthor": Q.author = v; break;
     case "qteam": Q.team = v; break;
+    case "qphotoSize": case "qfit": case "qfont": case "qsize": case "qalign": case "qcolor": case "qupper": case "qleading": case "qvalign": case "qbar":
+      Q[k.slice(1).replace(/^./, (ch) => ch.toLowerCase())] = v; break;
+    case "qweight": Q.weight = Number(v); break;
     case "qurl":
       if (live) return; // si controlla solo a fine digitazione
       if (!v.trim()) { Q.photoUrl = ""; break; }
@@ -3647,19 +3675,6 @@ async function loadFree() {
   }
 }
 
-/** Divide un testo in righe che stanno in maxW (a capo manuali rispettati). */
-function flWrap(style, text, maxW, scale) {
-  const out = [];
-  for (const para of String(text || "").split(/\n/)) {
-    let line = "";
-    for (const w of para.split(/\s+/).filter(Boolean)) {
-      const test = line ? `${line} ${w}` : w;
-      if (line && inkWidth(style, test) * scale > maxW) { out.push(line); line = w; } else line = test;
-    }
-    out.push(line);
-  }
-  return out;
-}
 const flInk = (abbr) => (ST_DARK_TEXT.has(abbr) ? "#111111" : "#ffffff");
 const flColor = (t) => (t ? ST_CELL[t.abbr] || t.color || "#333" : "#0f1e3f");
 const flLogo = (t, px = 160) => espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${t.abbr.toLowerCase()}.png`, px);
@@ -3731,31 +3746,115 @@ function flList() {
   });
   return html;
 }
+// Testo formattato: font/peso/colore scelti; per riga "# " = evidenza, "- " = elenco; "**…**" = grassetto
+const FL_FONTS = {
+  archivo: { family: "Archivo", stretch: "normal" }, "archivo-cond": { family: "Archivo", stretch: "condensed" },
+  barlow: { family: "Barlow Condensed", stretch: "normal" }, "archivo-bold": { family: "Archivo Bold", stretch: "normal", fixed: 700 },
+  "archivo-thin": { family: "Archivo Thin", stretch: "normal", fixed: 100 },
+};
+const FL_COLORS = { navy: "#0f1e3f", blue: "#1e3fae", orange: "#e0902f", black: "#111111" };
+/** Stili del testo (normale, grassetto) dalle opzioni scelte; restituisce le promesse di caricamento font. */
+function flTextStyles(Q) {
+  const f = FL_FONTS[Q.font] || FL_FONTS.archivo;
+  const w = f.fixed || (f.family === "Barlow Condensed" ? Math.min(800, Math.max(500, Q.weight)) : Q.weight);
+  const boldFam = f.fixed ? { family: "Archivo", stretch: "normal" } : f; // font statici: grassetto in Archivo Black
+  const bw = f.family === "Barlow Condensed" ? 800 : 900;
+  STYLES.flQ = { cls: "gt-sp", family: f.family, weight: w, stretch: f.stretch, natural: true, dyn: true, ref: ["H", 30, 0] };
+  STYLES.flQB = { cls: "gt-sp", family: boldFam.family, weight: bw, stretch: boldFam.stretch, natural: true, dyn: true, ref: ["H", 30, 0] };
+  calibrateOne(STYLES.flQ); calibrateOne(STYLES.flQB);
+  return [document.fonts.load(fontStr(STYLES.flQ, 40), "Hx"), document.fonts.load(fontStr(STYLES.flQB, 40), "Hx")];
+}
+/** Larghezza di avanzamento (per affiancare pezzi di stile diverso sulla stessa riga). */
+function flAdv(style, text, scale) {
+  const st = STYLES[style];
+  ctx.font = fontStr(st, st.size * scale);
+  return ctx.measureText(text).width + st.ls * scale * Math.max(0, [...text].length - 1);
+}
+/** Righe → token {t, b} (parola, grassetto) con tipo di riga, poi a capo entro maxW. */
+function flLayout(text, upper, maxW, scale) {
+  const out = [];
+  for (const raw of String(text || "").split(/\n/)) {
+    let line = upper ? raw.toUpperCase() : raw, kind = "p";
+    if (/^#\s+/.test(line)) { kind = "h"; line = line.replace(/^#\s+/, ""); }
+    else if (/^[-•]\s+/.test(line)) { kind = "li"; line = line.replace(/^[-•]\s+/, ""); }
+    const sc = scale * (kind === "h" ? 1.35 : 1);
+    const indent = kind === "li" ? 44 * scale : 0;
+    const toks = [];
+    line.split(/(\*\*[^*]+\*\*)/).forEach((seg) => {
+      const b = /^\*\*[^*]+\*\*$/.test(seg) || kind === "h";
+      seg.replace(/^\*\*|\*\*$/g, "").split(/\s+/).filter(Boolean).forEach((t) => toks.push({ t, b }));
+    });
+    if (!toks.length) { out.push({ kind: "blank", toks: [], sc, indent: 0 }); continue; }
+    const space = flAdv("flQ", " ", sc);
+    let cur = [], w = 0, first = true;
+    for (const tk of toks) {
+      const tw = flAdv(tk.b ? "flQB" : "flQ", tk.t, sc);
+      if (cur.length && w + space + tw > maxW - indent) { out.push({ kind: first ? kind : kind === "li" ? "lic" : kind, toks: cur, sc, indent, w }); first = false; cur = []; w = 0; }
+      w += (cur.length ? space : 0) + tw; cur.push({ ...tk, w: tw });
+    }
+    out.push({ kind: first ? kind : kind === "li" ? "lic" : kind, toks: cur, sc, indent, w });
+  }
+  return out;
+}
 function flQuote() {
   const A = FL_AREA, Q = fl.quote, t = flTeam(Q.team), col = flColor(t);
-  const photo = flPhotoUpload || Q.photoUrl, side = A.bot - A.top;
-  let html = photo
-    ? `<img class="g-logo g-cover" ${flPhotoUpload ? "" : 'crossorigin="anonymous"'} src="${esc(photo)}" alt="" style="left:${A.x}px;top:${A.top}px;width:${side}px;height:${side}px">`
-    : `<div class="g-cell" style="left:${A.x}px;top:${A.top}px;width:${side}px;height:${side}px;background:${col}"></div>
-       ${t ? `<img class="g-logo" crossorigin="anonymous" src="${flLogo(t, 500)}" alt="" style="left:${A.x + side * 0.15}px;top:${A.top + side * 0.15}px;width:${side * 0.7}px;height:${side * 0.7}px">`
-        : `<img class="g-logo" src="assets/5dwn-logo-light.png" alt="5DWN" style="left:${A.x + side * 0.18}px;top:${A.top + side * 0.24}px;width:${side * 0.64}px;height:${side * 0.64 * (576 / 678)}px">`}`;
-  const x = A.x + side + 70, maxW = A.x + A.w - x;
-  html += `<div class="g-bar" style="left:${x}px;top:${A.top + 30}px;width:120px;height:8px;background:${col}"></div>`;
-  // corpo del testo: il più grande che sta nell'area (righe che vanno a capo)
-  let sc = 1.6, lines;
-  for (; sc > 0.6; sc -= 0.05) {
-    lines = flWrap("flQuote", Q.text, maxW, sc);
-    if (lines.length * STYLES.flQuote.ref[1] * sc * 1.55 <= side - 200) break;
+  const photo = flPhotoUpload || Q.photoUrl, areaH = A.bot - A.top;
+  const side = { l: areaH, m: 480, s: 300, none: 0 }[Q.photoSize] ?? areaH;
+  let html = "";
+  if (side) {
+    const py = A.top + (areaH - side) / 2;
+    html += photo
+      ? (Q.fit === "contain"
+        ? `<img class="g-logo" ${flPhotoUpload ? "" : 'crossorigin="anonymous"'} src="${esc(photo)}" alt="" style="left:${A.x}px;top:${py}px;width:${side}px;height:${side}px">`
+        : `<img class="g-logo g-cover" ${flPhotoUpload ? "" : 'crossorigin="anonymous"'} src="${esc(photo)}" alt="" style="left:${A.x}px;top:${py}px;width:${side}px;height:${side}px">`)
+      : `<div class="g-cell" style="left:${A.x}px;top:${py}px;width:${side}px;height:${side}px;background:${col}"></div>
+       ${t ? `<img class="g-logo" crossorigin="anonymous" src="${flLogo(t, 500)}" alt="" style="left:${A.x + side * 0.15}px;top:${py + side * 0.15}px;width:${side * 0.7}px;height:${side * 0.7}px">`
+        : `<img class="g-logo" src="assets/5dwn-logo-light.png" alt="5DWN" style="left:${A.x + side * 0.18}px;top:${py + side * 0.24}px;width:${side * 0.64}px;height:${side * 0.64 * (576 / 678)}px">`}`;
   }
-  const lh = STYLES.flQuote.ref[1] * sc * 1.55;
-  lines.forEach((l, i) => { html += T("flQuote", l, x, A.top + 90 + i * lh, "left", { color: "#0f1e3f", scale: sc, maxW }); });
-  if (Q.author) html += T("flAuthor", Q.author.toUpperCase(), x, A.top + 90 + lines.length * lh + 30, "left", { color: TS_BLUE, maxW });
+  const x = side ? A.x + side + 70 : A.x, maxW = A.x + A.w - x;
+  const textColor = Q.color === "team" ? (t ? col : FL_COLORS.navy) : FL_COLORS[Q.color] || FL_COLORS.navy;
+  const accent = t ? col : TS_BLUE;
+  const lead = { tight: 1.25, normal: 1.55, loose: 1.9 }[Q.leading] || 1.55;
+  const cap = STYLES.flQ.ref[1];
+  const hBlock = (ls) => ls.reduce((h, l) => h + cap * l.sc * lead, 0);
+  const avail = areaH - (Q.bar === "yes" ? 90 : 20) - (Q.author ? 70 : 0);
+  let sc, lines;
+  if (Q.size === "auto") {
+    for (sc = 2.4; sc > 0.5; sc -= 0.05) { lines = flLayout(Q.text, Q.upper === "yes", maxW, sc); if (hBlock(lines) <= avail) break; }
+  } else {
+    sc = { s: 0.9, m: 1.2, l: 1.6, xl: 2.1 }[Q.size] || 1.2;
+    lines = flLayout(Q.text, Q.upper === "yes", maxW, sc);
+  }
+  const total = (Q.bar === "yes" ? 60 : 0) + hBlock(lines) + (Q.author ? 60 : 0);
+  let y = Q.valign === "middle" ? A.top + Math.max(0, (areaH - total) / 2) : A.top + 30;
+  const alignX = (w) => (Q.align === "center" ? x + (maxW - w) / 2 : Q.align === "right" ? x + maxW - w : x);
+  if (Q.bar === "yes") { html += `<div class="g-bar" style="left:${alignX(120)}px;top:${y}px;width:120px;height:8px;background:${accent}"></div>`; y += 60; }
+  for (const l of lines) {
+    const lh = cap * l.sc * lead;
+    if (l.kind === "blank") { y += lh; continue; }
+    const capTop = y + (lh - cap * l.sc) / 2;
+    let cx = alignX(l.w + l.indent) + l.indent;
+    if (l.kind === "li") html += `<div class="g-bar" style="left:${cx - 30 * l.sc}px;top:${capTop + cap * l.sc * 0.3}px;width:${12 * l.sc}px;height:${12 * l.sc}px;background:${accent}"></div>`;
+    const color = l.kind === "h" ? accent : textColor;
+    const space = flAdv("flQ", " ", l.sc);
+    for (const tk of l.toks) {
+      html += T(tk.b ? "flQB" : "flQ", tk.t, cx, capTop, "left", { color, scale: l.sc });
+      cx += tk.w + space;
+    }
+    y += lh;
+  }
+  if (Q.author) html += T("flAuthor", Q.author.toUpperCase(), alignX(Math.min(maxW, inkWidth("flAuthor", Q.author.toUpperCase()))), y + 24, "left", { color: accent, maxW });
   return html;
 }
 function renderFreeStage(stage) {
   const { W, H, root } = stage;
   const year = sb.season.year;
   const title = ovr("title", "TITOLO"), sub = ovr("sub", "Sottotitolo");
+  if (fl.mode === "quote") {
+    const loads = flTextStyles(fl.quote);
+    // font del testo non ancora pronto: si ridisegna appena caricato (misure giuste per gli a capo)
+    if (!document.fonts.check(fontStr(STYLES.flQ, 40)) || !document.fonts.check(fontStr(STYLES.flQB, 40))) Promise.all(loads).then(() => renderAll());
+  }
   const body = fl.mode === "list" ? flList() : fl.mode === "quote" ? flQuote() : flTable();
   root.style.width = `${W}px`;
   root.style.height = `${H}px`;

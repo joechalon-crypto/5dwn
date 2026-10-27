@@ -187,7 +187,11 @@ sottotitolo, footer da "Testi personalizzati") con un contenuto scritto a mano, 
 colore, riga evidenziata), *Lista / classifica* (2-10 voci numerate: squadra, giocatore dal roster ESPN
 con foto, nome, seconda riga e valore), *Testo e foto* (testo in evidenza che va a capo e si adatta,
 firma, foto da URL/file oppure logo della squadra o del 5DWN). I contenuti restano salvati nel browser
-(`5dwn:grafica-libera`). L'export aspetta il caricamento di foto e loghi (max 8 s) per ogni template.
+(`5dwn:grafica-libera`). In *Testo e foto*: riquadro immagine grande/medio/piccolo/nessuno, foto
+"riempi" o "intera"; testo con font (Archivo, condensato, Barlow Condensed, Archivo Bold/Thin), peso,
+dimensione (automatica o fissa), allineamento, colore, maiuscolo, interlinea, posizione e linea colorata;
+nel testo `# ` a inizio riga = riga in evidenza (più grande, colore squadra), `- ` = elenco puntato,
+`**parole**` = grassetto. L'export aspetta il caricamento di foto e loghi (max 8 s) per ogni template.
 
 **Template 10 — Playoff picture** (riferimento "Playoff picture", solo 16:9): voce **Playoff
 picture** (`?t=playoff-picture`). AFC a sinistra e NFC a destra con i seed ufficiali ESPN della
