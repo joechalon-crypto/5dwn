@@ -181,6 +181,14 @@ Ogni giocatore ha la spunta **Anonimo**: la foto diventa la sua sagoma scura, il
 della squadra è sostituito da un "?", il nome sparisce e card e barra usano un grigio
 neutro (le statistiche restano).
 
+**Template 11 — Grafica libera** (`?t=grafica-libera`): cornice 5DWN (sfondo, logo, titolo,
+sottotitolo, footer da "Testi personalizzati") con un contenuto scritto a mano, scelto da
+**Contenuto**: *Tabella* (1-8 righe, 1-4 colonne di valori, intestazioni, squadra per riga con logo e
+colore, riga evidenziata), *Lista / classifica* (2-10 voci numerate: squadra, giocatore dal roster ESPN
+con foto, nome, seconda riga e valore), *Testo e foto* (testo in evidenza che va a capo e si adatta,
+firma, foto da URL/file oppure logo della squadra o del 5DWN). I contenuti restano salvati nel browser
+(`5dwn:grafica-libera`). L'export aspetta il caricamento di foto e loghi (max 8 s) per ogni template.
+
 **Template 10 — Playoff picture** (riferimento "Playoff picture", solo 16:9): voce **Playoff
 picture** (`?t=playoff-picture`). AFC a sinistra e NFC a destra con i seed ufficiali ESPN della
 classifica aggiornata: 1-4 (vincitrici di division) e, sotto "WILD CARD", 5-7; badge della division,

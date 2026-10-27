@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610201656";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610201656";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610271637";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610271637";
 
 renderChrome("");
 
@@ -26,6 +26,7 @@ const stages = {
   compare: { root: document.getElementById("gfx-compare"), wrap: document.getElementById("preview-compare"), W: 1920, H: 1080 },
   team: { root: document.getElementById("gfx-team"), wrap: document.getElementById("preview-team"), W: 1920, H: 1080 },
   player: { root: document.getElementById("gfx-player"), wrap: document.getElementById("preview-player"), W: 1920, H: 1080 },
+  free: { root: document.getElementById("gfx-free"), wrap: document.getElementById("preview-free"), W: 1920, H: 1080 },
   playoff: { root: document.getElementById("gfx-playoff"), wrap: document.getElementById("preview-playoff"), W: 1920, H: 1080 },
   statsplit: { root: document.getElementById("gfx-statsplit"), wrap: document.getElementById("preview-statsplit"), W: 1920, H: 1080 },
 };
@@ -125,6 +126,9 @@ const STYLES = {
   gVal: { cls: "gt-g-val", family: "Archivo", weight: 700, stretch: "normal", ref: ["298", 18.4, 43.8] },
   gLabel: { cls: "gt-g-label", family: "Archivo", weight: 600, stretch: "normal", ref: ["Yard totali", 14.4, 93.3] },
   // Template Confronto stat player (riferimento 2000×1125 → 1920×1080): Archivo, spaziatura del font (+ track in em)
+  // Template Grafica libera: testo in evidenza e firma
+  flQuote: { cls: "gt-sp", family: "Archivo", weight: 700, stretch: "normal", natural: true, dyn: true, ref: ["H", 30, 0] },
+  flAuthor: { cls: "gt-sp", family: "Archivo", weight: 700, stretch: "normal", natural: true, dyn: true, track: 0.12, ref: ["H", 18, 0] },
   // Template Playoff picture
   ppSeed: { cls: "gt-sp", family: "Archivo", weight: 900, stretch: "normal", natural: true, dyn: true, ref: ["H", 27, 0] },
   ppDiv: { cls: "gt-sp", family: "Archivo", weight: 800, stretch: "normal", natural: true, dyn: true, track: 0.16, ref: ["H", 12.5, 0] },
@@ -282,7 +286,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit", "playoff-picture": "playoff" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit", "playoff-picture": "playoff", "grafica-libera": "free" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -305,6 +309,7 @@ const OV_FIELDS = {
   tcompare: { title: true, sub: true, foot: true },
   statsplit: { title: true, sub: true },
   playoff: { title: true, sub: true, foot: true },
+  free: { title: true, sub: true, foot: true },
   game: {},
 };
 // Testi senza valore automatico: vanno sempre scritti (Confronto giocatori).
@@ -355,6 +360,7 @@ function applyVisibility() {
     else if (el.classList.contains("tpl-compare")) ok = tpl === "compare"; // per ora solo 16:9
     else if (el.classList.contains("tpl-statsplit")) ok = tpl === "statsplit";
     else if (el.classList.contains("tpl-playoff")) ok = tpl === "playoff";
+    else if (el.classList.contains("tpl-free")) ok = tpl === "free";
     else if (el.classList.contains("tpl-tcompare")) ok = tpl === "tcompare" && tc.n > 1; // per ora solo 16:9
     else if (el.classList.contains("tpl-tfocus")) ok = tpl === "tcompare" && tc.n === 1;
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
@@ -362,13 +368,15 @@ function applyVisibility() {
   });
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
   document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
-  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare", "statsplit", "playoff"].includes(tpl);
+  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare", "statsplit", "playoff", "free"].includes(tpl);
+  document.querySelectorAll(".free-only").forEach((el) => (el.hidden = tpl !== "free"));
   document.querySelectorAll(".statsplit-only").forEach((el) => (el.hidden = tpl !== "statsplit"));
   document.querySelectorAll(".tcompare-only").forEach((el) => (el.hidden = tpl !== "tcompare"));
   document.querySelectorAll(".tfocus-only").forEach((el) => (el.hidden = !(tpl === "tcompare" && tc.n === 1)));
   document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
   document.querySelectorAll(".compare-only").forEach((el) => (el.hidden = tpl !== "compare"));
-  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit", "playoff"].includes(tpl);
+  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit", "playoff", "free"].includes(tpl);
+  if (tpl === "free") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo si scrivono lì
   if (tpl === "compare" || tpl === "tcompare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
   syncOverrideFields();
   document.getElementById("fmt-select").value = fmt;
@@ -746,6 +754,10 @@ function renderAllInner() {
     if (ppData) renderPlayoffStage(stages.playoff);
     return;
   }
+  if (tpl === "free") {
+    if (flReady) renderFreeStage(stages.free);
+    return;
+  }
   if (tpl === "tcompare") {
     if (tc.loaded) (tc.n === 1 ? renderFocusStage(stages.tfocus) : renderTCompareStage(stages.tcompare));
     return;
@@ -814,6 +826,12 @@ function loadImage(src) {
 async function drawStage(stage) {
   const { root, W, H } = stage;
   await document.fonts.ready;
+  // immagini ancora in caricamento (foto, loghi): si aspettano, al massimo 8 secondi, così finiscono nel PNG
+  await Promise.all([...root.querySelectorAll("img")].filter((im) => !im.complete).map((im) => new Promise((res) => {
+    const t = setTimeout(res, 8000);
+    im.addEventListener("load", () => { clearTimeout(t); res(); }, { once: true });
+    im.addEventListener("error", () => { clearTimeout(t); res(); }, { once: true });
+  })));
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -3489,6 +3507,281 @@ document.getElementById("dl-statsplit").addEventListener("click", () => {
   exportPng(stages.statsplit, `5dwn-confronto-stat-${slug}.png`);
 });
 
+// ---------------------------------------------------------------------------- template Grafica libera
+// Cornice 5DWN (sfondo, titolo, sottotitolo, footer) + un contenuto scritto a mano: tabella, lista o testo e foto.
+// Lo stato resta nel browser (localStorage) così il lavoro non si perde ricaricando la pagina.
+const FL_KEY = "5dwn:grafica-libera";
+const FL_AREA = { x: 150, w: 1620, top: 250, bot: 930 };
+const flDefault = () => ({
+  mode: "table",
+  table: { cols: 2, headers: ["SQUADRA", "VALORE", "", "", ""], highlight: 0,
+    rows: [{ team: "BUF", label: "", vals: ["", "", "", ""] }, { team: "KC", label: "", vals: ["", "", "", ""] }, { team: "PHI", label: "", vals: ["", "", "", ""] }] },
+  list: { items: [{ team: "BUF", player: "", name: "", sub: "", val: "" }, { team: "KC", player: "", name: "", sub: "", val: "" }, { team: "PHI", player: "", name: "", sub: "", val: "" }] },
+  quote: { team: "", text: "Scrivi qui il testo in evidenza", author: "", photoUrl: "" },
+});
+const fl = (() => { try { return Object.assign(flDefault(), JSON.parse(localStorage.getItem(FL_KEY) || "{}")); } catch { return flDefault(); } })();
+let flPhotoUpload = null; // foto caricata da file (solo per questa visita)
+const flRosters = {}; // sigla → giocatori (roster attuale ESPN)
+function flSave() { try { localStorage.setItem(FL_KEY, JSON.stringify(fl)); } catch { /* storage non disponibile */ } }
+const flTeam = (abbr) => teamList.find((t) => t.abbr === abbr) || null;
+const flTeamOpts = (sel, none = "Nessuna squadra") => `<option value="">${none}</option>${teamList.map((t) => `<option value="${t.abbr}"${t.abbr === sel ? " selected" : ""}>${esc(t.name)}</option>`).join("")}`;
+const flSel = (attrs, opts, label) => `<label class="select-field"><span class="select-label">${label}</span><span class="select-wrap"><select class="select" ${attrs} autocomplete="off">${opts}</select></span></label>`;
+const flInput = (attrs, value, ph) => `<input type="text" class="text-input" ${attrs} value="${esc(value || "")}" placeholder="${esc(ph)}" autocomplete="off">`;
+const flNum = (from, to, v) => Array.from({ length: to - from + 1 }, (_, k) => from + k).map((n) => `<option value="${n}"${n === v ? " selected" : ""}>${n}</option>`).join("");
+
+async function flRoster(abbr) {
+  if (!abbr || flRosters[abbr]) return flRosters[abbr] || [];
+  const t = flTeam(abbr);
+  try { flRosters[abbr] = (await getRoster(t.id)).data.groups.flatMap((g) => g.players); } catch { flRosters[abbr] = []; }
+  return flRosters[abbr];
+}
+/** Costruisce i controlli del contenuto scelto (solo quando cambia la struttura: righe, colonne, tipo). */
+function flRenderControls() {
+  const box = document.getElementById("fl-controls");
+  document.getElementById("fl-mode").value = fl.mode;
+  let html = "";
+  if (fl.mode === "table") {
+    const T_ = fl.table;
+    html += `<div class="cmp-row">${flSel('data-fl="rows"', flNum(1, 8, T_.rows.length), "Righe")}${flSel('data-fl="cols"', flNum(1, 4, T_.cols), "Colonne valori")}
+      ${flSel('data-fl="highlight"', `<option value="0">Nessuna</option>${T_.rows.map((_, i) => `<option value="${i + 1}"${T_.highlight === i + 1 ? " selected" : ""}>Riga ${i + 1}</option>`).join("")}`, "Evidenzia riga")}</div>
+      <div class="cmp-players"><div class="cmp-player"><span class="select-label">Intestazioni</span>
+      ${Array.from({ length: T_.cols + 1 }, (_, c) => flInput(`data-fl="hdr" data-c="${c}"`, T_.headers[c], c ? `Colonna ${c}` : "Prima colonna"))}</div>
+      ${T_.rows.map((r, i) => `<div class="cmp-player"><span class="select-label">Riga ${i + 1}</span>
+        <span class="select-wrap"><select class="select" data-fl="rteam" data-i="${i}" autocomplete="off">${flTeamOpts(r.team)}</select></span>
+        ${flInput(`data-fl="rlabel" data-i="${i}"`, r.label, "Testo (vuoto = nome squadra)")}
+        ${Array.from({ length: T_.cols }, (_, c) => flInput(`data-fl="rval" data-i="${i}" data-c="${c}"`, r.vals[c], `Valore ${c + 1}`)).join("")}</div>`).join("")}</div>`;
+  } else if (fl.mode === "list") {
+    const L = fl.list;
+    html += `<div class="cmp-row">${flSel('data-fl="items"', flNum(2, 10, L.items.length), "Voci")}</div>
+      <div class="cmp-players">${L.items.map((it, i) => `<div class="cmp-player"><span class="select-label">${i + 1}°</span>
+        <span class="select-wrap"><select class="select" data-fl="iteam" data-i="${i}" autocomplete="off">${flTeamOpts(it.team)}</select></span>
+        <span class="select-wrap"><select class="select" data-fl="iplayer" data-i="${i}" autocomplete="off"><option value="">Nessun giocatore (logo squadra)</option></select></span>
+        ${flInput(`data-fl="iname" data-i="${i}"`, it.name, "Nome (vuoto = giocatore o squadra)")}
+        ${flInput(`data-fl="isub" data-i="${i}"`, it.sub, "Seconda riga (facoltativa)")}
+        ${flInput(`data-fl="ival" data-i="${i}"`, it.val, "Valore (es. 312 YDS)")}</div>`).join("")}</div>`;
+  } else {
+    const Q = fl.quote;
+    html += `<div class="cmp-players"><div class="cmp-player"><span class="select-label">Testo</span>
+        <textarea class="text-input" data-fl="qtext" rows="4" placeholder="Testo in evidenza (a capo con Invio)">${esc(Q.text)}</textarea>
+        ${flInput('data-fl="qauthor"', Q.author, "Firma o fonte (facoltativa)")}</div>
+      <div class="cmp-player"><span class="select-label">Squadra e foto</span>
+        <span class="select-wrap"><select class="select" data-fl="qteam" autocomplete="off">${flTeamOpts(Q.team, "Nessuna squadra (colori 5DWN)")}</select></span>
+        <div class="cmp-photo">${flInput('data-fl="qurl" type="url"', Q.photoUrl, "Foto: incolla un URL")}
+          <label class="btn" style="cursor:pointer">File<input type="file" data-fl="qfile" accept="image/*" hidden></label>
+          <button type="button" class="btn" data-fl="qreset">Togli foto</button></div></div></div>`;
+  }
+  box.innerHTML = html;
+  if (fl.mode === "list") fl.list.items.forEach((it, i) => flFillPlayers(i));
+}
+async function flFillPlayers(i) {
+  const it = fl.list.items[i], sel = document.querySelector(`[data-fl="iplayer"][data-i="${i}"]`);
+  if (!sel) return;
+  const players = await flRoster(it.team);
+  sel.innerHTML = `<option value="">Nessun giocatore (logo squadra)</option>${players.slice().sort((a, b) => a.name.localeCompare(b.name)).map((p) => `<option value="${p.id}"${String(p.id) === String(it.player) ? " selected" : ""}>${esc(p.name)}${p.pos ? ` · ${esc(p.pos)}` : ""}</option>`).join("")}`;
+}
+function flResize(arr, n, make) { while (arr.length < n) arr.push(make()); arr.length = n; }
+function flChange(e, live) {
+  const el = e.target, k = el.dataset.fl;
+  if (!k) return;
+  const i = Number(el.dataset.i), c = Number(el.dataset.c), v = el.value;
+  const T_ = fl.table, L = fl.list, Q = fl.quote;
+  let rebuild = false;
+  switch (k) {
+    case "rows": flResize(T_.rows, Number(v), () => ({ team: "", label: "", vals: ["", "", "", ""] })); if (T_.highlight > T_.rows.length) T_.highlight = 0; rebuild = true; break;
+    case "cols": T_.cols = Number(v); rebuild = true; break;
+    case "highlight": T_.highlight = Number(v); break;
+    case "hdr": T_.headers[c] = v; break;
+    case "rteam": T_.rows[i].team = v; break;
+    case "rlabel": T_.rows[i].label = v; break;
+    case "rval": T_.rows[i].vals[c] = v; break;
+    case "items": flResize(L.items, Number(v), () => ({ team: "", player: "", name: "", sub: "", val: "" })); rebuild = true; break;
+    case "iteam": L.items[i].team = v; L.items[i].player = ""; flFillPlayers(i); break;
+    case "iplayer": L.items[i].player = v; break;
+    case "iname": L.items[i].name = v; break;
+    case "isub": L.items[i].sub = v; break;
+    case "ival": L.items[i].val = v; break;
+    case "qtext": Q.text = v; break;
+    case "qauthor": Q.author = v; break;
+    case "qteam": Q.team = v; break;
+    case "qurl":
+      if (live) return; // si controlla solo a fine digitazione
+      if (!v.trim()) { Q.photoUrl = ""; break; }
+      customPhotoOk(v.trim()).then((ok) => {
+        if (ok) { Q.photoUrl = v.trim(); flSave(); renderAll(); }
+        else status.textContent = "Questa immagine non si può usare nel PNG (il sito che la ospita non lo permette): scaricala e caricala con \"File\".";
+      });
+      return;
+    case "qfile": {
+      const f = el.files?.[0];
+      if (!f) return;
+      if (flPhotoUpload) URL.revokeObjectURL(flPhotoUpload);
+      flPhotoUpload = URL.createObjectURL(f);
+      el.value = "";
+      break;
+    }
+    default: return;
+  }
+  flSave();
+  if (rebuild) flRenderControls();
+  renderAll();
+}
+document.getElementById("fl-controls").addEventListener("input", (e) => flChange(e, true));
+document.getElementById("fl-controls").addEventListener("change", (e) => flChange(e, false));
+document.getElementById("fl-controls").addEventListener("click", (e) => {
+  if (e.target.dataset.fl !== "qreset") return;
+  if (flPhotoUpload) URL.revokeObjectURL(flPhotoUpload);
+  flPhotoUpload = null; fl.quote.photoUrl = ""; flSave(); flRenderControls(); renderAll();
+});
+document.getElementById("fl-mode").addEventListener("change", (e) => { fl.mode = e.target.value; flSave(); flRenderControls(); renderAll(); });
+let flReady = false;
+async function loadFree() {
+  try {
+    if (!teamList.length) teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+    flReady = true;
+    flRenderControls();
+    renderAll();
+    status.textContent = "Grafica libera: scrivi titolo e sottotitolo in \"Testi personalizzati\" e i contenuti qui sotto. Il lavoro resta salvato in questo browser.";
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare le squadre: riprova.";
+  }
+}
+
+/** Divide un testo in righe che stanno in maxW (a capo manuali rispettati). */
+function flWrap(style, text, maxW, scale) {
+  const out = [];
+  for (const para of String(text || "").split(/\n/)) {
+    let line = "";
+    for (const w of para.split(/\s+/).filter(Boolean)) {
+      const test = line ? `${line} ${w}` : w;
+      if (line && inkWidth(style, test) * scale > maxW) { out.push(line); line = w; } else line = test;
+    }
+    out.push(line);
+  }
+  return out;
+}
+const flInk = (abbr) => (ST_DARK_TEXT.has(abbr) ? "#111111" : "#ffffff");
+const flColor = (t) => (t ? ST_CELL[t.abbr] || t.color || "#333" : "#0f1e3f");
+const flLogo = (t, px = 160) => espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${t.abbr.toLowerCase()}.png`, px);
+
+function flTable() {
+  const A = { ...FL_AREA }, T_ = fl.table, n = T_.rows.length, cols = T_.cols;
+  const hdrH = 46, labelW = cols >= 3 ? 560 : 680, colW = (A.w - labelW) / cols;
+  const pitch = Math.min(84, (A.bot - A.top - hdrH) / n), rowH = pitch - 4;
+  const kt = Math.min(1, pitch / 80);
+  A.top += Math.max(0, (A.bot - A.top - (hdrH + 4 + n * pitch)) / 2); // poche righe: blocco centrato in verticale
+  let html = `<div class="g-bar" style="left:${A.x}px;top:${A.top}px;width:${A.w}px;height:${hdrH}px;background:#0f1e3f"></div>
+    ${T("tcHdr", (T_.headers[0] || "").toUpperCase(), A.x + 30, A.top + 17, "left", { color: "#ffffff", scale: 1.25, maxW: labelW - 40 })}`;
+  for (let c = 0; c < cols; c++) html += T("tcHdr", (T_.headers[c + 1] || "").toUpperCase(), A.x + labelW + colW * (c + 0.5), A.top + 17, "center", { color: "#ffffff", scale: 1.25, maxW: colW - 20 });
+  T_.rows.forEach((r, i) => {
+    const y = A.top + hdrH + 4 + i * pitch, t = flTeam(r.team), hl = T_.highlight === i + 1;
+    const label = (r.label || (t ? t.name : "")).toUpperCase();
+    const ink = t ? flInk(t.abbr) : "#1d2026";
+    html += `<div class="g-cell" style="left:${A.x}px;top:${y}px;width:${labelW - 4}px;height:${rowH}px;background:${t ? flColor(t) : i % 2 ? CMP_GREY : "#ffffff"}"></div>`;
+    let tx = A.x + 30;
+    if (t) {
+      const lb = Math.min(64, rowH - 10);
+      html += `<img class="g-logo" crossorigin="anonymous" src="${flLogo(t)}" alt="" style="left:${A.x + 20}px;top:${y + (rowH - lb) / 2}px;width:${lb}px;height:${lb}px">`;
+      tx = A.x + 20 + lb + 22;
+    }
+    html += T("cmpLast", label, tx, y + (rowH - STYLES.cmpLast.ref[1] * kt) / 2, "left", { color: ink, scale: kt, maxW: A.x + labelW - 24 - tx });
+    for (let c = 0; c < cols; c++) {
+      const x = A.x + labelW + colW * c;
+      html += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${colW - 4}px;height:${rowH}px;background:${hl ? "#0f1e3f" : "#ffffff"}"></div>
+        ${T("tcVal", r.vals[c] || "", x + (colW - 4) / 2, y + (rowH - STYLES.tcVal.ref[1] * kt * 1.15) / 2, "center", { color: hl ? "#ffffff" : "#0b0b0b", scale: kt * 1.15, maxW: colW - 30 })}`;
+    }
+    if (hl) html += `<div class="g-bar" style="left:${A.x}px;top:${y}px;width:8px;height:${rowH}px;background:${TS_BLUE}"></div>`;
+  });
+  return html;
+}
+function flList() {
+  const A = { ...FL_AREA }, items = fl.list.items, n = items.length;
+  const pitch = Math.min(90, (A.bot - A.top) / n), rowH = pitch - 6, kt = Math.min(1, rowH / 66);
+  A.top += Math.max(0, (A.bot - A.top - n * pitch) / 2); // poche voci: blocco centrato in verticale
+  const rankW = 84, valW = 300, mainW = A.w - rankW - valW - 8;
+  let html = "";
+  items.forEach((it, i) => {
+    const y = A.top + i * pitch, t = flTeam(it.team), ink = t ? flInk(t.abbr) : "#ffffff";
+    const p = (flRosters[it.team] || []).find((x) => String(x.id) === String(it.player));
+    const name = (it.name || p?.name || t?.name || "").toUpperCase();
+    const sub = (it.sub || (p ? `${p.pos || ""}${p.pos && t ? " · " : ""}${t ? t.nickname || t.name : ""}` : "")).toUpperCase();
+    const mx = A.x + rankW + 4;
+    html += `<div class="g-cell" style="left:${A.x}px;top:${y}px;width:${rankW}px;height:${rowH}px;background:#0f1e3f"></div>
+      ${T("ppSeed", String(i + 1), A.x + rankW / 2, y + (rowH - STYLES.ppSeed.ref[1] * kt) / 2, "center", { color: "#ffffff", scale: kt })}
+      <div class="g-cell" style="left:${mx}px;top:${y}px;width:${mainW}px;height:${rowH}px;background:${flColor(t)}"></div>`;
+    let tx = mx + 28;
+    if (p) {
+      const h = rowH, w = h * (600 / 436);
+      html += `<div class="g-clip" style="position:absolute;overflow:hidden;left:${mx + 10}px;top:${y}px;width:${w}px;height:${h}px">
+        <img class="g-logo" crossorigin="anonymous" src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="" onerror="this.remove()" style="left:0;top:0;width:${w}px;height:${h}px"></div>`;
+      tx = mx + 10 + w + 14;
+    } else if (t) {
+      const lb = rowH - 12;
+      html += `<img class="g-logo" crossorigin="anonymous" src="${flLogo(t)}" alt="" style="left:${mx + 18}px;top:${y + 6}px;width:${lb}px;height:${lb}px">`;
+      tx = mx + 18 + lb + 22;
+    }
+    const maxW = mx + mainW - 24 - tx;
+    if (sub) {
+      html += `${T("stT1", sub, tx, y + rowH * 0.2, "left", { color: ink, scale: kt * 1.1, maxW })}
+        ${T("stT2", name, tx, y + rowH * 0.2 + 24 * kt * 1.1, "left", { color: ink, scale: kt * 1.25, maxW })}`;
+    } else html += T("stT2", name, tx, y + (rowH - STYLES.stT2.ref[1] * kt * 1.4) / 2, "left", { color: ink, scale: kt * 1.4, maxW });
+    const vx = mx + mainW + 4;
+    html += `<div class="g-cell" style="left:${vx}px;top:${y}px;width:${valW}px;height:${rowH}px;background:#ffffff"></div>
+      ${T("tcVal", it.val || "", vx + valW / 2, y + (rowH - STYLES.tcVal.ref[1] * kt * 1.2) / 2, "center", { color: "#0b0b0b", scale: kt * 1.2, maxW: valW - 30 })}`;
+  });
+  return html;
+}
+function flQuote() {
+  const A = FL_AREA, Q = fl.quote, t = flTeam(Q.team), col = flColor(t);
+  const photo = flPhotoUpload || Q.photoUrl, side = A.bot - A.top;
+  let html = photo
+    ? `<img class="g-logo g-cover" ${flPhotoUpload ? "" : 'crossorigin="anonymous"'} src="${esc(photo)}" alt="" style="left:${A.x}px;top:${A.top}px;width:${side}px;height:${side}px">`
+    : `<div class="g-cell" style="left:${A.x}px;top:${A.top}px;width:${side}px;height:${side}px;background:${col}"></div>
+       ${t ? `<img class="g-logo" crossorigin="anonymous" src="${flLogo(t, 500)}" alt="" style="left:${A.x + side * 0.15}px;top:${A.top + side * 0.15}px;width:${side * 0.7}px;height:${side * 0.7}px">`
+        : `<img class="g-logo" src="assets/5dwn-logo-light.png" alt="5DWN" style="left:${A.x + side * 0.18}px;top:${A.top + side * 0.24}px;width:${side * 0.64}px;height:${side * 0.64 * (576 / 678)}px">`}`;
+  const x = A.x + side + 70, maxW = A.x + A.w - x;
+  html += `<div class="g-bar" style="left:${x}px;top:${A.top + 30}px;width:120px;height:8px;background:${col}"></div>`;
+  // corpo del testo: il più grande che sta nell'area (righe che vanno a capo)
+  let sc = 1.6, lines;
+  for (; sc > 0.6; sc -= 0.05) {
+    lines = flWrap("flQuote", Q.text, maxW, sc);
+    if (lines.length * STYLES.flQuote.ref[1] * sc * 1.55 <= side - 200) break;
+  }
+  const lh = STYLES.flQuote.ref[1] * sc * 1.55;
+  lines.forEach((l, i) => { html += T("flQuote", l, x, A.top + 90 + i * lh, "left", { color: "#0f1e3f", scale: sc, maxW }); });
+  if (Q.author) html += T("flAuthor", Q.author.toUpperCase(), x, A.top + 90 + lines.length * lh + 30, "left", { color: TS_BLUE, maxW });
+  return html;
+}
+function renderFreeStage(stage) {
+  const { W, H, root } = stage;
+  const year = sb.season.year;
+  const title = ovr("title", "TITOLO"), sub = ovr("sub", "Sottotitolo");
+  const body = fl.mode === "list" ? flList() : fl.mode === "quote" ? flQuote() : flTable();
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, true)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${["FOOTBALL", "MORE", "THAN", "A GAME"].map((w, i) => T("stSide", w, 46, [47, 71, 95, 118][i], "left", { scale: 1.06 })).join("")}
+      ${rectBar([45, 149, 25, 3], TS_BLUE)}
+      ${rectBar([1850, 48, 25, 3], TS_BLUE)}
+      ${T("stInk", String(year), 1872, 67, "right", { scale: 1.04 })}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${CP.brand[0]}px;top:${CP.brand[1]}px;width:${CP.brand[2]}px;height:${CP.brand[3]}px">
+      ${title ? T("week", title, W / 2, CP.title.cap, "center", { scale: CP.title.h / STYLES.week.ref[1], maxW: CP.title.maxW }) : ""}
+      ${sub ? T("cmpSub", sub, W / 2, CP.sub.cap, "center", { maxW: 1500 }) : ""}
+      ${body}
+      ${T("cmpFoot", ovr("foot", `NFL ${year}`), 46, 966, "left", { color: TS_BLUE, maxW: 900 })}
+      ${rectBar([45, 995, 25, 2.5], TS_BLUE)}
+      ${T("tsQd", `QUINTO DOWN ${year}`, 1872, 966, "right")}
+      ${rectBar([1850, 995, 25, 2.5], TS_BLUE)}
+    </div>`;
+  fitPreview(stage);
+}
+document.getElementById("dl-free").addEventListener("click", () => {
+  if (!flReady) return;
+  const slug = (overrides.free?.title || "grafica").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "grafica";
+  exportPng(stages.free, `5dwn-${slug}.png`);
+});
+
 // ---------------------------------------------------------------------------- template Calendario squadra
 // Misurato su "NFL Team Schedule-selection.png" (10984×6180 → 1920×1080). Solo 16:9.
 const TS = {
@@ -3697,7 +3990,7 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat", playoff: "playoff-picture" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat", playoff: "playoff-picture", free: "grafica-libera" }[tpl] || "calendario");
   if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
   if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
@@ -3770,6 +4063,7 @@ async function loadWeek() {
   if (tpl === "compare") return loadCompare();
   if (tpl === "statsplit") return loadStatSplit();
   if (tpl === "playoff") return loadPlayoff();
+  if (tpl === "free") return loadFree();
   if (tpl === "tcompare") return loadTCompare();
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
