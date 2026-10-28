@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610281114";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610281114";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610281215";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610281215";
 
 renderChrome("");
 
@@ -3606,7 +3606,7 @@ function flRenderControls() {
           <button type="button" class="btn" data-fl="qreset">Togli foto</button></div>
         <div class="cmp-range"><span class="select-wrap"><select class="select" data-fl="qphotoBg" aria-label="Sfondo dietro la foto" autocomplete="off">${o([["team", "Dietro: colore squadra"], ["none", "Dietro: niente"]], Q.photoBg)}</select></span>
           <span class="select-wrap"><select class="select" data-fl="qclip" aria-label="Ritaglio" autocomplete="off">${o([["yes", "Dentro il riquadro"], ["no", "Libera (può uscire)"]], Q.clip)}</select></span></div>
-        <span class="select-wrap"><select class="select" data-fl="qknock" aria-label="Sfondo della foto" autocomplete="off">${o([["no", "Foto così com'è"], ["yes", "Togli sfondo a scacchi / bianco"]], Q.knock)}</select></span>
+        <span class="select-wrap"><select class="select" data-fl="qknock" aria-label="Sfondo della foto" autocomplete="off">${o([["no", "Foto così com'è"], ["checker", "Togli scacchiera (trasparenza finta)"], ["white", "Togli sfondo bianco"]], Q.knock === "yes" ? "checker" : Q.knock)}</select></span>
         <label class="range-field"><span class="select-label">Zoom foto · <span data-fl-out="zoom">${Q.zoom}%</span></span><input type="range" data-fl="qzoom" min="30" max="300" step="1" value="${Q.zoom}"></label>
         <label class="range-field"><span class="select-label">Orizzontale</span><input type="range" data-fl="qoffX" min="-100" max="100" step="1" value="${Q.offX}"></label>
         <label class="range-field"><span class="select-label">Verticale</span><input type="range" data-fl="qoffY" min="-100" max="100" step="1" value="${Q.offY}"></label>
@@ -3806,10 +3806,60 @@ function flLoadInfo(src) {
   im.onerror = () => { flImgInfo[src] = { ar: 1 }; };
   im.src = src;
 }
-/** Toglie lo sfondo chiaro e neutro (scacchiera grigio/bianco o bianco) collegato ai bordi dell'immagine. */
-function flKnockout(src) {
-  if (src in flKnocked) return;
-  flKnocked[src] = undefined;
+/**
+ * Scacchiera "finta" (trasparenza disegnata nell'immagine): si misurano i due colori dei quadratini, il lato
+ * e l'allineamento; un pixel si toglie solo se ha il colore che la scacchiera avrebbe lì E il quadratino accanto
+ * ha l'altro colore (così le zone chiare del soggetto, che non seguono lo schema, restano). Ritorna null se
+ * l'immagine non ha una scacchiera riconoscibile.
+ */
+function flCheckerMask(px, w, h) {
+  const at = (x, y) => (y * w + x) * 4;
+  const lum = (i) => 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+  const neutral = (i) => Math.max(px[i], px[i + 1], px[i + 2]) - Math.min(px[i], px[i + 1], px[i + 2]) < 14;
+  // due colori: luminosità dei pixel neutri e chiari sul bordo, divisi in due gruppi
+  const border = [];
+  for (let x = 0; x < w; x += 2) border.push(at(x, 0), at(x, h - 1));
+  for (let y = 0; y < h; y += 2) border.push(at(0, y), at(w - 1, y));
+  const L = border.filter((i) => neutral(i) && lum(i) > 120).map(lum).sort((p, q) => p - q);
+  if (L.length < border.length * 0.5) return null;
+  const hi = L[Math.floor(L.length * 0.9)], lo = L[Math.floor(L.length * 0.1)];
+  if (hi - lo < 8) return null; // un solo colore: non è una scacchiera
+  const mid = (hi + lo) / 2;
+  const cls = (i) => (neutral(i) && Math.abs(lum(i) - hi) < 14 ? 1 : neutral(i) && Math.abs(lum(i) - lo) < 14 ? 0 : -1);
+  // lato e allineamento dei quadratini dai cambi di colore lungo la prima riga e la prima colonna
+  const flips = (n, get) => { const out = []; let prev = -1; for (let k = 0; k < n; k++) { const c = cls(get(k)); if (c >= 0 && prev >= 0 && c !== prev) out.push(k); if (c >= 0) prev = c; } return out; };
+  const fx = flips(Math.min(w, 800), (k) => at(k, 0)), fy = flips(Math.min(h, 800), (k) => at(0, k));
+  const gaps = [];
+  for (let k = 1; k < fx.length; k++) gaps.push(fx[k] - fx[k - 1]);
+  for (let k = 1; k < fy.length; k++) gaps.push(fy[k] - fy[k - 1]);
+  if (gaps.length < 4) return null;
+  gaps.sort((p, q) => p - q);
+  const S = gaps[Math.floor(gaps.length / 2)];
+  if (S < 3) return null;
+  const ox = fx.length ? fx[0] % S : 0, oy = fy.length ? fy[0] % S : 0;
+  const parity = (x, y) => ((Math.floor((x - ox + S * 1000) / S) + Math.floor((y - oy + S * 1000) / S)) & 1);
+  const c00 = cls(at(0, 0)) >= 0 ? cls(at(0, 0)) : 1, p00 = parity(0, 0);
+  const expect = (x, y) => (parity(x, y) === p00 ? c00 : 1 - c00);
+  // verifica: gran parte del bordo deve seguire lo schema
+  let ok = 0, tot = 0;
+  for (let x = 0; x < w; x += 3) { tot++; if (cls(at(x, 0)) === expect(x, 0)) ok++; }
+  if (ok / tot < 0.6) return null;
+  const tol = 12, target = [lo, hi];
+  const match = (x, y) => { const i = at(x, y); return neutral(i) && Math.abs(lum(i) - target[expect(x, y)]) < tol; };
+  return (x, y) => {
+    if (!match(x, y)) return false;
+    // quadratini accanto (in orizzontale E in verticale): devono avere l'altro colore, come in una vera scacchiera
+    // (da un lato o dall'altro: ai bordi del soggetto basta il quadratino dalla parte dello sfondo)
+    const hx = (x + S < w && match(x + S, y)) || (x - S >= 0 && match(x - S, y));
+    const vy = (y + S < h && match(x, y + S)) || (y - S >= 0 && match(x, y - S));
+    return hx && vy;
+  };
+}
+/** Toglie lo sfondo: scacchiera finta (mode "checker") o bianco pieno (mode "white"), partendo dai bordi. */
+function flKnockout(src, mode) {
+  const key = `${mode}|${src}`;
+  if (key in flKnocked) return;
+  flKnocked[key] = undefined;
   const im = new Image();
   if (!src.startsWith("blob:")) im.crossOrigin = "anonymous";
   im.onload = () => {
@@ -3817,9 +3867,16 @@ function flKnockout(src) {
       const k = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight));
       const w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k);
       const c = document.createElement("canvas"); c.width = w; c.height = h;
-      const x = c.getContext("2d"); x.drawImage(im, 0, 0, w, h);
+      const x = c.getContext("2d"); x.imageSmoothingEnabled = false; x.drawImage(im, 0, 0, w, h);
       const d = x.getImageData(0, 0, w, h), px = d.data;
-      const bgLike = (i) => { const r = px[i], g = px[i + 1], b = px[i + 2]; return px[i + 3] > 0 && Math.min(r, g, b) > 150 && Math.max(r, g, b) - Math.min(r, g, b) < 22; };
+      let test;
+      if (mode === "checker") {
+        test = flCheckerMask(px, w, h);
+        if (!test) { flKnocked[key] = null; status.textContent = "Nessuna scacchiera riconosciuta in questa foto: prova \"Togli sfondo bianco\" o usa un PNG già scontornato."; renderAll(); return; }
+      } else {
+        // bianco pieno: solo pixel quasi bianchi e neutri (le zone chiare ma colorate o in ombra restano)
+        test = (xx, yy) => { const i = (yy * w + xx) * 4; return Math.min(px[i], px[i + 1], px[i + 2]) > 242 && Math.max(px[i], px[i + 1], px[i + 2]) - Math.min(px[i], px[i + 1], px[i + 2]) < 8; };
+      }
       const seen = new Uint8Array(w * h), stack = [];
       for (let i = 0; i < w; i++) stack.push(i, (h - 1) * w + i);
       for (let j = 0; j < h; j++) stack.push(j * w, j * w + w - 1);
@@ -3827,25 +3884,26 @@ function flKnockout(src) {
         const p = stack.pop();
         if (seen[p]) continue;
         seen[p] = 1;
-        if (!bgLike(p * 4)) continue;
-        px[p * 4 + 3] = 0;
         const xx = p % w, yy = (p / w) | 0;
+        if (!test(xx, yy)) continue;
+        px[p * 4 + 3] = 0;
         if (xx > 0) stack.push(p - 1); if (xx < w - 1) stack.push(p + 1);
         if (yy > 0) stack.push(p - w); if (yy < h - 1) stack.push(p + w);
       }
       x.putImageData(d, 0, 0);
-      flKnocked[src] = c.toDataURL("image/png");
-    } catch { flKnocked[src] = null; } // immagine di un sito che non permette di leggerla
+      flKnocked[key] = c.toDataURL("image/png");
+    } catch { flKnocked[key] = null; } // immagine di un sito che non permette di leggerla
     renderAll();
   };
-  im.onerror = () => { flKnocked[src] = null; };
+  im.onerror = () => { flKnocked[key] = null; };
   im.src = src;
 }
 /** Foto nel riquadro (fx, fy, side): base "riempi"/"intera", poi zoom e spostamento; ritagliata o libera. */
 function flPhotoHtml(photo, fx, fy, side, col) {
   const Q = fl.quote;
   let src = photo;
-  if (Q.knock === "yes") { flKnockout(photo); if (flKnocked[photo]) src = flKnocked[photo]; }
+  const mode = Q.knock === "yes" ? "checker" : Q.knock;
+  if (mode === "checker" || mode === "white") { flKnockout(photo, mode); src = flKnocked[`${mode}|${photo}`] || photo; }
   flLoadInfo(photo);
   const ar = flImgInfo[photo]?.ar || 1;
   const cover = Q.fit !== "contain";

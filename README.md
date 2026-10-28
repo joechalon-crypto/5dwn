@@ -191,8 +191,10 @@ firma, foto da URL/file oppure logo della squadra o del 5DWN). I contenuti resta
 "riempi" o "intera"; testo con font (Archivo, condensato, Barlow Condensed, Archivo Bold/Thin), peso,
 dimensione (automatica o fissa), allineamento, colore, maiuscolo, interlinea, posizione e linea colorata;
 foto con zoom e spostamento (cursori + "Centra foto"), sfondo dietro (colore squadra o niente), dentro il
-riquadro o libera (può uscirne, per figure scontornate) e "Togli sfondo a scacchi / bianco" (toglie lo
-sfondo chiaro e neutro collegato ai bordi: utile per i PNG con la trasparenza finta);
+riquadro o libera (può uscirne, per figure scontornate) e "Togli scacchiera (trasparenza finta)": riconosce i due
+colori, il lato e l'allineamento dei quadratini e toglie solo i pixel che seguono lo schema (con i
+quadratini vicini dell'altro colore), così le parti chiare del soggetto restano; "Togli sfondo bianco":
+solo bianco quasi puro collegato ai bordi;
 nel testo `# ` a inizio riga = riga in evidenza (più grande, colore squadra), `- ` = elenco puntato,
 `**parole**` = grassetto. L'export aspetta il caricamento di foto e loghi (max 8 s) per ogni template.
 
