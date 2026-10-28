@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610281106";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610281106";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610281114";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610281114";
 
 renderChrome("");
 
@@ -3534,7 +3534,7 @@ const flDefault = () => ({
     rows: [{ team: "BUF", label: "", vals: ["", "", "", ""] }, { team: "KC", label: "", vals: ["", "", "", ""] }, { team: "PHI", label: "", vals: ["", "", "", ""] }] },
   list: { items: [{ team: "BUF", player: "", name: "", sub: "", val: "" }, { team: "KC", player: "", name: "", sub: "", val: "" }, { team: "PHI", player: "", name: "", sub: "", val: "" }] },
   quote: { team: "", text: "Scrivi qui il testo in evidenza", author: "", photoUrl: "",
-    photoSize: "l", fit: "cover", font: "archivo", weight: 700, size: "auto", align: "left", color: "navy", upper: "no", leading: "normal", valign: "top", bar: "yes" },
+    photoSize: "l", fit: "cover", zoom: 100, offX: 0, offY: 0, photoBg: "team", knock: "no", clip: "yes", font: "archivo", weight: 700, size: "auto", align: "left", color: "navy", upper: "no", leading: "normal", valign: "top", bar: "yes" },
 });
 const fl = (() => {
   const d = flDefault();
@@ -3603,7 +3603,14 @@ function flRenderControls() {
           <span class="select-wrap"><select class="select" data-fl="qfit" aria-label="Adattamento foto" autocomplete="off">${o([["cover", "Foto: riempi il riquadro"], ["contain", "Foto: intera"]], Q.fit)}</select></span></div>
         <div class="cmp-photo">${flInput('data-fl="qurl" type="url"', Q.photoUrl, "Foto: incolla un URL")}
           <label class="btn" style="cursor:pointer">File<input type="file" data-fl="qfile" accept="image/*" hidden></label>
-          <button type="button" class="btn" data-fl="qreset">Togli foto</button></div></div></div>
+          <button type="button" class="btn" data-fl="qreset">Togli foto</button></div>
+        <div class="cmp-range"><span class="select-wrap"><select class="select" data-fl="qphotoBg" aria-label="Sfondo dietro la foto" autocomplete="off">${o([["team", "Dietro: colore squadra"], ["none", "Dietro: niente"]], Q.photoBg)}</select></span>
+          <span class="select-wrap"><select class="select" data-fl="qclip" aria-label="Ritaglio" autocomplete="off">${o([["yes", "Dentro il riquadro"], ["no", "Libera (può uscire)"]], Q.clip)}</select></span></div>
+        <span class="select-wrap"><select class="select" data-fl="qknock" aria-label="Sfondo della foto" autocomplete="off">${o([["no", "Foto così com'è"], ["yes", "Togli sfondo a scacchi / bianco"]], Q.knock)}</select></span>
+        <label class="range-field"><span class="select-label">Zoom foto · <span data-fl-out="zoom">${Q.zoom}%</span></span><input type="range" data-fl="qzoom" min="30" max="300" step="1" value="${Q.zoom}"></label>
+        <label class="range-field"><span class="select-label">Orizzontale</span><input type="range" data-fl="qoffX" min="-100" max="100" step="1" value="${Q.offX}"></label>
+        <label class="range-field"><span class="select-label">Verticale</span><input type="range" data-fl="qoffY" min="-100" max="100" step="1" value="${Q.offY}"></label>
+        <button type="button" class="btn" data-fl="qcenter">Centra foto</button></div></div>
       <div class="cmp-stats">
         ${flSel('data-fl="qfont"', o([["archivo", "Archivo"], ["archivo-cond", "Archivo condensato"], ["barlow", "Barlow Condensed"], ["archivo-bold", "Archivo Bold (titoli)"], ["archivo-thin", "Archivo Thin (sottotitoli)"]], Q.font), "Font del testo")}
         ${flSel('data-fl="qweight"', o([[300, "Light"], [400, "Regular"], [700, "Bold"], [900, "Black"]], Q.weight), "Peso")}
@@ -3660,7 +3667,10 @@ function flChange(e, live) {
     case "qtext": Q.text = v; break;
     case "qauthor": Q.author = v; break;
     case "qteam": Q.team = v; break;
-    case "qphotoSize": case "qfit": case "qfont": case "qsize": case "qalign": case "qcolor": case "qupper": case "qleading": case "qvalign": case "qbar":
+    case "qzoom": Q.zoom = Number(v); { const out = document.querySelector('[data-fl-out="zoom"]'); if (out) out.textContent = `${v}%`; } break;
+    case "qoffX": Q.offX = Number(v); break;
+    case "qoffY": Q.offY = Number(v); break;
+    case "qphotoSize": case "qfit": case "qfont": case "qphotoBg": case "qknock": case "qclip": case "qsize": case "qalign": case "qcolor": case "qupper": case "qleading": case "qvalign": case "qbar":
       Q[k.slice(1).replace(/^./, (ch) => ch.toLowerCase())] = v; break;
     case "qweight": Q.weight = Number(v); break;
     case "qurl":
@@ -3688,6 +3698,7 @@ function flChange(e, live) {
 document.getElementById("fl-controls").addEventListener("input", (e) => flChange(e, true));
 document.getElementById("fl-controls").addEventListener("change", (e) => flChange(e, false));
 document.getElementById("fl-controls").addEventListener("click", (e) => {
+  if (e.target.dataset.fl === "qcenter") { Object.assign(fl.quote, { zoom: 100, offX: 0, offY: 0 }); flSave(); flRenderControls(); renderAll(); return; }
   if (e.target.dataset.fl !== "qreset") return;
   if (flPhotoUpload) URL.revokeObjectURL(flPhotoUpload);
   flPhotoUpload = null; fl.quote.photoUrl = ""; flSave(); flRenderControls(); renderAll();
@@ -3783,6 +3794,72 @@ function flList() {
   });
   return html;
 }
+// ---- foto della grafica libera: misure, zoom/spostamento, sfondo a scacchi o bianco tolto (dai bordi)
+const flImgInfo = {}; // src → { ar } (larghezza/altezza), caricata una volta
+const flKnocked = {}; // src → data URL senza sfondo (null = non riuscito)
+function flLoadInfo(src) {
+  if (src in flImgInfo) return;
+  flImgInfo[src] = null;
+  const im = new Image();
+  if (!src.startsWith("blob:")) im.crossOrigin = "anonymous";
+  im.onload = () => { flImgInfo[src] = { ar: im.naturalWidth / im.naturalHeight }; renderAll(); };
+  im.onerror = () => { flImgInfo[src] = { ar: 1 }; };
+  im.src = src;
+}
+/** Toglie lo sfondo chiaro e neutro (scacchiera grigio/bianco o bianco) collegato ai bordi dell'immagine. */
+function flKnockout(src) {
+  if (src in flKnocked) return;
+  flKnocked[src] = undefined;
+  const im = new Image();
+  if (!src.startsWith("blob:")) im.crossOrigin = "anonymous";
+  im.onload = () => {
+    try {
+      const k = Math.min(1, 1600 / Math.max(im.naturalWidth, im.naturalHeight));
+      const w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const x = c.getContext("2d"); x.drawImage(im, 0, 0, w, h);
+      const d = x.getImageData(0, 0, w, h), px = d.data;
+      const bgLike = (i) => { const r = px[i], g = px[i + 1], b = px[i + 2]; return px[i + 3] > 0 && Math.min(r, g, b) > 150 && Math.max(r, g, b) - Math.min(r, g, b) < 22; };
+      const seen = new Uint8Array(w * h), stack = [];
+      for (let i = 0; i < w; i++) stack.push(i, (h - 1) * w + i);
+      for (let j = 0; j < h; j++) stack.push(j * w, j * w + w - 1);
+      while (stack.length) {
+        const p = stack.pop();
+        if (seen[p]) continue;
+        seen[p] = 1;
+        if (!bgLike(p * 4)) continue;
+        px[p * 4 + 3] = 0;
+        const xx = p % w, yy = (p / w) | 0;
+        if (xx > 0) stack.push(p - 1); if (xx < w - 1) stack.push(p + 1);
+        if (yy > 0) stack.push(p - w); if (yy < h - 1) stack.push(p + w);
+      }
+      x.putImageData(d, 0, 0);
+      flKnocked[src] = c.toDataURL("image/png");
+    } catch { flKnocked[src] = null; } // immagine di un sito che non permette di leggerla
+    renderAll();
+  };
+  im.onerror = () => { flKnocked[src] = null; };
+  im.src = src;
+}
+/** Foto nel riquadro (fx, fy, side): base "riempi"/"intera", poi zoom e spostamento; ritagliata o libera. */
+function flPhotoHtml(photo, fx, fy, side, col) {
+  const Q = fl.quote;
+  let src = photo;
+  if (Q.knock === "yes") { flKnockout(photo); if (flKnocked[photo]) src = flKnocked[photo]; }
+  flLoadInfo(photo);
+  const ar = flImgInfo[photo]?.ar || 1;
+  const cover = Q.fit !== "contain";
+  let bw = side, bh = side; // "riempi": il lato corto copre il riquadro · "intera": il lato lungo ci sta
+  if (cover) { if (ar > 1) { bh = side; bw = side * ar; } else { bw = side; bh = side / ar; } }
+  else if (ar > 1) { bw = side; bh = side / ar; } else { bh = side; bw = side * ar; }
+  const z = (Q.zoom || 100) / 100, w = bw * z, h = bh * z;
+  const x = fx + (side - w) / 2 + (Q.offX || 0) / 100 * side * 0.6, y = fy + (side - h) / 2 + (Q.offY || 0) / 100 * side * 0.6;
+  const cross = src.startsWith("blob:") || src.startsWith("data:") ? "" : 'crossorigin="anonymous"';
+  const back = Q.photoBg === "team" ? `<div class="g-cell" style="left:${fx}px;top:${fy}px;width:${side}px;height:${side}px;background:${col}"></div>` : "";
+  if (Q.clip === "no") return `${back}<img class="g-logo" ${cross} src="${esc(src)}" alt="" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">`;
+  return `${back}<div class="g-clip" style="position:absolute;overflow:hidden;left:${fx}px;top:${fy}px;width:${side}px;height:${side}px">
+      <img class="g-logo" ${cross} src="${esc(src)}" alt="" style="left:${x - fx}px;top:${y - fy}px;width:${w}px;height:${h}px"></div>`;
+}
 // Testo formattato: font/peso/colore scelti; per riga "# " = evidenza, "- " = elenco; "**…**" = grassetto
 const FL_FONTS = {
   archivo: { family: "Archivo", stretch: "normal" }, "archivo-cond": { family: "Archivo", stretch: "condensed" },
@@ -3841,9 +3918,7 @@ function flQuote() {
   if (side) {
     const py = A.top + (areaH - side) / 2;
     html += photo
-      ? (Q.fit === "contain"
-        ? `<img class="g-logo" ${flPhotoUpload ? "" : 'crossorigin="anonymous"'} src="${esc(photo)}" alt="" style="left:${A.x}px;top:${py}px;width:${side}px;height:${side}px">`
-        : `<img class="g-logo g-cover" ${flPhotoUpload ? "" : 'crossorigin="anonymous"'} src="${esc(photo)}" alt="" style="left:${A.x}px;top:${py}px;width:${side}px;height:${side}px">`)
+      ? flPhotoHtml(photo, A.x, py, side, col)
       : `<div class="g-cell" style="left:${A.x}px;top:${py}px;width:${side}px;height:${side}px;background:${col}"></div>
        ${t ? `<img class="g-logo" crossorigin="anonymous" src="${flLogo(t, 500)}" alt="" style="left:${A.x + side * 0.15}px;top:${py + side * 0.15}px;width:${side * 0.7}px;height:${side * 0.7}px">`
         : `<img class="g-logo" src="assets/5dwn-logo-light.png" alt="5DWN" style="left:${A.x + side * 0.18}px;top:${py + side * 0.24}px;width:${side * 0.64}px;height:${side * 0.64 * (576 / 678)}px">`}`;

@@ -190,6 +190,9 @@ firma, foto da URL/file oppure logo della squadra o del 5DWN). I contenuti resta
 (`5dwn:grafica-libera`). In *Testo e foto*: riquadro immagine grande/medio/piccolo/nessuno, foto
 "riempi" o "intera"; testo con font (Archivo, condensato, Barlow Condensed, Archivo Bold/Thin), peso,
 dimensione (automatica o fissa), allineamento, colore, maiuscolo, interlinea, posizione e linea colorata;
+foto con zoom e spostamento (cursori + "Centra foto"), sfondo dietro (colore squadra o niente), dentro il
+riquadro o libera (può uscirne, per figure scontornate) e "Togli sfondo a scacchi / bianco" (toglie lo
+sfondo chiaro e neutro collegato ai bordi: utile per i PNG con la trasparenza finta);
 nel testo `# ` a inizio riga = riga in evidenza (più grande, colore squadra), `- ` = elenco puntato,
 `**parole**` = grassetto. L'export aspetta il caricamento di foto e loghi (max 8 s) per ogni template.
 
