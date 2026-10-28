@@ -193,6 +193,12 @@ dimensione (automatica o fissa), allineamento, colore, maiuscolo, interlinea, po
 nel testo `# ` a inizio riga = riga in evidenza (più grande, colore squadra), `- ` = elenco puntato,
 `**parole**` = grassetto. L'export aspetta il caricamento di foto e loghi (max 8 s) per ogni template.
 
+**Staff tecnico (head coach, OC, DC, special teams coordinator)**: selezionabile nelle card del Focus
+squadra e nella lista della Grafica libera (gruppo "Staff tecnico" nei menu). ESPN ha solo l'head coach:
+i coordinatori arrivano dal template "<Squadra> staff" di Wikipedia (`getTeamStaff` in api.js, cache
+12 ore), la foto dalla pagina Wikipedia della persona (`getWikiPhoto`, poi le foto Wikimedia come
+alternative). Solo stagione corrente.
+
 **Template 10 — Playoff picture** (riferimento "Playoff picture", solo 16:9): voce **Playoff
 picture** (`?t=playoff-picture`). AFC a sinistra e NFC a destra con i seed ufficiali ESPN della
 classifica aggiornata: 1-4 (vincitrici di division) e, sotto "WILD CARD", 5-7; badge della division,

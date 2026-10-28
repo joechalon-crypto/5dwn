@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610271645";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610271645";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610281106";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610281106";
 
 renderChrome("");
 
@@ -2409,12 +2409,22 @@ const tfEls = [0, 1].map((i) => ({ person: document.getElementById(`tf-person${i
 const focusKey = () => `${tc.teams[0]}:${tc.seasons[0] || curSeason()}`;
 const tfPeople = () => tc.peopleByKey[focusKey()] || [];
 const tfFocus = () => (tc.focusByKey[focusKey()] ||= [{}, {}]);
+const STAFF_LIST = [["oc", "OFFENSIVE COORDINATOR", "OC"], ["dc", "DEFENSIVE COORDINATOR", "DC"], ["st", "SPECIAL TEAMS COORDINATOR", "ST coordinator"]];
 async function tfEnsurePeople() {
   const teamId = tc.teams[0], season = tc.seasons[0] || curSeason(), fkey = `${teamId}:${season}`;
   if (!tc.peopleByKey[fkey]) {
     const roster = await seasonRosterGroups(teamId, season); // stagioni passate: giocatori con statistiche quell'anno (ESPN non ha il coach storico)
     const people = [];
-    if (roster.coach) people.push({ id: "coach", name: roster.coach.name, role: "HEAD COACH", coach: true });
+    if (roster.coach) people.push({ id: "coach", name: roster.coach.name, role: "HEAD COACH", coach: true, short: "Head coach" });
+    // coordinatori (stagione corrente): dal template staff di Wikipedia
+    if (!seasonArg(season)) {
+      try {
+        const team = teamList.find((t) => t.id === teamId);
+        const staff = team ? (await getTeamStaff(team.name)).data : {};
+        if (staff.hc && people[0]?.id === "coach") people[0].wiki = staff.hc.page;
+        for (const [key, role, short] of STAFF_LIST) if (staff[key]) people.push({ id: key, name: staff[key].name, role, coach: true, short, wiki: staff[key].page });
+      } catch { /* staff non disponibile: solo head coach */ }
+    }
     for (const g of roster.groups) for (const p of g.players) people.push({ id: p.id, name: p.name, role: (p.posName || p.pos || "").toUpperCase(), pos: p.pos, group: g.label });
     tc.peopleByKey[fkey] = people;
   }
@@ -2442,8 +2452,11 @@ async function tfLoadPhotos(i, fkey = focusKey()) {
   // ricerca con squadra / NFL accanto al nome, per evitare omonimi (es. un altro "Joe Brady")
   const nick = tc.info[0]?.nickname || "";
   const web = await webPhotos([`"${p.name}" ${nick}`, `"${p.name}" NFL`, `"${p.name}" football`], words, 5);
+  let wiki = null;
+  if (p.wiki) try { wiki = (await getWikiPhoto(p.wiki)).data; } catch { /* nessuna foto Wikipedia */ }
   f.photos = [
     ...(p.coach ? [] : [{ url: `https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png`, title: "Foto profilo ESPN (scontornata)", cutout: true }]),
+    ...(wiki ? [{ url: wiki, title: "Foto Wikipedia" }] : []),
     ...web,
   ];
   f.photoIdx = f.photos.length ? 0 : -1;
@@ -2452,7 +2465,7 @@ function tfRenderControls() {
   const people = tfPeople();
   const coach = people.filter((p) => p.coach), groups = {};
   for (const p of people.filter((x) => !x.coach)) (groups[p.group] ||= []).push(p);
-  const opts = coach.map((p) => `<option value="coach">Head coach · ${esc(p.name)}</option>`).join("") +
+  const opts = (coach.length ? `<optgroup label="Staff tecnico">${coach.map((p) => `<option value="${p.id}">${esc(p.short || "Head coach")} · ${esc(p.name)}</option>`).join("")}</optgroup>` : "") +
     Object.entries(groups).map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((p) => `<option value="${p.id}">${esc(p.name)}${p.pos ? ` · ${esc(p.pos)}` : ""}</option>`).join("")}</optgroup>`).join("");
   tfEls.forEach((el, i) => {
     const f = tfFocus()[i];
@@ -3531,7 +3544,8 @@ const fl = (() => {
   } catch { return d; }
 })();
 let flPhotoUpload = null; // foto caricata da file (solo per questa visita)
-const flRosters = {}; // sigla → giocatori (roster attuale ESPN)
+const flRosters = {}; // sigla → giocatori (roster attuale ESPN) + staff tecnico (id "staff:hc/oc/dc/st")
+const flStaffPhotos = {}; // pagina Wikipedia → URL foto
 function flSave() { try { localStorage.setItem(FL_KEY, JSON.stringify(fl)); } catch { /* storage non disponibile */ } }
 const flTeam = (abbr) => teamList.find((t) => t.abbr === abbr) || null;
 const flTeamOpts = (sel, none = "Nessuna squadra") => `<option value="">${none}</option>${teamList.map((t) => `<option value="${t.abbr}"${t.abbr === sel ? " selected" : ""}>${esc(t.name)}</option>`).join("")}`;
@@ -3542,7 +3556,14 @@ const flNum = (from, to, v) => Array.from({ length: to - from + 1 }, (_, k) => f
 async function flRoster(abbr) {
   if (!abbr || flRosters[abbr]) return flRosters[abbr] || [];
   const t = flTeam(abbr);
-  try { flRosters[abbr] = (await getRoster(t.id)).data.groups.flatMap((g) => g.players); } catch { flRosters[abbr] = []; }
+  let players = [], coach = null, staff = {};
+  try { const r = (await getRoster(t.id)).data; players = r.groups.flatMap((g) => g.players); coach = r.coach; } catch { /* roster non disponibile */ }
+  try { staff = (await getTeamStaff(t.name)).data; } catch { /* staff non disponibile */ }
+  const people = [];
+  const hcName = coach?.name || staff.hc?.name;
+  if (hcName) people.push({ id: "staff:hc", name: hcName, pos: "HC", role: "HEAD COACH", staff: true, wiki: staff.hc?.page });
+  for (const [key, role, short] of STAFF_LIST) if (staff[key]) people.push({ id: `staff:${key}`, name: staff[key].name, pos: short === "ST coordinator" ? "ST" : short, role, staff: true, wiki: staff[key].page });
+  flRosters[abbr] = [...people, ...players];
   return flRosters[abbr];
 }
 /** Costruisce i controlli del contenuto scelto (solo quando cambia la struttura: righe, colonne, tipo). */
@@ -3601,8 +3622,19 @@ function flRenderControls() {
 async function flFillPlayers(i) {
   const it = fl.list.items[i], sel = document.querySelector(`[data-fl="iplayer"][data-i="${i}"]`);
   if (!sel) return;
-  const players = await flRoster(it.team);
-  sel.innerHTML = `<option value="">Nessun giocatore (logo squadra)</option>${players.slice().sort((a, b) => a.name.localeCompare(b.name)).map((p) => `<option value="${p.id}"${String(p.id) === String(it.player) ? " selected" : ""}>${esc(p.name)}${p.pos ? ` · ${esc(p.pos)}` : ""}</option>`).join("")}`;
+  const team = it.team, all = await flRoster(team);
+  if (fl.list.items[i]?.team !== team) return; // nel frattempo è stata scelta un'altra squadra
+  const opt = (p) => `<option value="${p.id}"${String(p.id) === String(it.player) ? " selected" : ""}>${esc(p.name)}${p.pos ? ` · ${esc(p.pos)}` : ""}</option>`;
+  const staff = all.filter((p) => p.staff), players = all.filter((p) => !p.staff).sort((a, b) => a.name.localeCompare(b.name));
+  sel.innerHTML = `<option value="">Nessuna persona (logo squadra)</option>${staff.length ? `<optgroup label="Staff tecnico">${staff.map(opt).join("")}</optgroup>` : ""}<optgroup label="Giocatori">${players.map(opt).join("")}</optgroup>`;
+  flStaffPhoto(i);
+}
+/** Foto Wikipedia della persona dello staff scelta (poi si ridisegna). */
+async function flStaffPhoto(i) {
+  const it = fl.list.items[i], p = (flRosters[it.team] || []).find((x) => x.id === it.player);
+  if (!p?.staff || !p.wiki || p.wiki in flStaffPhotos) return;
+  try { flStaffPhotos[p.wiki] = (await getWikiPhoto(p.wiki)).data; } catch { flStaffPhotos[p.wiki] = null; }
+  renderAll();
 }
 function flResize(arr, n, make) { while (arr.length < n) arr.push(make()); arr.length = n; }
 function flChange(e, live) {
@@ -3621,7 +3653,7 @@ function flChange(e, live) {
     case "rval": T_.rows[i].vals[c] = v; break;
     case "items": flResize(L.items, Number(v), () => ({ team: "", player: "", name: "", sub: "", val: "" })); rebuild = true; break;
     case "iteam": L.items[i].team = v; L.items[i].player = ""; flFillPlayers(i); break;
-    case "iplayer": L.items[i].player = v; break;
+    case "iplayer": L.items[i].player = v; flStaffPhoto(i); break;
     case "iname": L.items[i].name = v; break;
     case "isub": L.items[i].sub = v; break;
     case "ival": L.items[i].val = v; break;
@@ -3719,13 +3751,18 @@ function flList() {
     const y = A.top + i * pitch, t = flTeam(it.team), ink = t ? flInk(t.abbr) : "#ffffff";
     const p = (flRosters[it.team] || []).find((x) => String(x.id) === String(it.player));
     const name = (it.name || p?.name || t?.name || "").toUpperCase();
-    const sub = (it.sub || (p ? `${p.pos || ""}${p.pos && t ? " · " : ""}${t ? t.nickname || t.name : ""}` : "")).toUpperCase();
+    const sub = (it.sub || (p ? `${p.staff ? p.role : p.pos || ""}${(p.staff || p.pos) && t ? " · " : ""}${t ? t.nickname || t.name : ""}` : "")).toUpperCase();
+    const staffPhoto = p?.staff && p.wiki ? flStaffPhotos[p.wiki] : null;
     const mx = A.x + rankW + 4;
     html += `<div class="g-cell" style="left:${A.x}px;top:${y}px;width:${rankW}px;height:${rowH}px;background:#0f1e3f"></div>
       ${T("ppSeed", String(i + 1), A.x + rankW / 2, y + (rowH - STYLES.ppSeed.ref[1] * kt) / 2, "center", { color: "#ffffff", scale: kt })}
       <div class="g-cell" style="left:${mx}px;top:${y}px;width:${mainW}px;height:${rowH}px;background:${flColor(t)}"></div>`;
     let tx = mx + 28;
-    if (p) {
+    if (staffPhoto) { // staff: foto Wikipedia ritagliata nel riquadro
+      const h = rowH, w = h * 1.1;
+      html += `<img class="g-logo g-cover" crossorigin="anonymous" src="${esc(staffPhoto)}" alt="" style="left:${mx + 10}px;top:${y}px;width:${w}px;height:${h}px">`;
+      tx = mx + 10 + w + 18;
+    } else if (p && !p.staff) {
       const h = rowH, w = h * (600 / 436);
       html += `<div class="g-clip" style="position:absolute;overflow:hidden;left:${mx + 10}px;top:${y}px;width:${w}px;height:${h}px">
         <img class="g-logo" crossorigin="anonymous" src="https://a.espncdn.com/i/headshots/nfl/players/full/${p.id}.png" alt="" onerror="this.remove()" style="left:0;top:0;width:${w}px;height:${h}px"></div>`;

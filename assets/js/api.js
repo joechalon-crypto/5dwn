@@ -750,6 +750,35 @@ async function loadWebPhotos(query) {
 }
 export const getWebPhotos = (query, opts) => cached(`web:${query}`, TTL.athlete, () => loadWebPhotos(query), opts);
 
+// Staff tecnico (head coach, coordinatori): ESPN ha solo l'head coach, i coordinatori vengono dal template
+// "<Squadra> staff" di Wikipedia (aggiornato dalla comunità, API pubblica con CORS).
+const STAFF_ROLES = [["hc", /^head coach$/i], ["oc", /^offensive coordinator$/i], ["dc", /^defensive coordinator$/i], ["st", /^special teams coordinator$/i]];
+async function loadTeamStaff(teamName) {
+  const page = `Template:${teamName.replace(/ /g, "_")}_staff`;
+  const json = await fetchJSON(`https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(page)}&prop=wikitext&format=json&origin=*&redirects=1`);
+  const text = json.parse?.wikitext?.["*"] || "";
+  const out = {};
+  for (const line of text.split("\n")) {
+    const m = /^\*\s*(.+?)\s+[–—]\s+(.+)$/.exec(line.trim());
+    if (!m) continue;
+    // ruolo composto (es. "Assistant head coach/special teams coordinator"): basta che una parte sia il ruolo
+    const parts = m[1].split("/").map((x) => x.trim());
+    const link = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/.exec(m[2]);
+    const name = (link ? link[2] || link[1] : m[2].replace(/<[^>]+>|\{\{[^}]*\}\}/g, "")).replace(/\s*\([^)]*\)\s*$/, "").trim();
+    if (!name) continue;
+    for (const [key, re] of STAFF_ROLES) if (!out[key] && parts.some((p) => re.test(p))) out[key] = { name, page: link ? link[1].trim() : null };
+  }
+  return out;
+}
+export const getTeamStaff = (teamName, opts) => cached(`staff:${teamName}`, TTL.roster, () => loadTeamStaff(teamName), opts);
+/** Foto principale della pagina Wikipedia di una persona (Wikimedia, utilizzabile nel PNG). */
+async function loadWikiPhoto(page) {
+  const json = await fetchJSON(`https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail&pithumbsize=1000&titles=${encodeURIComponent(page)}&format=json&origin=*&redirects=1`);
+  const pg = Object.values(json.query?.pages || {})[0];
+  return pg?.thumbnail?.source || null;
+}
+export const getWikiPhoto = (page, opts) => cached(`wikiph:${page}`, TTL.athlete, () => loadWikiPhoto(page), opts);
+
 // Stagioni passate: i dati non cambiano più, cache lunga (TTL.history). "season" vuoto = stagione corrente.
 let CURRENT_SEASON = null;
 export const setCurrentSeason = (y) => { CURRENT_SEASON = Number(y) || null; };
