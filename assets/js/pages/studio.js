@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202610281215";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202610281215";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611031818";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611031818";
 
 renderChrome("");
 
@@ -2690,6 +2690,15 @@ const CMP_STATS = [
   { key: "receiving.longReception", label: "REC LNG" },
   { key: "scrimYds", label: "YDS TOTALI", num: (a) => (a["rushing.rushingYards"] != null || a["receiving.receivingYards"] != null ? (a["rushing.rushingYards"] || 0) + (a["receiving.receivingYards"] || 0) : null), get: (a) => (a["rushing.rushingYards"] != null || a["receiving.receivingYards"] != null ? String((a["rushing.rushingYards"] || 0) + (a["receiving.receivingYards"] || 0)) : null) },
   { key: "totTd", label: "TD TOTALI", num: (a) => (a["rushing.rushingTouchdowns"] != null || a["receiving.receivingTouchdowns"] != null ? (a["rushing.rushingTouchdowns"] || 0) + (a["receiving.receivingTouchdowns"] || 0) : null), get: (a) => (a["rushing.rushingTouchdowns"] != null || a["receiving.receivingTouchdowns"] != null ? String((a["rushing.rushingTouchdowns"] || 0) + (a["receiving.receivingTouchdowns"] || 0)) : null) },
+  // kicker (gamelog ESPN "fieldgoals" e "pats")
+  ...[["fgma", "FG", "", ""], ["fg50", "FG 50+", "50", "50"], ["fg4049", "FG 40-49", "40_49", "40_49"], ["fg3039", "FG 30-39", "30_39", "30_39"]].map(([key, label, m, a]) => {
+    const M = `fieldgoals.fieldGoalsMade${m}`, A = `fieldgoals.fieldGoalAttempts${a}`;
+    return { key, label, frac: [M, A], num: (g) => (g[A] ? ((g[M] || 0) / g[A]) * 100 : null), get: (g) => (g[A] != null ? `${g[M] ?? 0}/${g[A]}` : null) };
+  }),
+  { key: "fieldgoals.fieldGoalPct", label: "FG %", dec: 1 },
+  { key: "fieldgoals.longFieldGoalMade", label: "FG LNG" },
+  { key: "xpma", label: "XP", frac: ["pats.extraPointsMade", "pats.extraPointAttempts"], num: (g) => (g["pats.extraPointAttempts"] ? ((g["pats.extraPointsMade"] || 0) / g["pats.extraPointAttempts"]) * 100 : null), get: (g) => (g["pats.extraPointAttempts"] != null ? `${g["pats.extraPointsMade"] ?? 0}/${g["pats.extraPointAttempts"]}` : null) },
+  { key: "pats.totalKickingPoints", label: "PUNTI" },
   { key: "tackles.totalTackles", label: "TACKLE" },
   { key: "tackles.soloTackles", label: "TACKLE SOLO" },
   { key: "tackles.assistTackles", label: "TACKLE ASSISTITI" },
@@ -2707,9 +2716,10 @@ const CMP_DEFAULTS = {
   QB: ["cmpatt", "passing.passingYards", "passing.passingTouchdowns", "passing.interceptions", "passing.QBRating", "passing.completionPct", "passing.yardsPerPassAttempt"],
   RB: ["rushing.rushingAttempts", "rushing.rushingYards", "rushing.yardsPerRushAttempt", "rushing.rushingTouchdowns", "receiving.receivingYards", "receiving.receptions", "scrimYds"],
   WR: ["receiving.receptions", "receiving.receivingTargets", "receiving.receivingYards", "receiving.yardsPerReception", "receiving.receivingTouchdowns", "receiving.longReception", "rectgt"],
+  K: ["fgma", "fieldgoals.fieldGoalPct", "fieldgoals.longFieldGoalMade", "fg50", "fg4049", "xpma", "pats.totalKickingPoints"],
   DEF: ["tackles.totalTackles", "tackles.soloTackles", "tackles.sacks", "tackles.stuffs", "interceptions.interceptions", "interceptions.passesDefended", "fumbles.fumblesForced"],
 };
-const posGroup = (pos) => (pos === "QB" ? "QB" : ["RB", "FB"].includes(pos) ? "RB" : ["WR", "TE"].includes(pos) ? "WR" : "DEF");
+const posGroup = (pos) => (pos === "K" || pos === "PK" ? "K" : pos === "QB" ? "QB" : ["RB", "FB"].includes(pos) ? "RB" : ["WR", "TE"].includes(pos) ? "WR" : "DEF");
 const cmp = { period: "season", nPlayers: 3, nStats: 5, show: "both", slots: [{}, {}, {}], stats: [], note: "", loaded: false };
 
 // ---- stagioni storiche (Confronto giocatori / squadre): ogni box ha la sua stagione
@@ -2758,6 +2768,7 @@ const cmpSeasons = () => [...new Set(cmp.slots.slice(0, cmp.nPlayers).map((sl) =
 const cmpExistsAll = (st) => cmpSeasons().every((y) => cmpFieldExists(st, y));
 function poolsOf(st) {
   const k = st.key;
+  if (/^(fg|xpma)|^fieldgoals\.|^pats\./.test(k)) return []; // kicker: nessuna classifica ESPN caricata → niente rank
   if (k.startsWith("passing.") || k === "cmpatt" || k === "passYdsG") return ["passing"];
   if (k.startsWith("rushing.")) return ["rushing"];
   if (k.startsWith("receiving.") || k === "rectgt") return ["receiving"];
@@ -2825,6 +2836,7 @@ async function ensureRankData(withLogs = true) {
 /** Rank del giocatore nella stat (1 = migliore); "NQ" se non è tra i qualificati del ruolo. */
 function cmpRank(st, sl) {
   const pools = poolsOf(st), y = sl.season || curSeason(), per = cmpPer(sl); // rank dentro stagione e periodo del box
+  if (!pools.length) return null;
   if (!pools.every((p) => cmpRankData.qualified[`${y}|${p}`])) return null;
   const members = new Map();
   for (const p of pools) {
@@ -2875,6 +2887,13 @@ function aggregateGamelog(gl, n) {
     r.stats.forEach((raw, idx) => {
       const k = keys[idx];
       if (!k) return;
+      // kicker: valori "segnati-tentati" (es. "1-2" con chiave "fieldGoalsMade-fieldGoalAttempts") → due somme
+      const pair = /^(\w+)\.(\w+)-(\w+)$/.exec(k), nums = /^(\d+)-(\d+)$/.exec(String(raw).trim());
+      if (pair) {
+        if (!nums) return;
+        for (const [kk, vv] of [[`${pair[1]}.${pair[2]}`, +nums[1]], [`${pair[1]}.${pair[3]}`, +nums[2]]]) { sums[kk] = (sums[kk] || 0) + vv; cnt[kk] = (cnt[kk] || 0) + 1; }
+        return;
+      }
       const v = parseFloat(String(raw).replace(",", ""));
       if (Number.isNaN(v)) return;
       if (/\.long/.test(k)) sums[k] = Math.max(sums[k] ?? -Infinity, v);
@@ -2895,6 +2914,7 @@ function aggregateGamelog(gl, n) {
   }
   if (agg["rushing.rushingAttempts"] != null) agg["rushing.yardsPerRushAttempt"] = div(agg["rushing.rushingYards"] || 0, agg["rushing.rushingAttempts"]);
   if (agg["receiving.receptions"] != null) agg["receiving.yardsPerReception"] = div(agg["receiving.receivingYards"] || 0, agg["receiving.receptions"]);
+  if (agg["fieldgoals.fieldGoalAttempts"] != null) agg["fieldgoals.fieldGoalPct"] = div(agg["fieldgoals.fieldGoalsMade"] || 0, agg["fieldgoals.fieldGoalAttempts"]) * 100;
   return agg;
 }
 function cmpValue(st, agg) {
@@ -2923,8 +2943,9 @@ async function seasonRosterGroups(teamId, season) {
     return { groups: roster.groups.slice().sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key)), coach: roster.coach };
   }
   const all = (await getSeasonPlayers(season)).data.filter((p) => p.teamId === String(teamId));
-  const off = all.filter((p) => ["QB", "RB", "FB", "WR", "TE"].includes(p.pos)), def = all.filter((p) => !off.includes(p));
-  return { groups: [{ key: "offense", label: "Attacco", players: off }, { key: "defense", label: "Difesa", players: def }].filter((g) => g.players.length), coach: null };
+  const off = all.filter((p) => ["QB", "RB", "FB", "WR", "TE"].includes(p.pos)), st = all.filter((p) => ["K", "PK", "P", "LS"].includes(p.pos));
+  const def = all.filter((p) => !off.includes(p) && !st.includes(p));
+  return { groups: [{ key: "offense", label: "Attacco", players: off }, { key: "defense", label: "Difesa", players: def }, { key: "specialTeam", label: "Special team", players: st }].filter((g) => g.players.length), coach: null };
 }
 async function fillRoster(i) {
   const sl = cmp.slots[i], el = cmpEls.slots[i];
@@ -3249,6 +3270,9 @@ const SP_LABELS = {
   "tackles.sacks": "Sack", "tackles.stuffs": "Stuff", "interceptions.interceptions": "Intercetti", "interceptions.passesDefended": "Passaggi deviati",
   "interceptions.interceptionTouchdowns": "TD su intercetto", "fumbles.fumbles": "Fumble", "fumbles.fumblesLost": "Fumble persi",
   "fumbles.fumblesForced": "Fumble forzati", "fumbles.fumblesRecovered": "Fumble recuperati",
+  fgma: "Field goal segnati/tentati", "fieldgoals.fieldGoalPct": "% field goal", "fieldgoals.longFieldGoalMade": "Field goal più lungo",
+  fg50: "Field goal da 50+ yard", fg4049: "Field goal da 40-49 yard", fg3039: "Field goal da 30-39 yard",
+  xpma: "Extra point segnati/tentati", "pats.totalKickingPoints": "Punti segnati",
 };
 const sp = { nSplits: 2, nStats: 7, mode: "avg", highlight: "best", season: 0, team: null, teamInfo: null, player: null, splits: [], stats: [], logs: {}, loaded: false, photoUrl: null, photoUpload: null };
 const spEls = {
@@ -3264,8 +3288,8 @@ function spValue(st, agg) {
   if (!agg || !agg.games) return null;
   const g = agg.games, avg = sp.mode === "avg" && g > 1;
   const fmt = (v) => (v == null || Number.isNaN(v) ? null : Number.isInteger(+v.toFixed(1)) ? String(Math.round(v)) : spNum(v.toFixed(1)));
-  if (st.key === "cmpatt" || st.key === "rectgt") {
-    const [a, b] = st.key === "cmpatt" ? ["passing.completions", "passing.passingAttempts"] : ["receiving.receptions", "receiving.receivingTargets"];
+  if (st.key === "cmpatt" || st.key === "rectgt" || st.frac) {
+    const [a, b] = st.frac || (st.key === "cmpatt" ? ["passing.completions", "passing.passingAttempts"] : ["receiving.receptions", "receiving.receivingTargets"]);
     if (agg[b] == null) return null;
     const d1 = (v) => spNum(v.toFixed(1));
     return { text: avg ? `${d1((agg[a] || 0) / g)}/${d1(agg[b] / g)}` : `${agg[a] ?? 0}/${agg[b]}`, n: agg[b] ? +(((agg[a] || 0) / agg[b]) * 100).toFixed(1) : null };

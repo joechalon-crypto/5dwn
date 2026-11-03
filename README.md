@@ -204,6 +204,10 @@ i coordinatori arrivano dal template "<Squadra> staff" di Wikipedia (`getTeamSta
 12 ore), la foto dalla pagina Wikipedia della persona (`getWikiPhoto`, poi le foto Wikimedia come
 alternative). Solo stagione corrente.
 
+**Kicker** (Confronto giocatori e Confronto stat player): field goal segnati/tentati, FG %, FG più lungo,
+FG da 30-39 / 40-49 / 50+ yard, extra point, punti. Nel gamelog ESPN sono coppie "segnati-tentati"
+(es. "1-2"): si sommano separatamente e la FG % si ricalcola sui totali. Niente rank NFL per queste voci.
+
 **Template 10 — Playoff picture** (riferimento "Playoff picture", solo 16:9): voce **Playoff
 picture** (`?t=playoff-picture`). AFC a sinistra e NFC a destra con i seed ufficiali ESPN della
 classifica aggiornata: 1-4 (vincitrici di division) e, sotto "WILD CARD", 5-7; badge della division,
