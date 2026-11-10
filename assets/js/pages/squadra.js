@@ -1,6 +1,6 @@
-import { renderChrome, loading, showError, staleNotice, teamLogo, teamHref, gameHref, playerHref, espnImg, fmtShort, fmtTime, esc } from "../ui.js?v=202611031818";
-import { getTeams, getTeam, getRoster, getSchedule, getStandings } from "../api.js?v=202611031818";
-import { SQUADRE } from "../../../content/squadre.js?v=202611031818";
+import { renderChrome, loading, showError, staleNotice, teamLogo, teamHref, gameHref, playerHref, espnImg, fmtShort, fmtTime, esc } from "../ui.js?v=202611101058";
+import { getTeams, getTeam, getRoster, getSchedule, getStandings } from "../api.js?v=202611101058";
+import { SQUADRE } from "../../../content/squadre.js?v=202611101058";
 
 renderChrome("squadre");
 

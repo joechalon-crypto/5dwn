@@ -181,6 +181,13 @@ Ogni giocatore ha la spunta **Anonimo**: la foto diventa la sua sagoma scura, il
 della squadra è sostituito da un "?", il nome sparisce e card e barra usano un grigio
 neutro (le statistiche restano).
 
+**Template 12 — Calendari a confronto** (`?t=calendari-confronto`): 2-6 squadre (una riga ciascuna) e
+una colonna per week, da 1 a 9 settimane ("Dalla week / Alla week"), stagione a scelta. In ogni cella
+avversario (VS casa, @ trasferta) con logo; giocata: V/S/P e punteggio su fondo verde/rosso/grigio; da
+giocare: giorno, data e ora italiane; BYE. Nel box squadra il record. Colonna facoltativa "% AVVERSARI":
+percentuale di vittorie degli avversari di quelle week (record attuali ESPN; stagioni passate: record
+finali dai calendari). Proposta iniziale: la division dei Chiefs dalla week in corso per 6 settimane.
+
 **Template 11 — Grafica libera** (`?t=grafica-libera`): cornice 5DWN (sfondo, logo, titolo,
 sottotitolo, footer da "Testi personalizzati") con un contenuto scritto a mano, scelto da
 **Contenuto**: *Tabella* (1-8 righe, 1-4 colonne di valori, intestazioni, squadra per riga con logo e

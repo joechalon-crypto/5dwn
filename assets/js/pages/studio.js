@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611031818";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611031818";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611101058";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611101058";
 
 renderChrome("");
 
@@ -26,6 +26,7 @@ const stages = {
   compare: { root: document.getElementById("gfx-compare"), wrap: document.getElementById("preview-compare"), W: 1920, H: 1080 },
   team: { root: document.getElementById("gfx-team"), wrap: document.getElementById("preview-team"), W: 1920, H: 1080 },
   player: { root: document.getElementById("gfx-player"), wrap: document.getElementById("preview-player"), W: 1920, H: 1080 },
+  multisched: { root: document.getElementById("gfx-multisched"), wrap: document.getElementById("preview-multisched"), W: 1920, H: 1080 },
   free: { root: document.getElementById("gfx-free"), wrap: document.getElementById("preview-free"), W: 1920, H: 1080 },
   playoff: { root: document.getElementById("gfx-playoff"), wrap: document.getElementById("preview-playoff"), W: 1920, H: 1080 },
   statsplit: { root: document.getElementById("gfx-statsplit"), wrap: document.getElementById("preview-statsplit"), W: 1920, H: 1080 },
@@ -289,7 +290,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit", "playoff-picture": "playoff", "grafica-libera": "free" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit", "playoff-picture": "playoff", "grafica-libera": "free", "calendari-confronto": "multisched" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -313,6 +314,7 @@ const OV_FIELDS = {
   statsplit: { title: true, sub: true },
   playoff: { title: true, sub: true, foot: true },
   free: { title: true, sub: true, foot: true },
+  multisched: { title: true, sub: true, foot: true },
   game: {},
 };
 // Testi senza valore automatico: vanno sempre scritti (Confronto giocatori).
@@ -364,6 +366,7 @@ function applyVisibility() {
     else if (el.classList.contains("tpl-statsplit")) ok = tpl === "statsplit";
     else if (el.classList.contains("tpl-playoff")) ok = tpl === "playoff";
     else if (el.classList.contains("tpl-free")) ok = tpl === "free";
+    else if (el.classList.contains("tpl-multisched")) ok = tpl === "multisched";
     else if (el.classList.contains("tpl-tcompare")) ok = tpl === "tcompare" && tc.n > 1; // per ora solo 16:9
     else if (el.classList.contains("tpl-tfocus")) ok = tpl === "tcompare" && tc.n === 1;
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
@@ -371,14 +374,15 @@ function applyVisibility() {
   });
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
   document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
-  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare", "statsplit", "playoff", "free"].includes(tpl);
+  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare", "statsplit", "playoff", "free", "multisched"].includes(tpl);
+  document.querySelectorAll(".multisched-only").forEach((el) => (el.hidden = tpl !== "multisched"));
   document.querySelectorAll(".free-only").forEach((el) => (el.hidden = tpl !== "free"));
   document.querySelectorAll(".statsplit-only").forEach((el) => (el.hidden = tpl !== "statsplit"));
   document.querySelectorAll(".tcompare-only").forEach((el) => (el.hidden = tpl !== "tcompare"));
   document.querySelectorAll(".tfocus-only").forEach((el) => (el.hidden = !(tpl === "tcompare" && tc.n === 1)));
   document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
   document.querySelectorAll(".compare-only").forEach((el) => (el.hidden = tpl !== "compare"));
-  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit", "playoff", "free"].includes(tpl);
+  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit", "playoff", "free", "multisched"].includes(tpl);
   if (tpl === "free") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo si scrivono lì
   if (tpl === "compare" || tpl === "tcompare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
   syncOverrideFields();
@@ -759,6 +763,10 @@ function renderAllInner() {
   }
   if (tpl === "free") {
     if (flReady) renderFreeStage(stages.free);
+    return;
+  }
+  if (tpl === "multisched") {
+    if (ms.loaded) renderMultiSchedStage(stages.multisched);
     return;
   }
   if (tpl === "tcompare") {
@@ -3547,6 +3555,154 @@ document.getElementById("dl-statsplit").addEventListener("click", () => {
   exportPng(stages.statsplit, `5dwn-confronto-stat-${slug}.png`);
 });
 
+// ---------------------------------------------------------------------------- template Calendari a confronto
+// Più squadre (2-6) una sotto l'altra, una colonna per ogni week dell'intervallo: avversario (casa/trasferta),
+// risultato se giocata o data e ora italiane se da giocare, BYE; facoltativa la forza del calendario.
+const MS = { x: 80, w: 1760, top: 245, bot: 935, hdrH: 46, teamW: 330, sosW: 160 };
+const ms = { n: 4, season: 0, from: 1, to: 6, sos: "yes", teams: [], loaded: false, scheds: {}, recs: {} };
+const msEls = {
+  n: document.getElementById("ms-n"), season: document.getElementById("ms-season"), from: document.getElementById("ms-from"), to: document.getElementById("ms-to"), sos: document.getElementById("ms-sos"),
+  teams: [0, 1, 2, 3, 4, 5].map((i) => document.getElementById(`ms-team${i}`)),
+};
+const msWhen = (d) => `${fItDow.format(d).replace(".", "").toUpperCase()} ${fItDM.format(d)} · ${fItTime.format(d)}`;
+async function loadMultiSched() {
+  try {
+    status.textContent = "Carico i calendari…";
+    if (!teamList.length) teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+    const opts = teamList.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join("");
+    msEls.teams.forEach((el) => { if (!el.options.length) el.innerHTML = opts; });
+    if (!msEls.season.options.length) msEls.season.innerHTML = seasonOptions();
+    if (!msEls.from.options.length) { msEls.from.innerHTML = weekOptions(); msEls.to.innerHTML = weekOptions(); }
+    if (!ms.loaded) {
+      // proposta: le squadre della division dei Chiefs, dalla week in corso per 6 settimane
+      const st = (await getStandings()).data;
+      const div = st.divisions.find((d) => d.teams.some((r) => r.team.abbr === "KC")) || st.divisions[0];
+      ms.teams = div.teams.map((r) => r.team.id);
+      ms.n = Math.min(6, ms.teams.length);
+      const w = Number(sb.week) || 1;
+      ms.from = Math.min(w, WEEKS_MAX); ms.to = Math.min(WEEKS_MAX, ms.from + 5);
+      ms.season = curSeason();
+    }
+    while (ms.teams.length < 6) ms.teams.push(teamList.find((t) => !ms.teams.includes(t.id)).id);
+    const season = ms.season || curSeason(), sa = seasonArg(season);
+    await Promise.all(ms.teams.slice(0, ms.n).map(async (id) => {
+      const key = `${season}:${id}`;
+      if (!ms.scheds[key]) ms.scheds[key] = (await getSchedule(id, {}, { seasonType: 2, season: sa, past: !!sa })).data.events;
+    }));
+    // record attuali (classifica ESPN) per la forza del calendario; stagioni passate: record finali dai calendari
+    if (!sa) {
+      const st = (await getStandings()).data;
+      for (const d of st.divisions) for (const r of d.teams) ms.recs[`${season}:${r.team.id}`] = { w: r.w, l: r.l, t: r.t };
+    }
+    ms.loaded = true;
+    msRenderControls();
+    renderAll();
+    status.textContent = `Calendari ESPN regular season ${season} · week ${ms.from}-${ms.to} · ${ms.n} squadre`;
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare i calendari: riprova.";
+  }
+}
+function msRenderControls() {
+  msEls.n.value = String(ms.n); msEls.season.value = String(ms.season || curSeason());
+  msEls.from.value = String(ms.from); msEls.to.value = String(ms.to); msEls.sos.value = ms.sos;
+  msEls.teams.forEach((el, i) => { el.value = ms.teams[i] || ""; el.closest(".select-field").hidden = i >= ms.n; });
+}
+msEls.n.addEventListener("change", () => { ms.n = Number(msEls.n.value); loadMultiSched(); });
+msEls.season.addEventListener("change", () => { ms.season = Number(msEls.season.value); loadMultiSched(); });
+for (const el of [msEls.from, msEls.to]) el.addEventListener("change", () => {
+  let a = Number(msEls.from.value), b = Number(msEls.to.value);
+  if (a > b) [a, b] = [b, a];
+  if (b - a > 8) { b = a + 8; status.textContent = "Al massimo 9 settimane per grafica."; } // oltre non ci stanno
+  ms.from = a; ms.to = b; msRenderControls(); renderAll();
+});
+msEls.sos.addEventListener("change", () => { ms.sos = msEls.sos.value; renderAll(); });
+msEls.teams.forEach((el, i) => el.addEventListener("change", () => { ms.teams[i] = el.value; loadMultiSched(); }));
+
+/** Record di una squadra nella stagione: classifica ESPN (stagione in corso) o dai risultati del calendario. */
+function msRecord(season, id) {
+  const r = ms.recs[`${season}:${id}`];
+  if (r) return r;
+  const ev = ms.scheds[`${season}:${id}`];
+  if (!ev) return null;
+  const done = ev.filter((e) => e.state === "post");
+  return { w: done.filter((e) => e.result === "W").length, l: done.filter((e) => e.result === "L").length, t: done.filter((e) => e.result === "T").length };
+}
+function renderMultiSchedStage(stage) {
+  const { W, H, root } = stage;
+  const year = sb.season.year, season = ms.season || curSeason();
+  const weeks = []; for (let w = ms.from; w <= ms.to; w++) weeks.push(w);
+  const sosOn = ms.sos === "yes";
+  const gridW = MS.w - MS.teamW - (sosOn ? MS.sosW : 0), cw = gridW / weeks.length;
+  const n = ms.n, pitch = Math.min(150, (MS.bot - MS.top - MS.hdrH - 4) / n), rowH = pitch - 4;
+  const top = MS.top + Math.max(0, (MS.bot - MS.top - (MS.hdrH + 4 + n * pitch)) / 2);
+  const kt = Math.min(1, rowH / 100);
+  let html = `<div class="g-bar" style="left:${MS.x}px;top:${top}px;width:${MS.w}px;height:${MS.hdrH}px;background:#0f1e3f"></div>
+    ${T("tcHdr", "SQUADRA", MS.x + 26, top + 17, "left", { color: "#ffffff", scale: 1.25 })}`;
+  weeks.forEach((w, j) => { html += T("tcHdr", `WEEK ${w}`, MS.x + MS.teamW + cw * (j + 0.5), top + 17, "center", { color: "#ffffff", scale: 1.25, maxW: cw - 10 }); });
+  if (sosOn) html += T("tcHdr", "% AVVERSARI", MS.x + MS.w - MS.sosW / 2, top + 17, "center", { color: "#ffffff", scale: 1.1, maxW: MS.sosW - 14 });
+  ms.teams.slice(0, n).forEach((id, i) => {
+    const y = top + MS.hdrH + 4 + i * pitch, t = teamList.find((x) => x.id === id);
+    if (!t) return;
+    const ev = ms.scheds[`${season}:${id}`] || [];
+    const abbr = t.abbr, ink = ST_DARK_TEXT.has(abbr) ? "#111111" : "#ffffff";
+    const rec = msRecord(season, id), recTxt = rec ? `${rec.w}-${rec.l}${rec.t ? `-${rec.t}` : ""}` : "";
+    const lb = Math.min(70, rowH - 18);
+    html += `<div class="g-cell" style="left:${MS.x}px;top:${y}px;width:${MS.teamW - 4}px;height:${rowH}px;background:${ST_CELL[abbr] || t.color || "#333"}"></div>
+      <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${abbr.toLowerCase()}.png`, 160)}" alt="" style="left:${MS.x + 16}px;top:${y + (rowH - lb) / 2}px;width:${lb}px;height:${lb}px">
+      ${T("stT1", (t.location || "").toUpperCase(), MS.x + 30 + lb, y + rowH / 2 - 26 * kt, "left", { color: ink, scale: kt * 1.05, maxW: MS.teamW - lb - 50 })}
+      ${T("stT2", `${(t.nickname || t.short || "").toUpperCase()}${recTxt ? `  ${recTxt}` : ""}`, MS.x + 30 + lb, y + rowH / 2 + 2 * kt, "left", { color: ink, scale: kt * 1.15, maxW: MS.teamW - lb - 50 })}`;
+    let oppW = 0, oppG = 0;
+    weeks.forEach((w, j) => {
+      const x = MS.x + MS.teamW + cw * j, g = ev.find((e) => Number(e.week) === w);
+      const res = g?.state === "post" ? g.result : "";
+      const bg = res === "W" ? "#e3f4e8" : res === "L" ? "#fbe4e4" : res === "T" ? "#eef0f3" : "#ffffff";
+      html += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${cw - 4}px;height:${rowH}px;background:${g ? bg : "#f3f4f6"}"></div>`;
+      if (!g) { html += T("tsBye", "BYE", x + (cw - 4) / 2, y + (rowH - STYLES.tsBye.ref[1] * kt * 1.2) / 2, "center", { color: "#8a909a", scale: kt * 1.2 }); return; }
+      const o = g.opp || {}, ob = Math.min(56, rowH * 0.46, cw * 0.42);
+      const pre = g.home ? "VS" : "@", preW = inkWidth("ppRank", pre) * kt, gap = 8;
+      const gx = x + (cw - 4) / 2 - (preW + gap + ob) / 2, ly = y + rowH * 0.1;
+      html += `${T("ppRank", pre, gx, ly + ob / 2 - STYLES.ppRank.ref[1] * kt / 2, "left", { color: "#5b616e", scale: kt })}
+        <img class="g-logo" crossorigin="anonymous" src="${espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500/${(ABBR_ALIAS[o.abbr] || o.abbr || "").toLowerCase()}.png`, 120)}" alt="" style="left:${gx + preW + gap}px;top:${ly}px;width:${ob}px;height:${ob}px">`;
+      const line2 = res ? `${{ W: "V", L: "S", T: "P" }[res]} ${g.us}-${g.them}` : g.timeValid === false ? "DA DEFINIRE" : msWhen(new Date(g.date));
+      const col = res === "W" ? "#1e9e4a" : res === "L" ? "#d62828" : res === "T" ? "#5b616e" : "#1d2026";
+      html += T(res ? "stT2" : "ppRank", line2, x + (cw - 4) / 2, y + rowH * 0.66, "center", { color: col, scale: kt * (res ? 1.05 : 0.95), maxW: cw - 16 });
+      const orr = msRecord(season, o.id);
+      if (orr) { oppW += orr.w + orr.t / 2; oppG += orr.w + orr.l + orr.t; }
+    });
+    if (sosOn) {
+      const x = MS.x + MS.w - MS.sosW;
+      const pct = oppG ? (oppW / oppG).toFixed(3).replace(/^0/, "") : "–";
+      html += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${MS.sosW}px;height:${rowH}px;background:#0f1e3f"></div>
+        ${T("tcVal", pct, x + MS.sosW / 2, y + (rowH - STYLES.tcVal.ref[1] * kt * 1.2) / 2, "center", { color: "#ffffff", scale: kt * 1.2 })}`;
+    }
+  });
+  const title = ovr("title", "CALENDARI A CONFRONTO"), sub = ovr("sub", `WEEK ${ms.from}-${ms.to} · ${season}`);
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, true)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${["FOOTBALL", "MORE", "THAN", "A GAME"].map((w, i) => T("stSide", w, 46, [47, 71, 95, 118][i], "left", { scale: 1.06 })).join("")}
+      ${rectBar([45, 149, 25, 3], TS_BLUE)}
+      ${rectBar([1850, 48, 25, 3], TS_BLUE)}
+      ${T("stInk", String(year), 1872, 67, "right", { scale: 1.04 })}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${CP.brand[0]}px;top:${CP.brand[1]}px;width:${CP.brand[2]}px;height:${CP.brand[3]}px">
+      ${title ? T("week", title, W / 2, CP.title.cap, "center", { scale: CP.title.h / STYLES.week.ref[1], maxW: CP.title.maxW }) : ""}
+      ${sub ? T("cmpSub", sub, W / 2, CP.sub.cap, "center", { maxW: 1500 }) : ""}
+      ${html}
+      ${T("cmpFoot", ovr("foot", sosOn ? "% AVVERSARI = PERCENTUALE DI VITTORIE DEGLI AVVERSARI IN QUESTE WEEK · ORARI ITALIANI" : "ORARI IN ORA ITALIANA"), 46, 966, "left", { color: TS_BLUE, maxW: 1400 })}
+      ${rectBar([45, 995, 25, 2.5], TS_BLUE)}
+      ${T("tsQd", `QUINTO DOWN ${year}`, 1872, 966, "right")}
+      ${rectBar([1850, 995, 25, 2.5], TS_BLUE)}
+    </div>`;
+  fitPreview(stage);
+}
+document.getElementById("dl-multisched").addEventListener("click", () => {
+  if (!ms.loaded) return;
+  const slug = ms.teams.slice(0, ms.n).map((id) => (teamList.find((t) => t.id === id)?.abbr || "").toLowerCase()).join("-");
+  exportPng(stages.multisched, `5dwn-calendari-${slug}-w${ms.from}-${ms.to}.png`);
+});
+
 // ---------------------------------------------------------------------------- template Grafica libera
 // Cornice 5DWN (sfondo, titolo, sottotitolo, footer) + un contenuto scritto a mano: tabella, lista o testo e foto.
 // Lo stato resta nel browser (localStorage) così il lavoro non si perde ricaricando la pagina.
@@ -4283,7 +4439,7 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat", playoff: "playoff-picture", free: "grafica-libera" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat", playoff: "playoff-picture", free: "grafica-libera", multisched: "calendari-confronto" }[tpl] || "calendario");
   if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
   if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
@@ -4357,6 +4513,7 @@ async function loadWeek() {
   if (tpl === "statsplit") return loadStatSplit();
   if (tpl === "playoff") return loadPlayoff();
   if (tpl === "free") return loadFree();
+  if (tpl === "multisched") return loadMultiSched();
   if (tpl === "tcompare") return loadTCompare();
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;
