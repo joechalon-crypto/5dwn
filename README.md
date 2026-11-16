@@ -113,6 +113,10 @@ nel piè di pagina. La tendina mostra solo le settimane già iniziate e la grafi
 include solo le partite concluse; di default propone l'ultima settimana completa.
 I punteggi arrivano da ESPN tramite il sito, come tutti gli altri dati.
 
+**Bye** (calendario e risultati, Studio e pagina Calendario): nelle settimane con
+squadre a riposo, sotto le partite compare la sezione «BYE» con i loghi delle
+squadre (campo `teamsOnBye` dello scoreboard ESPN). Se nessuno riposa non compare.
+
 **Template 3 — Classifiche** (riferimenti "NFL Standings"): una grafica per
 l'**AFC** e una per l'**NFC**, ciascuna in 16:9 e in 9:16 per le storie IG
 (stesso sfondo e impianto del calendario storie, division una sotto l'altra), con le 4 division (W, L, T = tie, pareggi, PCT con il pareggio contato mezza vittoria), logo della

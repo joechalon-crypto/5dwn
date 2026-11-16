@@ -1,5 +1,5 @@
-import { renderChrome, loading, showError, staleNotice, updatedLine, renderDayGroups, weekLabel, weekShort, weekRange, every, esc } from "../ui.js?v=202611161232";
-import { getScoreboard, getWeek, currentWeekIndex, TTL } from "../api.js?v=202611161232";
+import { renderChrome, loading, showError, staleNotice, updatedLine, renderDayGroups, weekLabel, weekShort, weekRange, every, esc, teamHref } from "../ui.js?v=202611161447";
+import { getScoreboard, getWeek, currentWeekIndex, TTL } from "../api.js?v=202611161447";
 
 renderChrome("calendario");
 
@@ -73,8 +73,14 @@ async function loadWeek({ quiet = false } = {}) {
     const block = (title, list, cls = "") =>
       list.length ? `<div class="cal-block"><h3 class="cal-title ${cls}">${title}</h3>${renderDayGroups(list)}</div>` : "";
 
+    const byes = res.data.byes || [];
+    const byeBlock = byes.length
+      ? `<div class="cal-block"><h3 class="cal-title">Bye</h3><div class="bye-list">${byes
+          .map((t) => `<a class="bye-team" href="${teamHref(t)}"><img class="logo" src="${esc(t.logo)}" alt="" loading="lazy"><span>${esc(t.short)}</span></a>`)
+          .join("")}</div></div>`
+      : "";
     box.innerHTML = games.length
-      ? staleNotice(res) + block("In diretta", live, "live") + block("In programma", next) + block("Risultati", done) + updatedLine(res)
+      ? staleNotice(res) + block("In diretta", live, "live") + block("In programma", next) + block("Risultati", done) + byeBlock + updatedLine(res)
       : `<div class="state">Nessuna partita in calendario per questa settimana.</div>`;
   } catch (err) {
     console.error(err);

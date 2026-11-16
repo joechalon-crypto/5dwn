@@ -503,6 +503,9 @@ a.game:hover .game-meta .status { color: var(--accent); }
 .cal-block + .cal-block { margin-top: 12px; }
 .cal-title { font-size: 1.5rem; color: var(--white); padding-bottom: 6px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
 .cal-title.live { color: var(--live); }
+.bye-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.bye-team { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--white); text-decoration: none; font-family: "Barlow Condensed", sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+.bye-team:hover { border-color: var(--accent); }
 
 /* ---------- Profilo partita ---------- */
 .match-hero { background: var(--navy-2); border: 1px solid var(--line); border-top: 4px solid var(--orange); border-radius: var(--r); padding: 16px; }

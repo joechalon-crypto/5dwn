@@ -285,6 +285,7 @@ async function loadScoreboard(params) {
     week: json.week?.number ?? null,
     calendar: normCalendar(json.leagues?.[0]?.calendar),
     games: (json.events || []).map(normGame).sort((a, b) => new Date(a.date) - new Date(b.date)),
+    byes: (json.week?.teamsOnBye || []).map(normTeam).sort((a, b) => a.abbr.localeCompare(b.abbr)), // squadre a riposo
   };
 }
 
@@ -294,7 +295,7 @@ export function getScoreboard({ seasonType, week, year } = {}, opts = {}) {
   if (seasonType) params.seasontype = seasonType;
   if (week) params.week = week;
   if (year) params.dates = year;
-  const key = `scoreboard:${params.dates || ""}:${params.seasontype || ""}:${params.week || "now"}`;
+  const key = `scoreboard2:${params.dates || ""}:${params.seasontype || ""}:${params.week || "now"}`;
   const ttl = opts.ttl ?? TTL.scoreboard;
   return cached(key, ttl, () => loadScoreboard(params), opts);
 }

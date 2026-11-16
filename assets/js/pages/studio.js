@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611161232";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611161232";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611161447";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611161447";
 
 renderChrome("");
 
@@ -589,6 +589,25 @@ function layoutTall(days) {
   return { html, width: G.colW, height: y };
 }
 
+/** Squadre in bye sotto le partite: intestazione "BYE" e riga di celle colorate con il logo (solo se ci sono). */
+function byeBlock(byes, y, width) {
+  if (!byes?.length) return { html: "", bottom: y };
+  const sepY = y + G.rowToSep;
+  const capTop = sepY + G.sepToHeader;
+  const rowsTop = capTop + G.headerToRow;
+  const gap = G.pitch - G.rowH;
+  const cw = Math.min(G.rowH * 1.9, (width - gap * (byes.length - 1)) / byes.length);
+  let html = `<div class="g-sep" style="left:0;top:${sepY}px;width:${width}px"></div>${T("day", "BYE", 2.2, capTop, "left")}`;
+  byes.forEach((t, i) => {
+    const x = i * (cw + gap);
+    const bg = TEAM_CELL[t.abbr] || t.color || "#333";
+    const logo = espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${t.abbr.toLowerCase()}.png`, 160);
+    html += `<div class="g-cell" style="left:${x}px;top:${rowsTop}px;width:${cw}px;height:${G.rowH}px;background:${bg}"></div>
+      <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="${esc(t.abbr)}" style="left:${x + (cw - G.logoBox) / 2}px;top:${rowsTop + (G.rowH - G.logoBox) / 2}px;width:${G.logoBox}px;height:${G.logoBox}px">`;
+  });
+  return { html, bottom: rowsTop + G.rowH };
+}
+
 let bgSeq = 0; // id univoci: con id ripetuti il browser userebbe il pattern di una grafica nascosta (sfondo tutto grigio)
 function background(W, H, wide) {
   const uid = `${W}-${++bgSeq}`;
@@ -652,6 +671,11 @@ function renderStage(stage, wide) {
   const tz = mainDay ? tzName(mainDay.date) : "CET";
   G = wide ? G_WIDE : G_TALL;
   const L = wide ? layoutWide(days) : layoutTall(days);
+  if (days.length) { // bye in fondo, dentro il blocco (si riduce insieme alle partite se serve)
+    const B = byeBlock(weekData.byes, L.height, L.width);
+    L.html += B.html;
+    L.height = B.bottom;
+  }
   // area utile per le partite: dal cap top della prima intestazione al piè di pagina.
   // Come nei riferimenti il blocco parte sempre dalla stessa altezza e si riduce solo se non ci sta.
   const maxBottom = wide ? 985 : G.maxBottom;
@@ -4749,7 +4773,7 @@ async function loadWeek() {
     const res = await getWeek(entry, sb.season.year);
     const all = res.data.games;
     const games = tpl === "results" ? all.filter((g) => g.state === "post") : all;
-    weekData = { entry, year: sb.season.year, games, days: buildDays(games) };
+    weekData = { entry, year: sb.season.year, games, days: buildDays(games), byes: res.data.byes || [] };
     renderAll();
     status.textContent =
       tpl === "results"
