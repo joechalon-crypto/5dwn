@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611161230";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611161230";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611161232";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611161232";
 
 renderChrome("");
 
@@ -3722,7 +3722,7 @@ const TT_COLORS = { orange: "#e09f58", blue: "#2a50bc", navy: "#0f1e3f", white: 
 const ttDefault = () => ({ n: 10, numbering: "num", color: "orange", labels: Array.from({ length: 12 }, (_, i) => `TIER ${i + 1}`), assign: {}, order: [] });
 const tt = (() => { try { return Object.assign(ttDefault(), JSON.parse(localStorage.getItem(TT_KEY) || "{}")); } catch { return ttDefault(); } })();
 const ttSave = () => { try { localStorage.setItem(TT_KEY, JSON.stringify(tt)); } catch { /* storage non disponibile */ } };
-const ttMark = (i) => (tt.numbering === "letters" ? ["S", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"][i] : String(i + 1));
+const ttMark = (i) => (tt.numbering === "none" ? String(i + 1) : tt.numbering === "letters" ? ["S", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"][i] : String(i + 1));
 let ttReady = false;
 let ttLayout = null; // righe dell'ultima anteprima (per il rilascio dei loghi sull'anteprima)
 function ttRenderControls() {
@@ -3731,7 +3731,7 @@ function ttRenderControls() {
   const sel = (attrs, opts, label) => `<label class="select-field"><span class="select-label">${label}</span><span class="select-wrap"><select class="select" ${attrs} autocomplete="off">${opts}</select></span></label>`;
   box.innerHTML = `<div class="cmp-row">
       ${sel('data-tt="n"', o(Array.from({ length: 10 }, (_, k) => [k + 3, k + 3]), tt.n), "Numero di tier")}
-      ${sel('data-tt="numbering"', o([["num", "1, 2, 3…"], ["letters", "S, A, B, C…"]], tt.numbering), "Numerazione")}
+      ${sel('data-tt="numbering"', o([["num", "1, 2, 3…"], ["letters", "S, A, B, C…"], ["none", "Senza numeri"]], tt.numbering), "Numerazione")}
       ${sel('data-tt="color"', o([["orange", "Arancio"], ["blue", "Blu"], ["navy", "Blu notte"], ["white", "Bianco"]], tt.color), "Colore numeri")}
       <button type="button" class="btn" data-tt="clear">Togli tutte le squadre</button></div>
     <div class="cmp-stats">${Array.from({ length: tt.n }, (_, i) => `<label class="select-field"><span class="select-label">Etichetta tier ${ttMark(i)}</span>
@@ -3848,15 +3848,16 @@ function renderTiersStage(stage) {
   const n = tt.n, pitch = Math.min(120, (TT.bot - TT.top) / n), rowH = pitch - 6;
   const kt = Math.min(1, rowH / 92);
   const numCol = TT_COLORS[tt.color] || TT_COLORS.orange, numInk = tt.color === "orange" || tt.color === "white" ? "#13224a" : "#ffffff";
-  const lx = TT.x + TT.rankW + TT.gap, logoArea = TT.x + TT.rankW + TT.gap + TT.labelW + TT.gap;
+  const noNum = tt.numbering === "none", rankW = noNum ? 0 : TT.rankW, rgap = noNum ? 0 : TT.gap; // senza numeri: niente box
+  const lx = TT.x + rankW + rgap, logoArea = lx + TT.labelW + TT.gap;
   const top = TT.top + Math.max(0, (TT.bot - TT.top - n * pitch) / 2);
   ttLayout = { top, pitch, n };
   let rows = "";
   for (let i = 0; i < n; i++) {
     const y = top + i * pitch;
-    rows += `<div class="g-cell" style="left:${TT.x}px;top:${y}px;width:${TT.rankW}px;height:${rowH}px;background:${numCol}"></div>
-      ${T("ppSeed", ttMark(i), TT.x + TT.rankW / 2, y + (rowH - STYLES.ppSeed.ref[1] * 1.25 * kt) / 2, "center", { color: numInk, scale: 1.25 * kt, maxW: TT.rankW - 10 })}
-      <div class="g-cell" style="left:${lx}px;top:${y}px;width:${TT.labelW}px;height:${rowH}px;background:#13224a"></div>
+    if (!noNum) rows += `<div class="g-cell" style="left:${TT.x}px;top:${y}px;width:${TT.rankW}px;height:${rowH}px;background:${numCol}"></div>
+      ${T("ppSeed", ttMark(i), TT.x + TT.rankW / 2, y + (rowH - STYLES.ppSeed.ref[1] * 1.25 * kt) / 2, "center", { color: numInk, scale: 1.25 * kt, maxW: TT.rankW - 10 })}`;
+    rows += `<div class="g-cell" style="left:${lx}px;top:${y}px;width:${TT.labelW}px;height:${rowH}px;background:#13224a"></div>
       <div class="g-cell" style="left:${logoArea}px;top:${y}px;width:${TT.x + TT.w - logoArea}px;height:${rowH}px;background:#ffffff"></div>`;
     const { lines, sc } = ttLabelLines(tt.labels[i], TT.labelW - 48);
     const lh = STYLES.ttLabel.ref[1] * sc * kt * 1.35, ty = y + (rowH - lh * lines.length + (lh - STYLES.ttLabel.ref[1] * sc * kt)) / 2;
@@ -3877,9 +3878,9 @@ function renderTiersStage(stage) {
   root.innerHTML = `${background(W, H, true)}
     <div class="gfx-layer" style="width:${W}px;height:${H}px">
       <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${892.5}px;top:34px;width:135px;height:32.42px">
-      ${title ? T("week", title, 72, 468, "left", { color: "#13224a", scale: tScale, maxW: TT.x - 72 - 20 }) : ""}
+      ${title ? T("week", title, 72, 468, "left", { color: "#13224a", scale: tScale, maxW: TT.x - 72 - 90 }) : ""}
       ${rectBar([72, 619, 77, 5], "#e09f58")}
-      ${sub ? T("cmpSub", sub, 72, 648, "left", { color: "#13224a", scale: 32 / STYLES.cmpSub.ref[1], maxW: TT.x - 72 - 20 }) : ""}
+      ${sub ? T("cmpSub", sub, 72, 648, "left", { color: "#13224a", scale: 32 / STYLES.cmpSub.ref[1], maxW: TT.x - 72 - 90 }) : ""}
       ${rows}
     </div>`;
   fitPreview(stage);
