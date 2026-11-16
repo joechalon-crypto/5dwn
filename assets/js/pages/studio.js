@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611101058";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611101058";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611161230";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611161230";
 
 renderChrome("");
 
@@ -26,6 +26,7 @@ const stages = {
   compare: { root: document.getElementById("gfx-compare"), wrap: document.getElementById("preview-compare"), W: 1920, H: 1080 },
   team: { root: document.getElementById("gfx-team"), wrap: document.getElementById("preview-team"), W: 1920, H: 1080 },
   player: { root: document.getElementById("gfx-player"), wrap: document.getElementById("preview-player"), W: 1920, H: 1080 },
+  tiers: { root: document.getElementById("gfx-tiers"), wrap: document.getElementById("preview-tiers"), W: 1920, H: 1080 },
   multisched: { root: document.getElementById("gfx-multisched"), wrap: document.getElementById("preview-multisched"), W: 1920, H: 1080 },
   free: { root: document.getElementById("gfx-free"), wrap: document.getElementById("preview-free"), W: 1920, H: 1080 },
   playoff: { root: document.getElementById("gfx-playoff"), wrap: document.getElementById("preview-playoff"), W: 1920, H: 1080 },
@@ -130,6 +131,8 @@ const STYLES = {
   // Template Grafica libera: testo in evidenza e firma
   flQuote: { cls: "gt-sp", family: "Archivo", weight: 700, stretch: "normal", natural: true, dyn: true, ref: ["H", 30, 0] },
   flAuthor: { cls: "gt-sp", family: "Archivo", weight: 700, stretch: "normal", natural: true, dyn: true, track: 0.12, ref: ["H", 18, 0] },
+  // Template Tiers: etichette dei tier
+  ttLabel: { cls: "gt-sp", family: "Archivo", weight: 800, stretch: "normal", natural: true, dyn: true, ref: ["H", 21, 0] },
   // Template Playoff picture
   ppSeed: { cls: "gt-sp", family: "Archivo", weight: 900, stretch: "normal", natural: true, dyn: true, ref: ["H", 27, 0] },
   ppDiv: { cls: "gt-sp", family: "Archivo", weight: 800, stretch: "normal", natural: true, dyn: true, track: 0.16, ref: ["H", 12.5, 0] },
@@ -290,7 +293,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit", "playoff-picture": "playoff", "grafica-libera": "free", "calendari-confronto": "multisched" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit", "playoff-picture": "playoff", "grafica-libera": "free", "calendari-confronto": "multisched", tiers: "tiers" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -315,6 +318,7 @@ const OV_FIELDS = {
   playoff: { title: true, sub: true, foot: true },
   free: { title: true, sub: true, foot: true },
   multisched: { title: true, sub: true, foot: true },
+  tiers: { title: true, sub: true },
   game: {},
 };
 // Testi senza valore automatico: vanno sempre scritti (Confronto giocatori).
@@ -367,6 +371,7 @@ function applyVisibility() {
     else if (el.classList.contains("tpl-playoff")) ok = tpl === "playoff";
     else if (el.classList.contains("tpl-free")) ok = tpl === "free";
     else if (el.classList.contains("tpl-multisched")) ok = tpl === "multisched";
+    else if (el.classList.contains("tpl-tiers")) ok = tpl === "tiers";
     else if (el.classList.contains("tpl-tcompare")) ok = tpl === "tcompare" && tc.n > 1; // per ora solo 16:9
     else if (el.classList.contains("tpl-tfocus")) ok = tpl === "tcompare" && tc.n === 1;
     else ok = (tpl === "calendar" || tpl === "results") && el.dataset.fmt === fmt;
@@ -374,7 +379,8 @@ function applyVisibility() {
   });
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
   document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
-  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare", "statsplit", "playoff", "free", "multisched"].includes(tpl);
+  document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare", "statsplit", "playoff", "free", "multisched", "tiers"].includes(tpl);
+  document.querySelectorAll(".tiers-only").forEach((el) => (el.hidden = tpl !== "tiers"));
   document.querySelectorAll(".multisched-only").forEach((el) => (el.hidden = tpl !== "multisched"));
   document.querySelectorAll(".free-only").forEach((el) => (el.hidden = tpl !== "free"));
   document.querySelectorAll(".statsplit-only").forEach((el) => (el.hidden = tpl !== "statsplit"));
@@ -382,7 +388,7 @@ function applyVisibility() {
   document.querySelectorAll(".tfocus-only").forEach((el) => (el.hidden = !(tpl === "tcompare" && tc.n === 1)));
   document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
   document.querySelectorAll(".compare-only").forEach((el) => (el.hidden = tpl !== "compare"));
-  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit", "playoff", "free", "multisched"].includes(tpl);
+  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit", "playoff", "free", "multisched", "tiers"].includes(tpl);
   if (tpl === "free") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo si scrivono lì
   if (tpl === "compare" || tpl === "tcompare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
   syncOverrideFields();
@@ -767,6 +773,10 @@ function renderAllInner() {
   }
   if (tpl === "multisched") {
     if (ms.loaded) renderMultiSchedStage(stages.multisched);
+    return;
+  }
+  if (tpl === "tiers") {
+    if (ttReady) renderTiersStage(stages.tiers);
     return;
   }
   if (tpl === "tcompare") {
@@ -3703,6 +3713,183 @@ document.getElementById("dl-multisched").addEventListener("click", () => {
   exportPng(stages.multisched, `5dwn-calendari-${slug}-w${ms.from}-${ms.to}.png`);
 });
 
+// ---------------------------------------------------------------------------- template Tiers
+// Riferimento "Tiers" (2000×1125 → 1920×1080): titolo grande a sinistra, a destra una riga per tier
+// (numero, etichetta, loghi delle squadre). Tutto personalizzabile; lo stato resta nel browser.
+const TT_KEY = "5dwn:tiers";
+const TT = { x: 560, w: 1300, top: 84.5, bot: 1060, rankW: 81, labelW: 400, gap: 2.5, logoX: 46, maxLogo: 82, step: 154 };
+const TT_COLORS = { orange: "#e09f58", blue: "#2a50bc", navy: "#0f1e3f", white: "#ffffff" };
+const ttDefault = () => ({ n: 10, numbering: "num", color: "orange", labels: Array.from({ length: 12 }, (_, i) => `TIER ${i + 1}`), assign: {}, order: [] });
+const tt = (() => { try { return Object.assign(ttDefault(), JSON.parse(localStorage.getItem(TT_KEY) || "{}")); } catch { return ttDefault(); } })();
+const ttSave = () => { try { localStorage.setItem(TT_KEY, JSON.stringify(tt)); } catch { /* storage non disponibile */ } };
+const ttMark = (i) => (tt.numbering === "letters" ? ["S", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"][i] : String(i + 1));
+let ttReady = false;
+let ttLayout = null; // righe dell'ultima anteprima (per il rilascio dei loghi sull'anteprima)
+function ttRenderControls() {
+  const box = document.getElementById("tt-controls");
+  const o = (pairs, v) => pairs.map(([k, l]) => `<option value="${k}"${String(k) === String(v) ? " selected" : ""}>${l}</option>`).join("");
+  const sel = (attrs, opts, label) => `<label class="select-field"><span class="select-label">${label}</span><span class="select-wrap"><select class="select" ${attrs} autocomplete="off">${opts}</select></span></label>`;
+  box.innerHTML = `<div class="cmp-row">
+      ${sel('data-tt="n"', o(Array.from({ length: 10 }, (_, k) => [k + 3, k + 3]), tt.n), "Numero di tier")}
+      ${sel('data-tt="numbering"', o([["num", "1, 2, 3…"], ["letters", "S, A, B, C…"]], tt.numbering), "Numerazione")}
+      ${sel('data-tt="color"', o([["orange", "Arancio"], ["blue", "Blu"], ["navy", "Blu notte"], ["white", "Bianco"]], tt.color), "Colore numeri")}
+      <button type="button" class="btn" data-tt="clear">Togli tutte le squadre</button></div>
+    <div class="cmp-stats">${Array.from({ length: tt.n }, (_, i) => `<label class="select-field"><span class="select-label">Etichetta tier ${ttMark(i)}</span>
+      <input type="text" class="text-input" data-tt="label" data-i="${i}" value="${esc(tt.labels[i] || "")}" placeholder="Etichetta (va a capo da sola)" autocomplete="off"></label>`).join("")}</div>
+    ${ttBoard()}`;
+}
+/** Lavagna: riserva + una zona per tier; i loghi si trascinano (o si toccano e poi si tocca la zona). */
+function ttBoard() {
+  const chip = (t) => `<img class="tt-chip${ttPicked === t.abbr ? " is-picked" : ""}" draggable="true" data-abbr="${t.abbr}" src="${teamLogoUrl(t, 120)}" alt="${esc(t.name)}" title="${esc(t.name)}">`;
+  const inTier = (i) => tt.order.filter((a) => tt.assign[a] === i).map((a) => teamList.find((t) => t.abbr === a)).filter(Boolean);
+  const pool = teamList.filter((t) => tt.assign[t.abbr] == null);
+  return `<div class="tt-board">
+    <span class="fl-hint">Trascina i loghi nei tier (anche direttamente sull'anteprima). Lasciato sopra un altro logo, va prima di quello; nella riserva si toglie. Da telefono: tocca il logo, poi la zona.</span>
+    <div class="tt-zone tt-pool" data-zone="pool"><span class="select-label">Squadre da assegnare (${pool.length})</span><div class="tt-logos">${pool.map(chip).join("")}</div></div>
+    ${Array.from({ length: tt.n }, (_, i) => `<div class="tt-zone" data-zone="${i}"><span class="select-label">Tier ${ttMark(i)} · ${esc(tt.labels[i] || "")}</span><div class="tt-logos">${inTier(i).map(chip).join("") || '<span class="tt-empty">Trascina qui</span>'}</div></div>`).join("")}
+  </div>`;
+}
+let ttPicked = null; // logo scelto col tocco (in attesa della zona)
+/** Sposta una squadra nel tier (null = riserva), prima della squadra "before" se indicata. */
+function ttMove(abbr, tier, before) {
+  tt.order = tt.order.filter((x) => x !== abbr);
+  if (tier == null) delete tt.assign[abbr];
+  else {
+    tt.assign[abbr] = tier;
+    const k = before && before !== abbr ? tt.order.indexOf(before) : -1;
+    if (k >= 0) tt.order.splice(k, 0, abbr); else tt.order.push(abbr);
+  }
+  ttPicked = null;
+  ttSave(); ttRenderControls(); renderAll();
+}
+const ttZoneOf = (el) => { const z = el.closest?.(".tt-zone"); return z ? (z.dataset.zone === "pool" ? null : Number(z.dataset.zone)) : undefined; };
+{
+  const box = document.getElementById("tt-controls");
+  box.addEventListener("dragstart", (e) => { const c = e.target.closest?.(".tt-chip"); if (c) { e.dataTransfer.setData("text/plain", c.dataset.abbr); e.dataTransfer.effectAllowed = "move"; } });
+  box.addEventListener("dragover", (e) => { const z = e.target.closest?.(".tt-zone"); if (z) { e.preventDefault(); box.querySelectorAll(".tt-zone.is-over").forEach((x) => x !== z && x.classList.remove("is-over")); z.classList.add("is-over"); } });
+  box.addEventListener("dragleave", (e) => { const z = e.target.closest?.(".tt-zone"); if (z && !z.contains(e.relatedTarget)) z.classList.remove("is-over"); });
+  box.addEventListener("drop", (e) => {
+    const zone = ttZoneOf(e.target);
+    if (zone === undefined) return;
+    e.preventDefault();
+    const abbr = e.dataTransfer.getData("text/plain");
+    if (abbr) ttMove(abbr, zone, e.target.closest(".tt-chip")?.dataset.abbr);
+  });
+  box.addEventListener("click", (e) => {
+    const c = e.target.closest?.(".tt-chip");
+    if (c && !ttPicked) { ttPicked = c.dataset.abbr; ttRenderControls(); return; }
+    const zone = ttZoneOf(e.target);
+    if (ttPicked && zone !== undefined) ttMove(ttPicked, zone, c?.dataset.abbr);
+  });
+  // rilascio direttamente sull'anteprima: il tier è quello della riga sotto il puntatore
+  const prev = document.getElementById("preview-tiers");
+  const tierAt = (e) => {
+    const L = ttLayout, R = stages.tiers.root.getBoundingClientRect(), k = R.width / stages.tiers.W;
+    if (!L || !k) return undefined;
+    const y = (e.clientY - R.top) / k, i = Math.floor((y - L.top) / L.pitch);
+    return i >= 0 && i < L.n ? i : undefined;
+  };
+  prev.addEventListener("dragover", (e) => { if (tpl === "tiers" && tierAt(e) !== undefined) e.preventDefault(); });
+  prev.addEventListener("drop", (e) => {
+    const i = tierAt(e), abbr = e.dataTransfer.getData("text/plain");
+    if (i === undefined || !abbr) return;
+    e.preventDefault();
+    ttMove(abbr, i);
+  });
+}
+function ttChange(e) {
+  const el = e.target, k = el.dataset.tt;
+  if (!k) return;
+  if (k === "n") { tt.n = Number(el.value); for (const a of Object.keys(tt.assign)) if (tt.assign[a] >= tt.n) delete tt.assign[a]; ttSave(); ttRenderControls(); }
+  else if (k === "numbering" || k === "color") { tt[k] = el.value; ttSave(); if (k === "numbering") ttRenderControls(); }
+  else if (k === "label") {
+    tt.labels[Number(el.dataset.i)] = el.value; ttSave();
+    const z = document.querySelector(`.tt-zone[data-zone="${el.dataset.i}"] .select-label`);
+    if (z) z.textContent = `Tier ${ttMark(Number(el.dataset.i))} · ${el.value}`;
+  }
+  else return;
+  renderAll();
+}
+document.getElementById("tt-controls").addEventListener("input", (e) => { if (e.target.dataset.tt === "label") ttChange(e); });
+document.getElementById("tt-controls").addEventListener("change", (e) => { if (e.target.dataset.tt !== "label") ttChange(e); });
+document.getElementById("tt-controls").addEventListener("click", (e) => {
+  if (e.target.dataset.tt !== "clear") return;
+  tt.assign = {}; tt.order = []; ttSave(); ttRenderControls(); renderAll();
+});
+async function loadTiers() {
+  try {
+    if (!teamList.length) teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+    ttReady = true;
+    ttRenderControls();
+    renderAll();
+    status.textContent = "Tiers: trascina i loghi nei tier qui sotto o sull'anteprima. Titolo e sottotitolo in \"Testi personalizzati\".";
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare le squadre: riprova.";
+  }
+}
+/** Etichetta su al massimo 2 righe: va a capo tra le parole, se serve si rimpicciolisce. */
+function ttLabelLines(text, maxW) {
+  const words = String(text || "").toUpperCase().split(/\s+/).filter(Boolean);
+  for (let sc = 1; sc > 0.5; sc -= 0.05) {
+    const lines = [];
+    let line = "";
+    for (const w of words) {
+      const test = line ? `${line} ${w}` : w;
+      if (line && inkWidth("ttLabel", test) * sc > maxW) { lines.push(line); line = w; } else line = test;
+    }
+    if (line) lines.push(line);
+    if (lines.length <= 2 && lines.every((l) => inkWidth("ttLabel", l) * sc <= maxW)) return { lines, sc };
+  }
+  return { lines: [words.join(" ")], sc: 0.5 };
+}
+function renderTiersStage(stage) {
+  const { W, H, root } = stage;
+  const n = tt.n, pitch = Math.min(120, (TT.bot - TT.top) / n), rowH = pitch - 6;
+  const kt = Math.min(1, rowH / 92);
+  const numCol = TT_COLORS[tt.color] || TT_COLORS.orange, numInk = tt.color === "orange" || tt.color === "white" ? "#13224a" : "#ffffff";
+  const lx = TT.x + TT.rankW + TT.gap, logoArea = TT.x + TT.rankW + TT.gap + TT.labelW + TT.gap;
+  const top = TT.top + Math.max(0, (TT.bot - TT.top - n * pitch) / 2);
+  ttLayout = { top, pitch, n };
+  let rows = "";
+  for (let i = 0; i < n; i++) {
+    const y = top + i * pitch;
+    rows += `<div class="g-cell" style="left:${TT.x}px;top:${y}px;width:${TT.rankW}px;height:${rowH}px;background:${numCol}"></div>
+      ${T("ppSeed", ttMark(i), TT.x + TT.rankW / 2, y + (rowH - STYLES.ppSeed.ref[1] * 1.25 * kt) / 2, "center", { color: numInk, scale: 1.25 * kt, maxW: TT.rankW - 10 })}
+      <div class="g-cell" style="left:${lx}px;top:${y}px;width:${TT.labelW}px;height:${rowH}px;background:#13224a"></div>
+      <div class="g-cell" style="left:${logoArea}px;top:${y}px;width:${TT.x + TT.w - logoArea}px;height:${rowH}px;background:#ffffff"></div>`;
+    const { lines, sc } = ttLabelLines(tt.labels[i], TT.labelW - 48);
+    const lh = STYLES.ttLabel.ref[1] * sc * kt * 1.35, ty = y + (rowH - lh * lines.length + (lh - STYLES.ttLabel.ref[1] * sc * kt)) / 2;
+    lines.forEach((l, j) => { rows += T("ttLabel", l, lx + 24, ty + j * lh, "left", { color: "#ffffff", scale: sc * kt }); });
+    // loghi: passo del riferimento, compresso (e loghi più piccoli) quando sono tanti
+    const teams = tt.order.filter((a) => tt.assign[a] === i).map((a) => teamList.find((t) => t.abbr === a)).filter(Boolean);
+    const areaW = TT.x + TT.w - logoArea - TT.logoX - 20, k = teams.length;
+    let box = Math.min(TT.maxLogo * kt, rowH - 14), step = TT.step * kt;
+    if (k > 1 && (k - 1) * step + box > areaW) { step = (areaW - box) / (k - 1); box = Math.min(box, step - 6); step = (areaW - box) / (k - 1); }
+    teams.forEach((t, j) => {
+      rows += `<img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(t, 160)}" alt="" style="left:${logoArea + TT.logoX + j * step}px;top:${y + (rowH - box) / 2}px;width:${box}px;height:${box}px">`;
+    });
+  }
+  const title = ovr("title", "TIERS"), sub = ovr("sub", `VERSO LA WEEK ${sb.week || ""}`.trim());
+  const tScale = 107.5 / STYLES.week.ref[1];
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, true)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${892.5}px;top:34px;width:135px;height:32.42px">
+      ${title ? T("week", title, 72, 468, "left", { color: "#13224a", scale: tScale, maxW: TT.x - 72 - 20 }) : ""}
+      ${rectBar([72, 619, 77, 5], "#e09f58")}
+      ${sub ? T("cmpSub", sub, 72, 648, "left", { color: "#13224a", scale: 32 / STYLES.cmpSub.ref[1], maxW: TT.x - 72 - 20 }) : ""}
+      ${rows}
+    </div>`;
+  fitPreview(stage);
+}
+document.getElementById("dl-tiers").addEventListener("click", () => {
+  if (!ttReady) return;
+  const slug = (overrides.tiers?.sub || `week-${sb.week}`).toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  exportPng(stages.tiers, `5dwn-tiers-${slug}.png`);
+});
+
 // ---------------------------------------------------------------------------- template Grafica libera
 // Cornice 5DWN (sfondo, titolo, sottotitolo, footer) + un contenuto scritto a mano: tabella, lista o testo e foto.
 // Lo stato resta nel browser (localStorage) così il lavoro non si perde ricaricando la pagina.
@@ -4439,7 +4626,7 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat", playoff: "playoff-picture", free: "grafica-libera", multisched: "calendari-confronto" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat", playoff: "playoff-picture", free: "grafica-libera", multisched: "calendari-confronto", tiers: "tiers" }[tpl] || "calendario");
   if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
   if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
@@ -4514,6 +4701,7 @@ async function loadWeek() {
   if (tpl === "playoff") return loadPlayoff();
   if (tpl === "free") return loadFree();
   if (tpl === "multisched") return loadMultiSched();
+  if (tpl === "tiers") return loadTiers();
   if (tpl === "tcompare") return loadTCompare();
   const entry = weeks.find((e) => keyOf(e) === selectedKey);
   if (!entry) return;

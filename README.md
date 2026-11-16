@@ -188,6 +188,13 @@ giocare: giorno, data e ora italiane; BYE. Nel box squadra il record. Colonna fa
 percentuale di vittorie degli avversari di quelle week (record attuali ESPN; stagioni passate: record
 finali dai calendari). Proposta iniziale: la division dei Chiefs dalla week in corso per 6 settimane.
 
+**Template 13 — Tiers** (riferimento "Tiers", `?t=tiers`): titolo grande a sinistra (sostituibile, come
+il sottotitolo) e a destra una riga per tier: numero (1, 2, 3… oppure S, A, B…; colore del box a
+scelta), etichetta (va a capo da sola su 2 righe) e loghi. 3-12 tier. Le squadre si trascinano dalla
+riserva nei tier (anche direttamente sull'anteprima); lasciate sopra un logo vanno prima di quello,
+nella riserva si tolgono; da telefono: tocco sul logo e poi sulla zona. Con tanti loghi in un tier
+passo e dimensione si riducono. Stato salvato nel browser (`5dwn:tiers`).
+
 **Template 11 — Grafica libera** (`?t=grafica-libera`): cornice 5DWN (sfondo, logo, titolo,
 sottotitolo, footer da "Testi personalizzati") con un contenuto scritto a mano, scelto da
 **Contenuto**: *Tabella* (1-8 righe, 1-4 colonne di valori, intestazioni, squadra per riga con logo e
