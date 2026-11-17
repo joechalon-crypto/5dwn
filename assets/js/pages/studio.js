@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611161447";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611161447";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611171350";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611171350";
 
 renderChrome("");
 
@@ -3402,6 +3402,7 @@ function spRenderControls() {
     setRange(el.from, el.to, `w${s.from}-${s.to}`);
   });
   spEls.nSplits.value = String(sp.nSplits); spEls.nStats.value = String(sp.nStats);
+  spEls.highlight.closest(".select-field").hidden = sp.nSplits === 1; // con un periodo non c'è niente da evidenziare
   spRenderStatSelects();
 }
 let spSeq = 0;
@@ -3527,7 +3528,7 @@ function renderStatSplitStage(stage) {
   const year = Math.max(...splits.map((s) => s.season));
   // tabella
   const stats = sp.stats.slice(0, sp.nStats).map((k) => CMP_STATS.find((s) => s.key === k)).filter(Boolean);
-  const [a0, a1] = SP.colArea, cw = (a1 - a0) / n, cx = (i) => a0 + cw * (i + 0.5);
+  const [a0, a1] = n === 1 ? [SP.colArea[0] + 260, SP.colArea[1]] : SP.colArea, cw = (a1 - a0) / n, cx = (i) => a0 + cw * (i + 0.5); // un solo periodo: più spazio alle etichette
   let hdr = `<div class="g-cell" style="left:${C.x}px;top:${C.y}px;width:${C.w}px;height:${C.hdrBot - C.y}px;background:#ffffff"></div>
     ${T("spHdr", "STATISTICA", SP.labelX, SP.hdrCap, "left", { color: "#8a909a" })}`;
   splits.forEach((s, i) => {

@@ -234,7 +234,8 @@ Sottotitolo automatico "DOPO LA WEEK X" (oppure "WEEK X IN CORSO" se la giornata
 titolo, sottotitolo e footer sostituibili.
 
 **Template 9 — Confronto stat player** (riferimento "Drake Maye week 1/3 vs week 4", solo 16:9):
-voce **Confronto stat player** (`?t=confronto-stat`). Lo stesso giocatore in 2 o 3 split: per ogni
+voce **Confronto stat player** (`?t=confronto-stat`). Lo stesso giocatore in 2 o 3 split, oppure
+le stat di **un solo periodo** (tendina **Periodi** = 1: una colonna, niente evidenziazione): per ogni
 split stagione (anche passate) e "dalla week / alla week" (regular season, gamelog ESPN). Proposti:
 dalla prima alla penultima week giocata contro l'ultima. **Valori**: media a partita (i conteggi si
 dividono per le partite; percentuali, medie, rating e record restano tali) o totale. **Evidenzia**:
