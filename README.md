@@ -234,7 +234,8 @@ migliore, a pari il seed). Verificato il 24/11/2026 con Tankathon: 32 scelte e S
 tiebreaker NFL non ci sono, e durante i playoff veri il tabellone resta simulato. **Scambi** di primo
 giro: di serie in `DR_TRADES` / `DR_SWAP` (Wikipedia + CBS + Tankathon), modificabili dalle tendine
 (salvati nel browser, "Ripristina scambi" torna a quelli di serie). Riquadro "VIA" = squadra che ha
-ceduto la scelta; il record è il suo. Scelte: 10, 16, 18 o 32; dati: record e SOS o solo record.
+ceduto la scelta; il record è il suo. Scelte: 10, 16, 18 o 32. In grafica solo il record, piccolo (la SOS serve al calcolo
+e non si mostra).
 
 **Template 10 — Playoff picture** (riferimento "Playoff picture", solo 16:9): voce **Playoff
 picture** (`?t=playoff-picture`). AFC a sinistra e NFC a destra con i seed ufficiali ESPN della

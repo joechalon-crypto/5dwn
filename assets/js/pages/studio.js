@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611241548";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611241548";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611241552";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611241552";
 
 renderChrome("");
 
@@ -1430,7 +1430,7 @@ const DR = {
   tall: { x: 48.3, w: 983.4, top: 396, bot: 1690, gap: 18, cols: { 10: 1, 16: 1, 18: 1, 32: 2 } },
 };
 const dr = (() => {
-  const base = { n: 32, sos: "yes", swap: "yes", trades: null, year: 0 }; // trades null = scambi di serie
+  const base = { n: 32, swap: "yes", trades: null, year: 0 }; // trades null = scambi di serie
   try { return Object.assign(base, JSON.parse(localStorage.getItem(DR_KEY) || "{}")); } catch { return base; }
 })();
 const drSave = () => { try { localStorage.setItem(DR_KEY, JSON.stringify(dr)); } catch { /* storage non disponibile */ } };
@@ -1496,7 +1496,6 @@ function drRenderControls() {
   const tr = drTrades();
   document.getElementById("dr-controls").innerHTML = `<div class="cmp-row">
       ${sel('data-dr="n"', o([[10, "Prime 10"], [16, "Prime 16"], [18, "Prime 18 (senza playoff)"], [32, "Tutto il primo giro (32)"]], dr.n), "Scelte")}
-      ${sel('data-dr="sos"', o([["yes", "Record e SOS"], ["no", "Solo record"]], dr.sos), "Dati")}
       ${DR_SWAP[drYear()] ? sel('data-dr="swap"', o([["yes", "La più alta ai Jets, l'altra ai Cowboys"], ["no", "Nessuna regola"]], dr.swap), "Scelte Cowboys e Packers") : ""}
       <button type="button" class="btn" data-dr="reset">Ripristina scambi</button></div>
     <span class="fl-hint">Scelte di primo giro scambiate: squadra originale e squadra che la possiede. Se arriva un nuovo scambio, aggiungilo in una riga libera.</span>
@@ -1508,7 +1507,7 @@ document.getElementById("dr-controls").addEventListener("change", (e) => {
   const k = e.target.dataset.dr;
   if (!k) return;
   if (k === "n") dr.n = Number(e.target.value);
-  else if (k === "sos" || k === "swap") dr[k] = e.target.value;
+  else if (k === "swap") dr.swap = e.target.value;
   else {
     const t = Array.from({ length: DR_ROWS }, (_, i) => [...(drTrades()[i] || ["", ""])]);
     t[Number(e.target.dataset.i)][k === "from" ? 0 : 1] = e.target.value;
@@ -1522,7 +1521,7 @@ document.getElementById("dr-controls").addEventListener("click", (e) => {
 });
 function drRow(p, x, y, w, h) {
   const k = Math.min(1.45, h / 66.2), g = 2.5, t = p.owner, abbr = t.abbr;
-  const rankW = Math.min(84, Math.max(50, h * 0.8)), recW = Math.min(150, Math.max(84, w * 0.17));
+  const rankW = Math.min(84, Math.max(50, h * 0.8)), recW = Math.min(110, Math.max(66, w * 0.14));
   const tx = x + rankW + g, tw = w - rankW - recW - 2 * g, rx = tx + tw + g;
   const ink = ST_DARK_TEXT.has(abbr) ? "#111111" : "#ffffff";
   const logoB = Math.min(h - 8, tw * 0.24, 84), textX = tx + logoB + (tw > 400 ? 34 : 18);
@@ -1549,12 +1548,8 @@ function drRow(p, x, y, w, h) {
   html += `${T("stT1", n1, textX, ty, "left", { color: ink, scale: tk })}
     ${T("stT2", n2, textX, ty + c1 + lg, "left", { color: ink, scale: tk })}
     <div class="g-cell g-white" style="left:${rx}px;top:${y}px;width:${recW}px;height:${h}px"></div>`;
-  const rk = Math.min(1.5, 1.15 * k), rc = STYLES.stNum.ref[1] * rk;
-  if (dr.sos === "yes") {
-    const sk = Math.max(0.8, Math.min(1.05, 0.82 * k)), sc = STYLES.stCol.ref[1] * sk, ry = y + (h - rc - sc - 9 * k) / 2;
-    html += `${T("stNum", ppRec(p), rx + recW / 2, ry, "center", { scale: rk, maxW: recW - 12 })}
-      ${T("stCol", `SOS ${p.sos.toFixed(3).replace(/^0/, "")}`, rx + recW / 2, ry + rc + 9 * k, "center", { scale: sk, color: "#8a909a", maxW: recW - 10 })}`;
-  } else html += T("stNum", ppRec(p), rx + recW / 2, y + (h - rc) / 2, "center", { scale: rk, maxW: recW - 12 });
+  const rk = Math.min(1, 0.78 * k); // record piccolo: l'informazione principale è la squadra
+  html += T("stNum", ppRec(p), rx + recW / 2, y + (h - STYLES.stNum.ref[1] * rk) / 2, "center", { scale: rk, maxW: recW - 10 });
   return html;
 }
 function renderDraftStage(stage, wide) {
