@@ -226,6 +226,16 @@ alternative). Solo stagione corrente.
 FG da 30-39 / 40-49 / 50+ yard, extra point, punti. Nel gamelog ESPN sono coppie "segnati-tentati"
 (es. "1-2"): si sommano separatamente e la FG % si ricalcola sui totali. Niente rank NFL per queste voci.
 
+**Template 14 — Ordine draft** (`?t=ordine-draft`, 16:9 e 9:16, stile Playoff picture): primo giro
+previsionale "se la stagione finisse oggi", calcolato da classifica e calendario ESPN (ESPN non pubblica
+l'ordine). 1-18 fuori dai playoff per record, a pari record SOS più bassa prima (record di tutti i 17
+avversari), poi seed peggiore nella stessa conference; 19-32 con il tabellone simulato (passa il record
+migliore, a pari il seed). Verificato il 24/11/2026 con Tankathon: 32 scelte e SOS identiche. Gli altri
+tiebreaker NFL non ci sono, e durante i playoff veri il tabellone resta simulato. **Scambi** di primo
+giro: di serie in `DR_TRADES` / `DR_SWAP` (Wikipedia + CBS + Tankathon), modificabili dalle tendine
+(salvati nel browser, "Ripristina scambi" torna a quelli di serie). Riquadro "VIA" = squadra che ha
+ceduto la scelta; il record è il suo. Scelte: 10, 16, 18 o 32; dati: record e SOS o solo record.
+
 **Template 10 — Playoff picture** (riferimento "Playoff picture", solo 16:9): voce **Playoff
 picture** (`?t=playoff-picture`). AFC a sinistra e NFC a destra con i seed ufficiali ESPN della
 classifica aggiornata: 1-4 (vincitrici di division) e, sotto "WILD CARD", 5-7; badge della division,

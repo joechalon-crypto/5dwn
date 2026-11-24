@@ -20,8 +20,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <link rel="preconnect" href="https://site.api.espn.com" crossorigin>
   <link rel="preconnect" href="https://a.espncdn.com">
-  <link rel="stylesheet" href="assets/css/style.css?v=202611171350">
-  <link rel="stylesheet" href="assets/css/studio.css?v=202611171350">
+  <link rel="stylesheet" href="assets/css/style.css?v=202611241548">
+  <link rel="stylesheet" href="assets/css/studio.css?v=202611241548">
 </head>
 <body>
   <header id="site-header" class="site-header">
@@ -46,6 +46,7 @@
             <option value="results">Risultati</option>
             <option value="standings">Classifiche</option>
             <option value="playoff">Playoff picture</option>
+            <option value="draft">Ordine draft</option>
             <option value="game">Partita</option>
             <option value="player">Giocatore</option>
             <option value="compare">Confronto giocatori</option>
@@ -112,6 +113,9 @@
         </div>
         <span class="studio-hint game-only" id="photo-links" hidden></span>
         <span class="studio-status" id="studio-status" role="status"></span>
+      </div>
+      <div class="studio-compare draft-only" hidden>
+        <div id="dr-controls" class="fl-controls"></div>
       </div>
       <div class="studio-compare tiers-only" hidden>
         <div id="tt-controls" class="fl-controls"></div>
@@ -403,6 +407,20 @@
         </div>
         <div class="gfx-preview" id="preview-free"><div class="gfx-scaler"><div class="gfx" id="gfx-free"></div></div></div>
       </section>
+      <section data-fmt="wide" class="studio-block tpl-draft" hidden>
+        <div class="section-head">
+          <div><span class="eyebrow">Ordine draft</span><h2>16:9 · 1920 × 1080</h2></div>
+          <div class="studio-actions"><button type="button" class="btn btn-primary" id="dl-draft">Scarica PNG ordine draft</button></div>
+        </div>
+        <div class="gfx-preview" id="preview-draft"><div class="gfx-scaler"><div class="gfx" id="gfx-draft"></div></div></div>
+      </section>
+      <section data-fmt="tall" class="studio-block tpl-draft" hidden>
+        <div class="section-head">
+          <div><span class="eyebrow">Ordine draft</span><h2>Storie IG 9:16 · 1080 × 1920</h2></div>
+          <div class="studio-actions"><button type="button" class="btn btn-primary" id="dl-draft-tall">Scarica PNG ordine draft</button></div>
+        </div>
+        <div class="gfx-preview portrait" id="preview-draft-tall"><div class="gfx-scaler"><div class="gfx" id="gfx-draft-tall"></div></div></div>
+      </section>
       <section data-fmt="wide" class="studio-block tpl-playoff" hidden>
         <div class="section-head">
           <div><span class="eyebrow">Playoff picture</span><h2>16:9 · 1920 × 1080</h2></div>
@@ -435,6 +453,6 @@
   </main>
 
   <footer id="site-footer" class="site-footer"></footer>
-  <script type="module" src="assets/js/pages/studio.js?v=202611171350"></script>
+  <script type="module" src="assets/js/pages/studio.js?v=202611241548"></script>
 </body>
 </html>

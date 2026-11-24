@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611171350";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611171350";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611241548";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611241548";
 
 renderChrome("");
 
@@ -29,6 +29,8 @@ const stages = {
   tiers: { root: document.getElementById("gfx-tiers"), wrap: document.getElementById("preview-tiers"), W: 1920, H: 1080 },
   multisched: { root: document.getElementById("gfx-multisched"), wrap: document.getElementById("preview-multisched"), W: 1920, H: 1080 },
   free: { root: document.getElementById("gfx-free"), wrap: document.getElementById("preview-free"), W: 1920, H: 1080 },
+  draft: { root: document.getElementById("gfx-draft"), wrap: document.getElementById("preview-draft"), W: 1920, H: 1080 },
+  draftTall: { root: document.getElementById("gfx-draft-tall"), wrap: document.getElementById("preview-draft-tall"), W: 1080, H: 1920 },
   playoff: { root: document.getElementById("gfx-playoff"), wrap: document.getElementById("preview-playoff"), W: 1920, H: 1080 },
   statsplit: { root: document.getElementById("gfx-statsplit"), wrap: document.getElementById("preview-statsplit"), W: 1920, H: 1080 },
 };
@@ -293,7 +295,7 @@ const G_TALL = {
 let G = G_WIDE; // geometria attiva (impostata da renderStage)
 
 // Template attivo: "calendar" (orari + TV) o "results" (punteggi finali, solo partite concluse).
-let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit", "playoff-picture": "playoff", "grafica-libera": "free", "calendari-confronto": "multisched", tiers: "tiers" }[new URLSearchParams(location.search).get("t")] || "calendar";
+let tpl = { risultati: "results", classifiche: "standings", partita: "game", giocatore: "player", squadra: "team", confronto: "compare", "confronto-squadre": "tcompare", "confronto-stat": "statsplit", "playoff-picture": "playoff", "grafica-libera": "free", "calendari-confronto": "multisched", tiers: "tiers", "ordine-draft": "draft" }[new URLSearchParams(location.search).get("t")] || "calendar";
 const SCORE_WIN = "#111111", SCORE_LOSE = "#b9bec8", DASH = "#000000";
 
 // Formato mostrato in anteprima: "wide" (16:9) o "tall" (storie IG 9:16).
@@ -316,6 +318,7 @@ const OV_FIELDS = {
   tcompare: { title: true, sub: true, foot: true },
   statsplit: { title: true, sub: true },
   playoff: { title: true, sub: true, foot: true },
+  draft: { title: true, sub: true, foot: true },
   free: { title: true, sub: true, foot: true },
   multisched: { title: true, sub: true, foot: true },
   tiers: { title: true, sub: true },
@@ -368,6 +371,7 @@ function applyVisibility() {
     else if (el.classList.contains("tpl-team")) ok = tpl === "team"; // per ora solo 16:9
     else if (el.classList.contains("tpl-compare")) ok = tpl === "compare"; // per ora solo 16:9
     else if (el.classList.contains("tpl-statsplit")) ok = tpl === "statsplit";
+    else if (el.classList.contains("tpl-draft")) ok = tpl === "draft" && el.dataset.fmt === fmt;
     else if (el.classList.contains("tpl-playoff")) ok = tpl === "playoff";
     else if (el.classList.contains("tpl-free")) ok = tpl === "free";
     else if (el.classList.contains("tpl-multisched")) ok = tpl === "multisched";
@@ -380,6 +384,7 @@ function applyVisibility() {
   document.querySelectorAll(".game-only").forEach((el) => (el.hidden = !isGameLike()));
   document.querySelectorAll(".player-only").forEach((el) => (el.hidden = tpl !== "player"));
   document.getElementById("fmt-toggle").hidden = ["player", "team", "compare", "tcompare", "statsplit", "playoff", "free", "multisched", "tiers"].includes(tpl);
+  document.querySelectorAll(".draft-only").forEach((el) => (el.hidden = tpl !== "draft"));
   document.querySelectorAll(".tiers-only").forEach((el) => (el.hidden = tpl !== "tiers"));
   document.querySelectorAll(".multisched-only").forEach((el) => (el.hidden = tpl !== "multisched"));
   document.querySelectorAll(".free-only").forEach((el) => (el.hidden = tpl !== "free"));
@@ -388,7 +393,7 @@ function applyVisibility() {
   document.querySelectorAll(".tfocus-only").forEach((el) => (el.hidden = !(tpl === "tcompare" && tc.n === 1)));
   document.querySelectorAll(".team-only").forEach((el) => (el.hidden = tpl !== "team"));
   document.querySelectorAll(".compare-only").forEach((el) => (el.hidden = tpl !== "compare"));
-  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit", "playoff", "free", "multisched", "tiers"].includes(tpl);
+  weekSelect.closest(".select-field").hidden = ["team", "compare", "tcompare", "statsplit", "playoff", "draft", "free", "multisched", "tiers"].includes(tpl);
   if (tpl === "free") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo si scrivono lì
   if (tpl === "compare" || tpl === "tcompare") document.querySelector(".studio-texts").open = true; // titolo e sottotitolo vanno sempre scritti
   syncOverrideFields();
@@ -785,6 +790,10 @@ function syncOverridePlaceholders() {
 function renderAllInner() {
   if (tpl === "statsplit") {
     if (sp.loaded) renderStatSplitStage(stages.statsplit);
+    return;
+  }
+  if (tpl === "draft") {
+    if (drData) { renderDraftStage(stages.draft, true); renderDraftStage(stages.draftTall, false); }
     return;
   }
   if (tpl === "playoff") {
@@ -1314,14 +1323,17 @@ const PP = {
   wild: 577, race: 820, tiles: { top: 841.9, h: 79.7, w: 193.2, gap: 7.8, logoCx: 40, logoBox: 50, textX: 76, rankCap: 15, recCap: 42 },
 };
 let ppData = null; // { conferences: {AFC:[...], NFC:[...]}, byTeam, tag }
+/** Sottotitolo: dopo l'ultima week conclusa, oppure week in corso se ci sono già risultati. */
+function weekTagOf(cur) {
+  const games = cur.games || [], w = Number(cur.week) || 0;
+  const done = games.filter((g) => g.state === "post").length;
+  return !games.length || done === games.length ? `DOPO LA WEEK ${w}` : done === 0 ? `DOPO LA WEEK ${Math.max(1, w - 1)}` : `WEEK ${w} IN CORSO`;
+}
 async function loadPlayoff() {
   try {
     status.textContent = "Carico la classifica playoff ESPN…";
     const [st, cur] = await Promise.all([getStandings(), getScoreboard()]);
-    const d = st.data, games = cur.data.games || [], w = Number(cur.data.week) || 0;
-    const done = games.filter((g) => g.state === "post").length;
-    // sottotitolo: dopo l'ultima week conclusa, oppure week in corso se ci sono già risultati
-    const tag = !games.length || done === games.length ? `DOPO LA WEEK ${w}` : done === 0 ? `DOPO LA WEEK ${Math.max(1, w - 1)}` : `WEEK ${w} IN CORSO`;
+    const d = st.data, tag = weekTagOf(cur.data);
     ppData = { conferences: Object.fromEntries(d.conferences.map((c) => [c.abbr, c.teams])), byTeam: d.byTeam, tag };
     renderAll();
     status.textContent = `Seed ufficiali ESPN (classifica aggiornata) · ${tag.toLowerCase()}`;
@@ -1403,6 +1415,195 @@ document.getElementById("dl-playoff").addEventListener("click", () => {
   if (!ppData) return;
   exportPng(stages.playoff, `5dwn-playoff-picture-${ppData.tag.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${sb.season.year}.png`);
 });
+
+// ---------------------------------------------------------------------------- template Ordine draft
+// Primo giro previsionale "se la stagione finisse oggi", stesso stile della Playoff picture, 16:9 e 9:16.
+// Regole NFL: 1-18 fuori dai playoff (record, poi SOS sull'intero calendario: più bassa = prima); 19-24 eliminate
+// al Wild Card, 25-28 al Divisional, 29-30 alle finali di conference, 31-32 Super Bowl. Il tabellone è simulato:
+// passa il record migliore (pari: il seed). A record e SOS pari, nella stessa conference sceglie prima il seed peggiore.
+const DR_KEY = "5dwn:ordine-draft";
+const DR_TRADES = { 2027: [["IND", "NYJ"], ["LAR", "CLE"], ["CHI", "TEN"], ["JAX", "PHI"]] }; // originale → proprietaria
+const DR_SWAP = { 2027: { pool: ["DAL", "GB"], best: "NYJ", other: "DAL" } }; // la più alta ai Jets, l'altra ai Cowboys
+const DR_ROWS = 10;
+const DR = {
+  wide: { x: 116.2, w: 1687.2, top: 245, bot: 955, gap: 20, cols: { 10: 2, 16: 2, 18: 3, 32: 4 } },
+  tall: { x: 48.3, w: 983.4, top: 396, bot: 1690, gap: 18, cols: { 10: 1, 16: 1, 18: 1, 32: 2 } },
+};
+const dr = (() => {
+  const base = { n: 32, sos: "yes", swap: "yes", trades: null, year: 0 }; // trades null = scambi di serie
+  try { return Object.assign(base, JSON.parse(localStorage.getItem(DR_KEY) || "{}")); } catch { return base; }
+})();
+const drSave = () => { try { localStorage.setItem(DR_KEY, JSON.stringify(dr)); } catch { /* storage non disponibile */ } };
+const drYear = () => curSeason() + 1;
+const drTrades = () => (dr.trades && dr.year === drYear() ? dr.trades : DR_TRADES[drYear()] || []);
+let drData = null; // { order: [{ team, w, l, t, sos, seed, conf, playoff }], byAbbr, tag }
+const drCmp = (a, b) =>
+  Math.sign(+(pctOf(a) - pctOf(b)).toFixed(6)) || Math.sign(+(a.sos - b.sos).toFixed(6)) ||
+  (a.conf === b.conf ? b.seed - a.seed : a.team.abbr.localeCompare(b.team.abbr));
+function drBracket(rows) {
+  const better = (a, b) => (pctOf(a) !== pctOf(b) ? (pctOf(a) > pctOf(b) ? a : b) : a.seed < b.seed ? a : b);
+  const lost = [[], [], [], []], champs = [];
+  for (const conf of ["AFC", "NFC"]) {
+    const s = rows.filter((r) => r.conf === conf).sort((a, b) => a.seed - b.seed);
+    const play = (round, a, b) => { const w = better(a, b); lost[round].push(w === a ? b : a); return w; };
+    const left = [s[0], play(0, s[1], s[6]), play(0, s[2], s[5]), play(0, s[3], s[4])].sort((a, b) => a.seed - b.seed);
+    const f = [play(1, left[0], left[3]), play(1, left[1], left[2])];
+    champs.push(play(2, f[0], f[1]));
+  }
+  return [...lost[0].sort(drCmp), ...lost[1].sort(drCmp), ...lost[2].sort(drCmp), ...champs.sort(drCmp)];
+}
+async function loadDraft() {
+  try {
+    status.textContent = "Calcolo l'ordine del draft…";
+    const regular = weeks.filter((e) => e.seasonType === 2);
+    const [st, cur, ...wk] = await Promise.all([getStandings(), getScoreboard(), ...regular.map((e) => getWeek(e, curSeason()))]);
+    const rows = st.data.conferences.flatMap((c) => c.teams.map((r) => ({ ...r, conf: c.abbr, seed: r.seed ?? 99, opp: [] })));
+    const byId = Object.fromEntries(rows.map((r) => [r.team.id, r]));
+    for (const w of wk) for (const g of w.data.games) {
+      const h = byId[g.home?.team.id], a = byId[g.away?.team.id];
+      if (h && a) { h.opp.push(a); a.opp.push(h); }
+    }
+    for (const r of rows) {
+      const sum = r.opp.reduce((acc, o) => ({ w: acc.w + o.w, l: acc.l + o.l, t: acc.t + o.t }), { w: 0, l: 0, t: 0 });
+      r.sos = pctOf(sum);
+      r.playoff = r.seed <= 7;
+    }
+    const order = [...rows.filter((r) => !r.playoff).sort(drCmp), ...drBracket(rows.filter((r) => r.playoff))];
+    drData = { order, byAbbr: Object.fromEntries(rows.map((r) => [r.team.abbr, r.team])), tag: weekTagOf(cur.data) };
+    drRenderControls();
+    renderAll();
+    const missing = rows.filter((r) => r.opp.length !== 17).length;
+    status.textContent = `Classifica e calendario ESPN · ${drData.tag.toLowerCase()} · a pari record sceglie prima chi ha la SOS più bassa${missing ? ` · attenzione: calendario incompleto per ${missing} squadre, SOS parziale` : ""}`;
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a calcolare l'ordine del draft: riprova.";
+  }
+}
+/** Ordine con le proprietarie delle scelte (scambi + regola Cowboys/Packers). */
+function drPicks() {
+  const owner = Object.fromEntries(drTrades().filter(([f, t]) => f && t));
+  const sw = dr.swap === "yes" && DR_SWAP[drYear()];
+  if (sw) drData.order.filter((r) => sw.pool.includes(r.team.abbr)).forEach((r, i) => { owner[r.team.abbr] = i ? sw.other : sw.best; });
+  return drData.order.map((r, i) => {
+    const t = drData.byAbbr[owner[r.team.abbr]] || r.team;
+    return { ...r, pick: i + 1, owner: t, via: t.abbr !== r.team.abbr ? r.team : null };
+  });
+}
+function drRenderControls() {
+  const o = (pairs, v) => pairs.map(([k, l]) => `<option value="${k}"${String(k) === String(v) ? " selected" : ""}>${esc(l)}</option>`).join("");
+  const sel = (attrs, opts, label) => `<label class="select-field"><span class="select-label">${label}</span><span class="select-wrap"><select class="select" ${attrs} autocomplete="off">${opts}</select></span></label>`;
+  const teams = Object.values(drData.byAbbr).map((t) => [t.abbr, t.nickname || t.short]).sort((a, b) => a[1].localeCompare(b[1])); // nickname: non ambiguo nelle tendine strette
+  const tr = drTrades();
+  document.getElementById("dr-controls").innerHTML = `<div class="cmp-row">
+      ${sel('data-dr="n"', o([[10, "Prime 10"], [16, "Prime 16"], [18, "Prime 18 (senza playoff)"], [32, "Tutto il primo giro (32)"]], dr.n), "Scelte")}
+      ${sel('data-dr="sos"', o([["yes", "Record e SOS"], ["no", "Solo record"]], dr.sos), "Dati")}
+      ${DR_SWAP[drYear()] ? sel('data-dr="swap"', o([["yes", "La più alta ai Jets, l'altra ai Cowboys"], ["no", "Nessuna regola"]], dr.swap), "Scelte Cowboys e Packers") : ""}
+      <button type="button" class="btn" data-dr="reset">Ripristina scambi</button></div>
+    <span class="fl-hint">Scelte di primo giro scambiate: squadra originale e squadra che la possiede. Se arriva un nuovo scambio, aggiungilo in una riga libera.</span>
+    <div class="cmp-players">${Array.from({ length: DR_ROWS }, (_, i) => `<div class="cmp-player"><span class="select-label">Scambio ${i + 1}</span>
+      <div class="cmp-range"><span class="select-wrap"><select class="select" data-dr="from" data-i="${i}" aria-label="Scelta di" autocomplete="off">${o([["", "Scelta di…"], ...teams], tr[i]?.[0] || "")}</select></span>
+      <span class="select-wrap"><select class="select" data-dr="to" data-i="${i}" aria-label="Va a" autocomplete="off">${o([["", "va a…"], ...teams], tr[i]?.[1] || "")}</select></span></div></div>`).join("")}</div>`;
+}
+document.getElementById("dr-controls").addEventListener("change", (e) => {
+  const k = e.target.dataset.dr;
+  if (!k) return;
+  if (k === "n") dr.n = Number(e.target.value);
+  else if (k === "sos" || k === "swap") dr[k] = e.target.value;
+  else {
+    const t = Array.from({ length: DR_ROWS }, (_, i) => [...(drTrades()[i] || ["", ""])]);
+    t[Number(e.target.dataset.i)][k === "from" ? 0 : 1] = e.target.value;
+    dr.trades = t; dr.year = drYear();
+  }
+  drSave(); renderAll();
+});
+document.getElementById("dr-controls").addEventListener("click", (e) => {
+  if (e.target.dataset.dr !== "reset") return;
+  dr.trades = null; dr.swap = "yes"; drSave(); drRenderControls(); renderAll();
+});
+function drRow(p, x, y, w, h) {
+  const k = Math.min(1.45, h / 66.2), g = 2.5, t = p.owner, abbr = t.abbr;
+  const rankW = Math.min(84, Math.max(50, h * 0.8)), recW = Math.min(150, Math.max(84, w * 0.17));
+  const tx = x + rankW + g, tw = w - rankW - recW - 2 * g, rx = tx + tw + g;
+  const ink = ST_DARK_TEXT.has(abbr) ? "#111111" : "#ffffff";
+  const logoB = Math.min(h - 8, tw * 0.24, 84), textX = tx + logoB + (tw > 400 ? 34 : 18);
+  const logo = espnImg(`https://a.espncdn.com/i/teamlogos/nfl/500-dark/${abbr.toLowerCase()}.png`, 160);
+  let html = `<div class="g-cell" style="left:${x}px;top:${y}px;width:${rankW}px;height:${h}px;background:${p.playoff ? TS_BLUE : "#0f1e3f"}"></div>
+    ${T("ppSeed", String(p.pick), x + rankW / 2, y + (h - STYLES.ppSeed.ref[1] * Math.min(k, 1.2)) / 2, "center", { color: "#ffffff", scale: Math.min(k, 1.2), maxW: rankW - 18 })}
+    <div class="g-cell" style="left:${tx}px;top:${y}px;width:${tw}px;height:${h}px;background:${ST_CELL[abbr] || t.color || "#333"}"></div>
+    <img class="g-logo" crossorigin="anonymous" src="${logo}" alt="" style="left:${tx + (tw > 400 ? 18 : 10)}px;top:${y + (h - logoB) / 2}px;width:${logoB}px;height:${logoB}px">`;
+  let textR = tx + tw - 10;
+  if (p.via) { // riquadro bianco "VIA" + logo della squadra che ha ceduto la scelta (in verticale se la cella è stretta)
+    const tight = tw < 290;
+    const bh = tight ? h - 12 : Math.min(h * 0.56, 48), vs = tight ? 0.72 : Math.min(1.1, bh / 40), vw = inkWidth("ppDiv", "VIA") * vs;
+    const vc = STYLES.ppDiv.ref[1] * vs, lb = tight ? bh - vc - 18 : bh - 6, bw = tight ? Math.max(lb, vw) + 10 : vw + lb + 24;
+    const bx = tx + tw - bw - (tw > 400 ? 16 : 6), by = y + (h - bh) / 2;
+    html += `<div class="g-cell g-white" style="left:${bx}px;top:${by}px;width:${bw}px;height:${bh}px"></div>
+      ${T("ppDiv", "VIA", tight ? bx + bw / 2 : bx + 8, tight ? by + 8 : y + (h - vc) / 2, tight ? "center" : "left", { color: "#0f1e3f", scale: vs })}
+      <img class="g-logo" crossorigin="anonymous" src="${teamLogoUrl(p.via, 100)}" alt="" style="left:${tight ? bx + (bw - lb) / 2 : bx + 16 + vw}px;top:${tight ? by + vc + 13 : y + (h - lb) / 2}px;width:${lb}px;height:${lb}px">`;
+    textR = bx - 8;
+  }
+  // città e nome sempre alla stessa scala: se uno non ci sta si riducono insieme
+  const n1 = (t.location || "").toUpperCase(), n2 = (t.nickname || t.short || "").toUpperCase();
+  const tk = k * Math.min(1, (textR - textX) / (Math.max(inkWidth("stT1", n1), inkWidth("stT2", n2)) * k));
+  const c1 = STYLES.stT1.ref[1] * tk, c2 = STYLES.stT2.ref[1] * tk, lg = 8 * tk, ty = y + (h - c1 - c2 - lg) / 2;
+  html += `${T("stT1", n1, textX, ty, "left", { color: ink, scale: tk })}
+    ${T("stT2", n2, textX, ty + c1 + lg, "left", { color: ink, scale: tk })}
+    <div class="g-cell g-white" style="left:${rx}px;top:${y}px;width:${recW}px;height:${h}px"></div>`;
+  const rk = Math.min(1.5, 1.15 * k), rc = STYLES.stNum.ref[1] * rk;
+  if (dr.sos === "yes") {
+    const sk = Math.max(0.8, Math.min(1.05, 0.82 * k)), sc = STYLES.stCol.ref[1] * sk, ry = y + (h - rc - sc - 9 * k) / 2;
+    html += `${T("stNum", ppRec(p), rx + recW / 2, ry, "center", { scale: rk, maxW: recW - 12 })}
+      ${T("stCol", `SOS ${p.sos.toFixed(3).replace(/^0/, "")}`, rx + recW / 2, ry + rc + 9 * k, "center", { scale: sk, color: "#8a909a", maxW: recW - 10 })}`;
+  } else html += T("stNum", ppRec(p), rx + recW / 2, y + (h - rc) / 2, "center", { scale: rk, maxW: recW - 12 });
+  return html;
+}
+function renderDraftStage(stage, wide) {
+  const { W, H, root } = stage, A = wide ? DR.wide : DR.tall;
+  const year = drYear(), picks = drPicks().slice(0, dr.n);
+  const cols = A.cols[dr.n] || 4, perCol = Math.ceil(picks.length / cols);
+  const cw = (A.w - A.gap * (cols - 1)) / cols, pitch = Math.min(128, (A.bot - A.top) / perCol), rowH = pitch - 5;
+  const top = A.top + (A.bot - A.top - pitch * perCol) / 2; // con poche scelte il blocco resta centrato
+  const rows = picks.map((p, i) => drRow(p, A.x + Math.floor(i / perCol) * (cw + A.gap), top + (i % perCol) * pitch, cw, rowH)).join("");
+  const title = ovr("title", `ORDINE DRAFT ${year}`), sub = ovr("sub", `PREVISIONALE · ${drData.tag}`);
+  const foot = ovr("foot", `SE LA STAGIONE FINISSE OGGI${dr.n > 18 ? " · IN BLU LE SCELTE DI CHI È OGGI AI PLAYOFF" : ""}`);
+  const right = W - 48.3, cx = W / 2;
+  // cornice: 16:9 come la Playoff picture, 9:16 come le classifiche storie
+  const frame = wide
+    ? `${T("stSide", "FOOTBALL", 56.5, 54.4)}${T("stSide", "MORE", 56.5, 81.4)}${T("stSide", "THAN", 56.5, 108.8)}${T("stSide", "A GAME", 56.5, 135.4)}
+      <div class="g-bar" style="left:54.8px;top:169.8px;width:27.9px;height:1.7px;background:#b5b8bd"></div>
+      <div class="g-bar" style="left:1835.7px;top:59.7px;width:27.8px;height:2.1px;background:#b5b8bd"></div>
+      ${T("stInk", String(year), 1859.8, 79.4, "right")}
+      <div class="g-bar" style="left:55.2px;top:984.1px;width:27.5px;height:1.3px"></div>
+      ${T("stFoot", foot, 55.2, 1004.2, "left", { maxW: 1500 })}
+      <div class="g-bar" style="left:55.2px;top:1036.1px;width:27.5px;height:1.3px"></div>
+      ${T("stInk", "QUINTO", 1860.3, 960, "right")}${T("stInk", "DOWN", 1860.3, 982.1, "right")}${T("stInk", String(year), 1860.3, 1004.2, "right")}
+      <div class="g-bar" style="left:1835.7px;top:1035.7px;width:27.8px;height:2px;background:#b5b8bd"></div>`
+    : `${T("side", "FOOTBALL", 45.3, 164.2)}${T("side", "MORE", 45.3, 188.3)}${T("side", "THAN", 45.3, 212)}${T("side", "A GAME", 45.3, 235.3)}
+      <div class="g-bar" style="left:44px;top:266.8px;width:25.4px;height:2.2px"></div>
+      ${T("year", String(year), right, 184, "right")}
+      <div class="g-bar" style="left:44px;top:1737.1px;width:25.4px;height:2.2px"></div>
+      ${T("foot", foot, 78.5, 1753.5, "left", { maxW: W - 78.5 - 260 })}
+      ${T("year", "QUINTO DOWN", right, 1720.3, "right")}
+      ${T("year", String(year), right, 1744, "right")}
+      <div class="g-bar" style="left:${right - 21.6}px;top:1772.9px;width:25.5px;height:2.6px"></div>`;
+  root.style.width = `${W}px`;
+  root.style.height = `${H}px`;
+  root.innerHTML = `${background(W, H, wide)}
+    <div class="gfx-layer" style="width:${W}px;height:${H}px">
+      ${frame}
+      <img class="g-logo" src="${BRAND_LOGO}" alt="5DWN" style="left:${cx - 67.5}px;top:${wide ? 17 : 152}px;width:135px;height:32.42px">
+      ${T("week", title, cx, wide ? 72 : 212, "center", { scale: 81.6 / STYLES.week.ref[1], maxW: wide ? 1380 : 640 })}
+      ${T("stSub", sub, cx, wide ? 176.5 : 306, "center", { maxW: wide ? 1500 : 720 })}
+      ${rows}
+    </div>`;
+  fitPreview(stage);
+}
+for (const [id, key, suf] of [["dl-draft", "draft", "16-9"], ["dl-draft-tall", "draftTall", "storie"]]) {
+  document.getElementById(id).addEventListener("click", () => {
+    if (!drData) return;
+    exportPng(stages[key], `5dwn-ordine-draft-${drYear()}-${drData.tag.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${suf}.png`);
+  });
+}
 
 // ---------------------------------------------------------------------------- template Partita della settimana
 // Misurato su "NFL Game of the Week-selection (1).png" (4692×2640 → 1920×1080). Trasferta a sinistra, casa a destra.
@@ -4652,7 +4853,7 @@ function renderSelect() {
 function syncUrl() {
   const url = new URL(location.href);
   url.searchParams.set("w", selectedKey);
-  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat", playoff: "playoff-picture", free: "grafica-libera", multisched: "calendari-confronto", tiers: "tiers" }[tpl] || "calendario");
+  url.searchParams.set("t", { results: "risultati", standings: "classifiche", game: "partita", player: "giocatore", team: "squadra", compare: "confronto", tcompare: "confronto-squadre", statsplit: "confronto-stat", playoff: "playoff-picture", free: "grafica-libera", multisched: "calendari-confronto", tiers: "tiers", draft: "ordine-draft" }[tpl] || "calendario");
   if (isGameLike() && selectedGame) url.searchParams.set("g", selectedGame);
   else url.searchParams.delete("g");
   if (tpl === "player" && playerSel) url.searchParams.set("p", playerSel.id);
@@ -4725,6 +4926,7 @@ async function loadWeek() {
   if (tpl === "compare") return loadCompare();
   if (tpl === "statsplit") return loadStatSplit();
   if (tpl === "playoff") return loadPlayoff();
+  if (tpl === "draft") return loadDraft();
   if (tpl === "free") return loadFree();
   if (tpl === "multisched") return loadMultiSched();
   if (tpl === "tiers") return loadTiers();
