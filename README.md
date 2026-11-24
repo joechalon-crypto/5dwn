@@ -215,6 +215,12 @@ quadratini vicini dell'altro colore), così le parti chiare del soggetto restano
 solo bianco quasi puro collegato ai bordi;
 nel testo `# ` a inizio riga = riga in evidenza (più grande, colore squadra), `- ` = elenco puntato,
 `**parole**` = grassetto. L'export aspetta il caricamento di foto e loghi (max 8 s) per ogni template.
+**Classifiche a confronto** (contenuto della Grafica libera): 2 o 3 classifiche affiancate, 4-16 squadre,
+ognuna con conference (AFC, NFC, NFL) e criterio: seed ufficiali ESPN, record puro senza division, stesse
+qualificate con seed per record, record in conference, contro le .500+, ultime 5, differenza punti, %
+vittorie attesa (pitagorica, esponente 2,37), forza delle vittorie, a mano. A pari record: scontro diretto,
+record in conference, forza delle vittorie, SOS, differenza punti (niente division né avversari comuni),
+oppure "Ordine ESPN" = seed ufficiale. Variazione rispetto alla prima classifica (IN = entra nelle prime 7).
 
 **Staff tecnico (head coach, OC, DC, special teams coordinator)**: selezionabile nelle card del Focus
 squadra e nella lista della Grafica libera (gruppo "Staff tecnico" nei menu). ESPN ha solo l'head coach:

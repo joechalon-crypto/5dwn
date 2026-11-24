@@ -5,8 +5,8 @@
 // "NFL Calendar-selection (1).png" (riportato a 1920×1080).
 // ============================================================================
 
-import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611241552";
-import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611241552";
+import { renderChrome, loading, showError, esc, espnImg, weekLabel, weekRange, tvItalia, dayKey } from "../ui.js?v=202611241601";
+import { getScoreboard, getWeek, getStandings, getSummary, getPlayerMedia, getWebPhotos, getTeams, getSchedule, getRoster, getGamelog, getAthleteRanking, getTeamSeason, getQualified, getEventTeamStats, getSeasonPlayers, getTeamHistory, getTeamStaff, getWikiPhoto, setCurrentSeason, currentWeekIndex } from "../api.js?v=202611241601";
 
 renderChrome("");
 
@@ -1452,24 +1452,33 @@ function drBracket(rows) {
   }
   return [...lost[0].sort(drCmp), ...lost[1].sort(drCmp), ...lost[2].sort(drCmp), ...champs.sort(drCmp)];
 }
+/** Le 32 squadre con conference, avversari, SOS, partite giocate e seed (classifica + calendario ESPN di tutta la stagione). */
+async function leagueRows() {
+  const regular = curWeeks.filter((e) => e.seasonType === 2);
+  const [st, cur, ...wk] = await Promise.all([getStandings(), getScoreboard(), ...regular.map((e) => getWeek(e, curSeason()))]);
+  const rows = st.data.conferences.flatMap((c) => c.teams.map((r) => ({ ...r, conf: c.abbr, confRec: r.conf, seed: r.seed ?? 99, opp: [], games: [] })));
+  const byId = Object.fromEntries(rows.map((r) => [r.team.id, r]));
+  for (const w of wk) for (const g of w.data.games) {
+    const h = byId[g.home?.team.id], a = byId[g.away?.team.id];
+    if (!h || !a) continue;
+    h.opp.push(a); a.opp.push(h);
+    if (g.state !== "post") continue;
+    const d = (g.home.score ?? 0) - (g.away.score ?? 0);
+    h.games.push({ opp: a, date: g.date, res: Math.sign(d) }); a.games.push({ opp: h, date: g.date, res: -Math.sign(d) });
+  }
+  for (const r of rows) {
+    r.sos = pctOf(r.opp.reduce((acc, o) => ({ w: acc.w + o.w, l: acc.l + o.l, t: acc.t + o.t }), { w: 0, l: 0, t: 0 }));
+    r.playoff = r.seed <= 7;
+    r.games.sort((x, y) => new Date(x.date) - new Date(y.date));
+  }
+  return { rows, tag: weekTagOf(cur.data) };
+}
 async function loadDraft() {
   try {
     status.textContent = "Calcolo l'ordine del draft…";
-    const regular = weeks.filter((e) => e.seasonType === 2);
-    const [st, cur, ...wk] = await Promise.all([getStandings(), getScoreboard(), ...regular.map((e) => getWeek(e, curSeason()))]);
-    const rows = st.data.conferences.flatMap((c) => c.teams.map((r) => ({ ...r, conf: c.abbr, seed: r.seed ?? 99, opp: [] })));
-    const byId = Object.fromEntries(rows.map((r) => [r.team.id, r]));
-    for (const w of wk) for (const g of w.data.games) {
-      const h = byId[g.home?.team.id], a = byId[g.away?.team.id];
-      if (h && a) { h.opp.push(a); a.opp.push(h); }
-    }
-    for (const r of rows) {
-      const sum = r.opp.reduce((acc, o) => ({ w: acc.w + o.w, l: acc.l + o.l, t: acc.t + o.t }), { w: 0, l: 0, t: 0 });
-      r.sos = pctOf(sum);
-      r.playoff = r.seed <= 7;
-    }
+    const { rows, tag } = await leagueRows();
     const order = [...rows.filter((r) => !r.playoff).sort(drCmp), ...drBracket(rows.filter((r) => r.playoff))];
-    drData = { order, byAbbr: Object.fromEntries(rows.map((r) => [r.team.abbr, r.team])), tag: weekTagOf(cur.data) };
+    drData = { order, byAbbr: Object.fromEntries(rows.map((r) => [r.team.abbr, r.team])), tag };
     drRenderControls();
     renderAll();
     const missing = rows.filter((r) => r.opp.length !== 17).length;
@@ -4122,6 +4131,8 @@ const flDefault = () => ({
   table: { cols: 2, headers: ["SQUADRA", "VALORE", "", "", ""], highlight: 0,
     rows: [{ team: "BUF", label: "", vals: ["", "", "", ""] }, { team: "KC", label: "", vals: ["", "", "", ""] }, { team: "PHI", label: "", vals: ["", "", "", ""] }] },
   list: { items: [{ team: "BUF", player: "", name: "", sub: "", val: "" }, { team: "KC", player: "", name: "", sub: "", val: "" }, { team: "PHI", player: "", name: "", sub: "", val: "" }] },
+  rank: { cols: 2, n: 7, delta: "yes", val: "auto", tie: "free", lists: [
+    { conf: "AFC", sys: "seed", title: "", manual: [] }, { conf: "AFC", sys: "pure", title: "", manual: [] }, { conf: "AFC", sys: "reseed", title: "", manual: [] }] },
   quote: { team: "", text: "Scrivi qui il testo in evidenza", author: "", photoUrl: "",
     photoSize: "l", fit: "cover", zoom: 100, offX: 0, offY: 0, photoBg: "team", knock: "no", clip: "yes", font: "archivo", weight: 700, size: "auto", align: "left", color: "navy", upper: "no", leading: "normal", valign: "top", bar: "yes" },
 });
@@ -4179,6 +4190,8 @@ function flRenderControls() {
         ${flInput(`data-fl="iname" data-i="${i}"`, it.name, "Nome (vuoto = giocatore o squadra)")}
         ${flInput(`data-fl="isub" data-i="${i}"`, it.sub, "Seconda riga (facoltativa)")}
         ${flInput(`data-fl="ival" data-i="${i}"`, it.val, "Valore (es. 312 YDS)")}</div>`).join("")}</div>`;
+  } else if (fl.mode === "rank") {
+    html += flRankControls();
   } else {
     const Q = fl.quote;
     const o = (pairs, v) => pairs.map(([k, l]) => `<option value="${k}"${String(k) === String(v) ? " selected" : ""}>${l}</option>`).join("");
@@ -4253,6 +4266,17 @@ function flChange(e, live) {
     case "iname": L.items[i].name = v; break;
     case "isub": L.items[i].sub = v; break;
     case "ival": L.items[i].val = v; break;
+    case "kcols": fl.rank.cols = Number(v); rebuild = true; break;
+    case "kn": fl.rank.n = Number(v); rebuild = true; break;
+    case "kdelta": fl.rank.delta = v; break;
+    case "ktie": fl.rank.tie = v; break;
+    case "kval": fl.rank.val = v; break;
+    case "ktitle": fl.rank.lists[i].title = v; break;
+    case "kconf": fl.rank.lists[i].conf = v; if (v === "NFL" && fl.rank.lists[i].sys === "seed") fl.rank.lists[i].sys = "pure"; rebuild = true; break;
+    case "ksys":
+      if (v === "manual") fl.rank.lists[i].manual = flRankList(fl.rank.lists[i]).map((r) => r.team.abbr); // si parte dall'ordine mostrato
+      fl.rank.lists[i].sys = v; rebuild = true; break;
+    case "kteam": fl.rank.lists[i].manual[c] = v; break;
     case "qtext": Q.text = v; break;
     case "qauthor": Q.author = v; break;
     case "qteam": Q.team = v; break;
@@ -4292,11 +4316,12 @@ document.getElementById("fl-controls").addEventListener("click", (e) => {
   if (flPhotoUpload) URL.revokeObjectURL(flPhotoUpload);
   flPhotoUpload = null; fl.quote.photoUrl = ""; flSave(); flRenderControls(); renderAll();
 });
-document.getElementById("fl-mode").addEventListener("change", (e) => { fl.mode = e.target.value; flSave(); flRenderControls(); renderAll(); });
+document.getElementById("fl-mode").addEventListener("change", async (e) => { fl.mode = e.target.value; flSave(); await flRankLoad(); flRenderControls(); renderAll(); });
 let flReady = false;
 async function loadFree() {
   try {
     if (!teamList.length) teamList = (await getTeams()).data.slice().sort((a, b) => a.name.localeCompare(b.name));
+    await flRankLoad();
     flReady = true;
     flRenderControls();
     renderAll();
@@ -4380,6 +4405,150 @@ function flList() {
     const vx = mx + mainW + 4;
     html += `<div class="g-cell" style="left:${vx}px;top:${y}px;width:${valW}px;height:${rowH}px;background:#ffffff"></div>
       ${T("tcVal", it.val || "", vx + valW / 2, y + (rowH - STYLES.tcVal.ref[1] * kt * 1.2) / 2, "center", { color: "#0b0b0b", scale: kt * 1.2, maxW: valW - 30 })}`;
+  });
+  return html;
+}
+// ---- Classifiche a confronto: 2-3 classifiche affiancate, ognuna con conference e criterio suoi (o a mano)
+const KR_SYS = {
+  seed: ["Seed ufficiali di oggi", "SEED DI OGGI"],
+  pure: ["Record puro (senza division)", "RECORD PURO"],
+  reseed: ["Stesse qualificate, seed per record", "SEED PER RECORD"],
+  conf: ["Record in conference", "RECORD IN CONFERENCE"],
+  vs500: ["Record contro squadre da .500 in su", "CONTRO LE .500+"],
+  last5: ["Ultime 5 partite", "ULTIME 5 PARTITE"],
+  diff: ["Differenza punti", "DIFFERENZA PUNTI"],
+  pyth: ["% vittorie attesa (punti fatti e subiti)", "% VITTORIE ATTESA"],
+  sov: ["Forza delle vittorie (record delle battute)", "FORZA DELLE VITTORIE"],
+  manual: ["A mano", "CLASSIFICA"],
+};
+let krData = null; // { rows, tag }
+async function flRankLoad() {
+  if (fl.mode !== "rank" || krData) return;
+  status.textContent = "Carico classifica e calendario ESPN…";
+  try {
+    krData = await leagueRows();
+    status.textContent = `Classifiche a confronto: dati ESPN, ${krData.tag.toLowerCase()}. A pari record: scontro diretto, record in conference, forza delle vittorie, forza del calendario.`;
+  } catch (err) {
+    console.error(err);
+    status.textContent = "Non riesco a caricare la classifica: riprova.";
+  }
+}
+const krRec = (games) => games.reduce((a, g) => { a[g.res > 0 ? "w" : g.res < 0 ? "l" : "t"]++; return a; }, { w: 0, l: 0, t: 0 });
+const krParse = (str) => { const [w = 0, l = 0, t = 0] = String(str || "").split("-").map(Number); return { w, l, t }; };
+const krSov = (r) => { const b = r.games.filter((g) => g.res > 0).map((g) => g.opp); return pctOf(b.reduce((a, o) => ({ w: a.w + o.w, l: a.l + o.l, t: a.t + o.t }), { w: 0, l: 0, t: 0 })); };
+/** Scontri diretti nel gruppo di pari: 2 squadre = bilancio; 3 o più = solo chi le ha battute tutte (o ha perso con tutte). */
+function krH2h(group) {
+  return group.map((r) => {
+    const g = r.games.filter((x) => group.includes(x.opp));
+    if (group.length === 2) return g.reduce((a, x) => a + x.res, 0);
+    const all = group.every((o) => o === r || g.some((x) => x.opp === o));
+    return all && g.every((x) => x.res > 0) ? 1 : all && g.every((x) => x.res < 0) ? -1 : 0;
+  });
+}
+/** Ordine per record senza guardare le division; pari: scontro diretto, conference, SOV, SOS, differenza punti. */
+function krPure(list, inConf) {
+  // "Ordine ESPN": a pari record vale il seed ufficiale (spareggi NFL, che contano anche le division)
+  if (fl.rank.tie === "espn") return list.slice().sort((a, b) => +(pctOf(b) - pctOf(a)).toFixed(6) || a.seed - b.seed || b.diff - a.diff);
+  const steps = [krH2h, ...(inConf ? [(g) => g.map((r) => pctOf(krParse(r.confRec)))] : []), (g) => g.map(krSov), (g) => g.map((r) => r.sos), (g) => g.map((r) => r.diff)];
+  const best = (group) => {
+    let cand = group;
+    for (let k = 0; cand.length > 1 && k < steps.length; k++) {
+      const v = steps[k](cand).map((x) => +x.toFixed(6)), m = Math.max(...v), next = cand.filter((_, i) => v[i] === m);
+      if (next.length < cand.length) { cand = next; k = -1; } // gruppo più piccolo: si riparte dal primo criterio
+    }
+    return cand[0];
+  };
+  const out = [], left = list.slice();
+  while (left.length) {
+    const m = Math.max(...left.map(pctOf));
+    const b = best(left.filter((r) => Math.abs(pctOf(r) - m) < 1e-9));
+    out.push(b); left.splice(left.indexOf(b), 1);
+  }
+  return out;
+}
+/** Valore (per ordinare) e testo del criterio. */
+function krMetric(sys, r) {
+  const rec = (x) => ({ v: pctOf(x), n: x.w, txt: ppRec(x) });
+  if (sys === "conf") return rec(krParse(r.confRec));
+  if (sys === "vs500") return rec(krRec(r.games.filter((g) => pctOf(g.opp) >= 0.5)));
+  if (sys === "last5") return rec(krRec(r.games.slice(-5)));
+  if (sys === "diff") return { v: r.diff, n: 0, txt: `${r.diff > 0 ? "+" : ""}${r.diff}` };
+  if (sys === "pyth") { const e = r.pf ** 2.37 / (r.pf ** 2.37 + r.pa ** 2.37 || 1); return { v: e, n: 0, txt: `${Math.round(e * 100)}%` }; }
+  if (sys === "sov") { const v = krSov(r); return { v, n: 0, txt: v.toFixed(3).replace(/^0/, "") }; }
+  return null;
+}
+function flRankList(L, n = fl.rank.n) {
+  if (!krData) return [];
+  const inConf = L.conf !== "NFL", pool = krData.rows.filter((r) => !inConf || r.conf === L.conf);
+  if (L.sys === "manual") return Array.from({ length: n }, (_, i) => krData.rows.find((r) => r.team.abbr === L.manual[i]) || null);
+  const bySeed = (a, b) => a.seed - b.seed;
+  if (L.sys === "seed") return pool.slice().sort(bySeed).slice(0, n);
+  const pure = krPure(pool, inConf);
+  if (L.sys === "pure") return pure.slice(0, n);
+  if (L.sys === "reseed") return [...pure.filter((r) => r.playoff), ...(inConf ? pool.filter((r) => !r.playoff).sort(bySeed) : pure.filter((r) => !r.playoff))].slice(0, n);
+  const m = new Map(pure.map((r) => [r, krMetric(L.sys, r)]));
+  return pure.slice().sort((a, b) => +(m.get(b).v - m.get(a).v).toFixed(6) || m.get(b).n - m.get(a).n || pure.indexOf(a) - pure.indexOf(b)).slice(0, n);
+}
+function flRankTitles() {
+  const R = fl.rank, confs = [...new Set(R.lists.slice(0, R.cols).map((L) => L.conf))];
+  return ["PLAYOFF A CONFRONTO", `${confs.join(" E ")}${krData ? ` · ${krData.tag}` : ""}`];
+}
+function flRankControls() {
+  const R = fl.rank, o = (pairs, v) => pairs.map(([k, l]) => `<option value="${k}"${String(k) === String(v) ? " selected" : ""}>${esc(l)}</option>`).join("");
+  return `<div class="cmp-row">${flSel('data-fl="kcols"', o([[2, "2"], [3, "3"]], R.cols), "Classifiche")}${flSel('data-fl="kn"', flNum(4, 16, R.n), "Squadre per classifica")}
+      ${flSel('data-fl="kdelta"', o([["yes", "Sì, rispetto alla prima"], ["no", "No"]], R.delta), "Variazione")}
+      ${flSel('data-fl="ktie"', o([["free", "Scontro diretto, poi conference"], ["espn", "Ordine ESPN (spareggi NFL)"]], R.tie), "A pari record")}
+      ${flSel('data-fl="kval"', o([["auto", "Dato del criterio"], ["rec", "Sempre il record"], ["none", "Niente"]], R.val), "Dato a destra")}</div>
+    <div class="cmp-players">${R.lists.slice(0, R.cols).map((L, i) => `<div class="cmp-player"><span class="select-label">Classifica ${i + 1}</span>
+      <span class="select-wrap"><select class="select" data-fl="kconf" data-i="${i}" aria-label="Conference" autocomplete="off">${o([["AFC", "AFC"], ["NFC", "NFC"], ["NFL", "Tutta la NFL"]], L.conf)}</select></span>
+      <span class="select-wrap"><select class="select" data-fl="ksys" data-i="${i}" aria-label="Criterio" autocomplete="off">${o(Object.entries(KR_SYS).filter(([k]) => k !== "seed" || L.conf !== "NFL").map(([k, v]) => [k, v[0]]), L.sys)}</select></span>
+      ${flInput(`data-fl="ktitle" data-i="${i}"`, L.title, `Titolo (vuoto = ${KR_SYS[L.sys][1]})`)}
+      ${L.sys === "manual" ? Array.from({ length: R.n }, (_, c) => `<span class="select-wrap"><select class="select" data-fl="kteam" data-i="${i}" data-c="${c}" aria-label="${c + 1}° posto" autocomplete="off"><option value="">${c + 1}° posto…</option>${teamList.map((t) => `<option value="${t.abbr}"${t.abbr === L.manual[c] ? " selected" : ""}>${c + 1}° · ${esc(t.name)}</option>`).join("")}</select></span>`).join("") : ""}</div>`).join("")}</div>`;
+}
+function flRank() {
+  if (!krData) return "";
+  const R = fl.rank, A = { x: 116, w: 1688, top: 262, bot: 930 }, gap = R.cols === 3 ? 32 : 56, hdrH = 46;
+  const cw = (A.w - gap * (R.cols - 1)) / R.cols, lists = R.lists.slice(0, R.cols), data = lists.map((L) => flRankList(L));
+  const full0 = flRankList(lists[0], lists[0].sys === "manual" ? R.n : 32), inCut = lists[0].conf === "NFL" ? R.n : Math.min(7, R.n);
+  const cut = R.n > 7 ? 14 : 0; // oltre la 7ª: stacco con la riga dei playoff
+  const pitch = Math.min(88, (A.bot - A.top - hdrH - cut) / R.n), h = pitch - 5, k = Math.min(1.25, h / 66.2), g = 2.5;
+  let html = "";
+  lists.forEach((L, ci) => {
+    const x = A.x + ci * (cw + gap), lg = CONF_LOGO[L.conf], box = 42;
+    html += `<img class="g-logo" crossorigin="anonymous" src="${lg ? lg.src : NFL_SHIELD}" alt="${L.conf}" style="left:${x}px;top:${A.top - 10}px;width:${box}px;height:${box}px">
+      ${T("day", (L.title || KR_SYS[L.sys][1]).toUpperCase(), x + box + 14, A.top, "left", { maxW: cw - box - 18 })}`;
+    const showCut = cut && L.conf !== "NFL";
+    data[ci].forEach((r, i) => {
+      const y = A.top + hdrH + i * pitch + (cut && i >= 7 ? cut : 0);
+      if (showCut && i === 7) html += `<div class="g-bar" style="left:${x}px;top:${y - cut / 2 - 4}px;width:${cw}px;height:2px;background:${TS_BLUE}"></div>`;
+      const rankW = Math.min(76, Math.max(46, h * 0.86)), delta = R.delta === "yes" && ci > 0 && L.conf === lists[0].conf;
+      const dW = delta ? Math.min(64, Math.max(46, h * 0.72)) : 0, vW = R.val === "none" ? 0 : 92;
+      const tx = x + rankW + g, tw = cw - rankW - g - (vW ? vW + g : 0) - (dW ? dW + g : 0);
+      html += `<div class="g-cell" style="left:${x}px;top:${y}px;width:${rankW}px;height:${h}px;background:#0f1e3f"></div>
+        ${T("ppSeed", String(i + 1), x + rankW / 2, y + (h - STYLES.ppSeed.ref[1] * Math.min(k, 1.1)) / 2, "center", { color: "#ffffff", scale: Math.min(k, 1.1), maxW: rankW - 18 })}
+        <div class="g-cell" style="left:${tx}px;top:${y}px;width:${tw}px;height:${h}px;background:${r ? flColor(r.team) : "#ffffff"}"></div>`;
+      let vx = tx + tw + g;
+      if (vW) html += `<div class="g-cell g-white" style="left:${vx}px;top:${y}px;width:${vW}px;height:${h}px"></div>`;
+      if (dW) html += `<div class="g-cell g-white" style="left:${vx + (vW ? vW + g : 0)}px;top:${y}px;width:${dW}px;height:${h}px"></div>`;
+      if (!r) return;
+      const t = r.team, ink = flInk(t.abbr), lb = Math.min(h - 8, 70), textX = tx + 16 + lb + 20, maxW = tx + tw - 14 - textX;
+      const n1 = (t.location || "").toUpperCase(), n2 = (t.nickname || t.short || "").toUpperCase();
+      const tk = k * Math.min(1, maxW / (Math.max(inkWidth("stT1", n1), inkWidth("stT2", n2)) * k));
+      const c1 = STYLES.stT1.ref[1] * tk, c2 = STYLES.stT2.ref[1] * tk, lead = 8 * tk, ty = y + (h - c1 - c2 - lead) / 2;
+      html += `<img class="g-logo" crossorigin="anonymous" src="${flLogo(t)}" alt="" style="left:${tx + 16}px;top:${y + (h - lb) / 2}px;width:${lb}px;height:${lb}px">
+        ${T("stT1", n1, textX, ty, "left", { color: ink, scale: tk })}${T("stT2", n2, textX, ty + c1 + lead, "left", { color: ink, scale: tk })}`;
+      if (vW) {
+        const txt = (R.val === "auto" && krMetric(L.sys, r)?.txt) || ppRec(r), vk = Math.min(1, 0.85 * k);
+        html += T("stNum", txt, vx + vW / 2, y + (h - STYLES.stNum.ref[1] * vk) / 2, "center", { scale: vk, maxW: vW - 12 });
+        vx += vW + g;
+      }
+      if (dW) { // posizioni guadagnate o perse rispetto alla prima classifica; IN = entra tra le qualificate (prime 7)
+        const p0 = full0.findIndex((q) => q && q.team.abbr === t.abbr), d = p0 - i, isIn = i < inCut && (p0 < 0 || p0 >= inCut);
+        if (isIn) html += `<div class="g-cell" style="left:${vx}px;top:${y}px;width:${dW}px;height:${h}px;background:#f7b263"></div>`;
+        const txt = isIn ? "IN" : p0 < 0 ? "" : d > 0 ? `+${d}` : d < 0 ? `−${-d}` : "=", dk = Math.min(1.25, 1.1 * k);
+        html += T("ppRank", txt, vx + dW / 2, y + (h - STYLES.ppRank.ref[1] * dk) / 2, "center", { scale: dk, maxW: dW - 12, color: isIn ? "#0f1e3f" : d > 0 ? "#1c8a4a" : d < 0 ? "#c8102e" : "#a9afba" });
+      }
+    });
   });
   return html;
 }
@@ -4608,13 +4777,14 @@ function flQuote() {
 function renderFreeStage(stage) {
   const { W, H, root } = stage;
   const year = sb.season.year;
-  const title = ovr("title", "TITOLO"), sub = ovr("sub", "Sottotitolo");
+  const [autoT, autoS] = fl.mode === "rank" ? flRankTitles() : ["TITOLO", "Sottotitolo"];
+  const title = ovr("title", autoT), sub = ovr("sub", autoS);
   if (fl.mode === "quote") {
     const loads = flTextStyles(fl.quote);
     // font del testo non ancora pronto: si ridisegna appena caricato (misure giuste per gli a capo)
     if (!document.fonts.check(fontStr(STYLES.flQ, 40)) || !document.fonts.check(fontStr(STYLES.flQB, 40))) Promise.all(loads).then(() => renderAll());
   }
-  const body = fl.mode === "list" ? flList() : fl.mode === "quote" ? flQuote() : flTable();
+  const body = fl.mode === "rank" ? flRank() : fl.mode === "list" ? flList() : fl.mode === "quote" ? flQuote() : flTable();
   root.style.width = `${W}px`;
   root.style.height = `${H}px`;
   root.innerHTML = `${background(W, H, true)}
@@ -4636,7 +4806,7 @@ function renderFreeStage(stage) {
 }
 document.getElementById("dl-free").addEventListener("click", () => {
   if (!flReady) return;
-  const slug = (overrides.free?.title || "grafica").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "grafica";
+  const slug = (overrides.free?.title || (fl.mode === "rank" ? `${flRankTitles()[0]} ${flRankTitles()[1]}` : "grafica")).toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "grafica";
   exportPng(stages.free, `5dwn-${slug}.png`);
 });
 
